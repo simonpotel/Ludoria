@@ -4,6 +4,7 @@ class Board:
         self.game_number = game_number
         self.initialize_board()
         print(quadrants)
+    
 
     def initialize_board(self):
         match self.game_number:

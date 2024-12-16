@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
-#from PIL import Image, ImageTk
+from PIL import Image, ImageTk
 
 
 class Render:
@@ -114,13 +114,14 @@ class Render:
         # ligne haute horizontale
             self.canvas.create_line(
                 width_border, width_border, self.canvas_width, width_border)
+            pass
         
     
     def update_tkinter(self):
         self.canvas.delete("all")
         self.draw_game()
         self.canvas.bind("<Button-1>", self.game.event_click_board)
-        
+        return self.root.update()
 
 
         
