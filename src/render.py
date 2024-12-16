@@ -2,13 +2,14 @@ import tkinter as tk
 
 
 class Render:
+    # couleurs des cellules à l'intérieur des quadrants en fonction de leur index
     QUADRANTS_CELLS_COLORS = {0: 'red', 1: 'green', 2: 'blue', 3: 'yellow'}
 
     def __init__(self, game):
         self.game = game
-        self.root = tk.Tk()  
-        self.root.title("KATARENGA & Co") 
-        self.root.geometry("800x800")  
+        self.root = tk.Tk()
+        self.root.title("KATARENGA & Co")
+        self.root.geometry("800x800")
         self.canvas = tk.Canvas(self.root, width=800, height=800)
         self.canvas.pack()
         self.render_board()

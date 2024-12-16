@@ -4,6 +4,7 @@ from tkinter import ttk
 from pathlib import Path
 import json
 from src.katerenga.game import Game as Katerenga
+from src.render import Render
 
 
 class Selector:
@@ -13,8 +14,6 @@ class Selector:
     """
     GAMES = ["katerenga", "congress",
              "isolation"]  # liste des jeux disponibles
-    # couleurs des cellules à l'intérieur des quadrants en fonction de leur index
-    QUADRANTS_CELLS_COLORS = {0: 'red', 1: 'green', 2: 'blue', 3: 'yellow'}
 
     def __init__(self):
         """
@@ -196,7 +195,7 @@ class Selector:
                 # pour chaque colonne du quadrant
                 for col_i, cell in enumerate(row):
                     # couleur de la cellule en fonction de son index
-                    color = self.QUADRANTS_CELLS_COLORS[cell[1]]
+                    color = Render.QUADRANTS_CELLS_COLORS[cell[1]]
                     # coordonnée x du coin supérieur gauche de la cellule
                     x1 = x_offset + col_i * cell_size
                     # coordonnée y du coin supérieur gauche de la cellule
