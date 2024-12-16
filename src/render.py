@@ -29,6 +29,7 @@ class Render:
         self.canvas.pack(pady=(10,0)) #margin du canvas de 10 en haut
         self.load_images()
         self.draw_game() #fonction qui dessine le jeu
+        self.root.mainloop() #boucle principale de la fenêtre tkinter
 
     """
     def load_images(self):
@@ -90,13 +91,14 @@ class Render:
                 self.canvas.create_rectangle(x, y, w, h, outline="", fill=fill_color)
 
 
+                piece, player = self.game.board.get_board()[i][j]  # Ajout de cette ligne
                 if piece is not None:
-                    if piece == 1:
+                    if piece == 1 or piece == 2:
                         image = self.images[f"tower_player_{player + 1}"]
-                    elif piece == 2:
-                        image = self.images[f"tower_player_{player + 1}"]
-                    image_id = self.canvas.create_image(x + width_cell // 2, y + height_cell // 2, image=image)
-                    self.canvas.tag_bind(image_id, '<Button-1>', lambda _, i=i, j=j: self.game.event_click_piece(i, j))
+                        image_id = self.canvas.create_image(
+                            x + width_cell // 2, y + height_cell // 2, image=image)
+                        self.canvas.tag_bind(image_id, '<Button-1>', lambda _, i=i, j=j: self.game.event_click_piece(i, j))
+
 
             for i in range(size + 1):
                 # lines horizontales
@@ -112,8 +114,12 @@ class Render:
         # ligne haute horizontale
             self.canvas.create_line(
                 width_border, width_border, self.canvas_width, width_border)
-
-
+        
+    
+    def update_tkinter(self):
+        self.canvas.delete("all")
+        self.draw_game()
+        self.canvas.bind("<Button-1>", self.game.event_click_board)
         
 
 
