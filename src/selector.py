@@ -65,47 +65,25 @@ class Selector:
             if game_save in self.get_saved_games() or selected_game in self.GAMES:
                 self.root.destroy()
                 # Red = 0, Green = 1, Blue = 2, Yellow = 3
-                quadrant_1 = [[(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red'])],
-                              [(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green']), (
-                                  None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Yellow'])],
-                              [(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red']), (
-                                  None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Blue'])],
-                              [(None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green'])]]
+                quadrant_1 = [[[None, self.QUADRANTS_COLORS['Yellow']], [None, self.QUADRANTS_COLORS['Blue']], [None, self.QUADRANTS_COLORS['Green']], [None, self.QUADRANTS_COLORS['Red']]],
+                            [[None, self.QUADRANTS_COLORS['Red']], [None, self.QUADRANTS_COLORS['Green']], [None, self.QUADRANTS_COLORS['Yellow']], [None, self.QUADRANTS_COLORS['Yellow']]],
+                            [[None, self.QUADRANTS_COLORS['Green']], [None, self.QUADRANTS_COLORS['Red']], [None, self.QUADRANTS_COLORS['Blue']], [None, self.QUADRANTS_COLORS['Blue']]],
+                            [[None, self.QUADRANTS_COLORS['Blue']], [None, self.QUADRANTS_COLORS['Yellow']], [None, self.QUADRANTS_COLORS['Red']], [None, self.QUADRANTS_COLORS['Green']]]]
 
-                quadrant_2 = [[(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green'])],
-                              [(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue']), (
-                                  None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red'])],
-                              [(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green']), (
-                                  None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue'])],
-                              [(None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Green'])]]
+                quadrant_2 = [[[None, self.QUADRANTS_COLORS['Red']], [None, self.QUADRANTS_COLORS['Yellow']], [None, self.QUADRANTS_COLORS['Blue']], [None, self.QUADRANTS_COLORS['Green']]],
+                            [[None, self.QUADRANTS_COLORS['Yellow']], [None, self.QUADRANTS_COLORS['Blue']], [None, self.QUADRANTS_COLORS['Green']], [None, self.QUADRANTS_COLORS['Red']]],
+                            [[None, self.QUADRANTS_COLORS['Red']], [None, self.QUADRANTS_COLORS['Green']], [None, self.QUADRANTS_COLORS['Yellow']], [None, self.QUADRANTS_COLORS['Blue']]],
+                            [[None, self.QUADRANTS_COLORS['Blue']], [None, self.QUADRANTS_COLORS['Red']], [None, self.QUADRANTS_COLORS['Yellow']], [None, self.QUADRANTS_COLORS['Green']]]]
 
-                quadrant_3 = [[(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Red'])],
-                              [(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Red']), (
-                                  None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Blue'])],
-                              [(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow']), (
-                                  None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green'])],
-                              [(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow'])]]
+                quadrant_3 = [[[None, self.QUADRANTS_COLORS['Green']], [None, self.QUADRANTS_COLORS['Blue']], [None, self.QUADRANTS_COLORS['Yellow']], [None, self.QUADRANTS_COLORS['Red']]],
+                            [[None, self.QUADRANTS_COLORS['Yellow']], [None, self.QUADRANTS_COLORS['Red']], [None, self.QUADRANTS_COLORS['Green']], [None, self.QUADRANTS_COLORS['Blue']]],
+                            [[None, self.QUADRANTS_COLORS['Red']], [None, self.QUADRANTS_COLORS['Yellow']], [None, self.QUADRANTS_COLORS['Blue']], [None, self.QUADRANTS_COLORS['Green']]],
+                            [[None, self.QUADRANTS_COLORS['Green']], [None, self.QUADRANTS_COLORS['Blue']], [None, self.QUADRANTS_COLORS['Red']], [None, self.QUADRANTS_COLORS['Yellow']]]]
 
-                quadrant_4 = [[(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green'])],
-                              [(None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Yellow']), (
-                                  None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red'])],
-                              [(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Blue']), (
-                                  None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow'])],
-                              [(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue'])]]
-
-                quadrant_5 = [[(None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow'])],
-                              [(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow']), (
-                                  None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green'])],
-                              [(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red']), (
-                                  None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue'])],
-                              [(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red'])]]
-
-                quadrant_6 = [[(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue'])],
-                              [(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue']), (
-                                  None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green'])],
-                              [(None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green']), (
-                                  None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Red'])],
-                              [(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green'])]]
+                quadrant_4 = [[[None, self.QUADRANTS_COLORS['Yellow']], [None, self.QUADRANTS_COLORS['Red']], [None, self.QUADRANTS_COLORS['Blue']], [None, self.QUADRANTS_COLORS['Green']]],
+                            [[None, self.QUADRANTS_COLORS['Blue']], [None, self.QUADRANTS_COLORS['Yellow']], [None, self.QUADRANTS_COLORS['Green']], [None, self.QUADRANTS_COLORS['Red']]],
+                            [[None, self.QUADRANTS_COLORS['Green']], [None, self.QUADRANTS_COLORS['Blue']], [None, self.QUADRANTS_COLORS['Red']], [None, self.QUADRANTS_COLORS['Yellow']]],
+                            [[None, self.QUADRANTS_COLORS['Red']], [None, self.QUADRANTS_COLORS['Green']], [None, self.QUADRANTS_COLORS['Yellow']], [None, self.QUADRANTS_COLORS['Blue']]]]
 
                 match selected_game:
                     case "katerenga":
