@@ -6,7 +6,9 @@ class Game:
         self.game_save = game_save
         #self.load_game()
         #self.render = Render()
-        #self.board = Board(quadrants)
+        # game numbers: 0 = katerenga, 1 = ...
+        game_number = 0
+        self.board = Board(quadrants, game_number)
 
     #def load_game(self):
     #    pass
