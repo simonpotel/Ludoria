@@ -3,12 +3,10 @@ class Board:
         self.quadrants = quadrants
         self.game_number = game_number
         self.initialize_board()
-        print(quadrants)
-    
 
     def initialize_board(self):
         match self.game_number:
-            case 0: 
+            case 0:
                 for i in range(4):
                     self.quadrants[0][0][i][0] = 0
                     self.quadrants[1][0][i][0] = 0
@@ -35,4 +33,3 @@ class Board:
                 self.quadrants[3][2][3][0] = 1
                 self.quadrants[3][3][0][0] = 1
                 self.quadrants[3][3][2][0] = 0
-                
