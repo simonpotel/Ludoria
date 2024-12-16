@@ -150,7 +150,7 @@ class Selector:
 
     def load_game(self):
         """
-        Charge le jeu sélectionné avec les quadrants sélectionnés.
+        procédure qui charge le jeu sélectionné avec les quadrants sélectionnés
         """
         game_save = self.entry_game_save.get()  # nom du jeu
         selected_game = self.game_selection.get()  # jeu sélectionné
