@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
 import os
+import json
 from src.katerenga.game import Game as Katerenga
 
 
@@ -22,87 +23,53 @@ class Selector:
         self.root.mainloop()
 
     def create_quadrants(self):
+        with open('configs/quadrants.json', 'r') as file:
+            quadrants_config = json.load(file)
         quadrants = []
-        quadrants.append([[(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red'])],
-                          [(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green']), (
-                              None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Yellow'])],
-                          [(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red']), (
-                              None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Blue'])],
-                          [(None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green'])]])
-        quadrants.append([[(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green'])],
-                          [(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue']), (
-                              None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red'])],
-                          [(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green']), (
-                              None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue'])],
-                          [(None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Green'])]])
-        quadrants.append([[(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Red'])],
-                          [(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Red']), (
-                              None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Blue'])],
-                          [(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow']), (
-                              None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green'])],
-                          [(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow'])]])
-        quadrants.append([[(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green'])],
-                          [(None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Yellow']), (
-                              None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red'])],
-                          [(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Blue']), (
-                              None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow'])],
-                          [(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue'])]])
-        quadrants.append([[(None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow'])],
-                          [(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red']), (
-                              None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue'])],
-                          [(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue']), (
-                              None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red'])],
-                          [(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green'])]])
-        quadrants.append([[(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Blue'])],
-                          [(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Blue']), (
-                              None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Green'])],
-                          [(None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green']), (
-                              None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow'])],
-                          [(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Blue'])]])
-        quadrants.append([[(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue'])],
-                          [(None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Yellow']), (
-                              None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red'])],
-                          [(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red']), (
-                              None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Yellow'])],
-                          [(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green'])]])
-        quadrants.append([[(None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red'])],
-                          [(None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green']), (
-                              None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Yellow'])],
-                          [(None, self.QUADRANTS_COLORS['Blue']), (None, self.QUADRANTS_COLORS['Yellow']), (
-                              None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Green'])],
-                          [(None, self.QUADRANTS_COLORS['Green']), (None, self.QUADRANTS_COLORS['Red']), (None, self.QUADRANTS_COLORS['Yellow']), (None, self.QUADRANTS_COLORS['Blue'])]])
+        for key in sorted(quadrants_config.keys(), key=int):
+            quadrants.append(quadrants_config[key])
         return quadrants
 
     def setup_initial_ui(self):
-        tk.Label(self.root, text="Game Name:").pack(pady=10)
-        self.entry_game_save = ttk.Combobox(self.root)
+        config_frame = tk.Frame(self.root)
+        config_frame.grid(row=0, column=0, padx=10, pady=10, sticky="n")
+
+        tk.Label(config_frame, text="Game Name:").pack(pady=10)
+        self.entry_game_save = ttk.Combobox(config_frame)
         self.entry_game_save['values'] = self.get_saved_games()
         self.entry_game_save.pack(pady=10)
         self.entry_game_save.bind(
             "<<ComboboxSelected>>", self.on_game_save_change)
         self.entry_game_save.bind("<KeyRelease>", self.on_game_save_change)
 
-        tk.Label(self.root, text="Select Game:").pack(pady=10)
-        self.game_selection = ttk.Combobox(self.root, state="readonly")
+        tk.Label(config_frame, text="Select Game:").pack(pady=10)
+        self.game_selection = ttk.Combobox(config_frame, state="readonly")
         self.game_selection['values'] = self.GAMES
         self.game_selection.current(0)
         self.game_selection.pack(pady=10)
 
-        tk.Label(self.root, text="Assign Quadrants:").pack(pady=10)
+        tk.Label(config_frame, text="Assign Quadrants:").pack(pady=10)
         self.quadrant_selectors = []
         for i in range(4):
-            selector = ttk.Combobox(self.root, state="readonly")
-            selector['values'] = [f"Quadrant {j+1}" for j in range(8)]
-            selector.current(i)
+            selector = ttk.Combobox(config_frame, state="readonly")
+            selector['values'] = [f"Quadrant {j+1}" for j in range(len(self.quadrants))]
+            if i < len(self.quadrants):
+                selector.current(i)
+            else:
+                selector.current(0)
             selector.pack(pady=5)
             selector.bind("<<ComboboxSelected>>", self.update_canvas)
             self.quadrant_selectors.append(selector)
 
-        tk.Button(self.root, text="Load Game",
+        tk.Button(config_frame, text="Load Game",
                   command=self.load_game).pack(pady=10)
 
         self.canvas = tk.Canvas(self.root, width=400, height=400)
-        self.canvas.pack(pady=10)
+        self.canvas.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+
+        self.root.grid_columnconfigure(1, weight=1)
+        self.root.grid_rowconfigure(0, weight=1)
+
         self.draw_quadrants()
 
     def get_saved_games(self):
@@ -178,6 +145,6 @@ class Selector:
                     y2 = y1 + cell_size
                     self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
 
-
     def update_canvas(self, event=None):
         self.draw_quadrants()
+

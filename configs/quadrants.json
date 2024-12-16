@@ -1,0 +1,56 @@
+{
+    "1": [
+        [[null, 3], [null, 2], [null, 1], [null, 0]],
+        [[null, 0], [null, 1], [null, 3], [null, 3]],
+        [[null, 1], [null, 0], [null, 2], [null, 2]],
+        [[null, 2], [null, 3], [null, 0], [null, 1]]
+    ],
+    "2": [
+        [[null, 0], [null, 1], [null, 2], [null, 3]],
+        [[null, 3], [null, 3], [null, 1], [null, 0]],
+        [[null, 2], [null, 1], [null, 0], [null, 3]],
+        [[null, 1], [null, 0], [null, 3], [null, 2]]
+    ],
+    "3": [
+        [[null, 1], [null, 2], [null, 3], [null, 0]],
+        [[null, 0], [null, 2], [null, 3], [null, 1]],
+        [[null, 3], [null, 0], [null, 1], [null, 2]],
+        [[null, 2], [null, 1], [null, 0], [null, 3]]
+    ],
+    "4": [
+        [[null, 0], [null, 3], [null, 2], [null, 1]],
+        [[null, 1], [null, 3], [null, 2], [null, 0]],
+        [[null, 2], [null, 1], [null, 0], [null, 3]],
+        [[null, 3], [null, 0], [null, 1], [null, 2]]
+    ],
+    "5": [
+        [[null, 1], [null, 2], [null, 0], [null, 3]],
+        [[null, 2], [null, 1], [null, 2], [null, 0]],
+        [[null, 3], [null, 0], [null, 3], [null, 1]],
+        [[null, 0], [null, 1], [null, 3], [null, 2]]
+    ],
+    "6": [
+        [[null, 3], [null, 0], [null, 2], [null, 1]],
+        [[null, 0], [null, 2], [null, 1], [null, 2]],
+        [[null, 1], [null, 3], [null, 0], [null, 3]],
+        [[null, 2], [null, 3], [null, 1], [null, 0]]
+    ],
+    "7": [
+        [[null, 3], [null, 2], [null, 1], [null, 0]],
+        [[null, 0], [null, 2], [null, 3], [null, 3]],
+        [[null, 2], [null, 1], [null, 0], [null, 1]],
+        [[null, 1], [null, 0], [null, 3], [null, 2]]
+    ],
+    "8": [
+        [[null, 0], [null, 1], [null, 1], [null, 3]],
+        [[null, 3], [null, 3], [null, 2], [null, 0]],
+        [[null, 1], [null, 0], [null, 1], [null, 2]],
+        [[null, 2], [null, 3], [null, 0], [null, 1]]
+    ],
+    "9": [
+        [[null, 0], [null, 0], [null, 0], [null, 0]],
+        [[null, 0], [null, 0], [null, 0], [null, 0]],
+        [[null, 0], [null, 0], [null, 0], [null, 0]],
+        [[null, 0], [null, 0], [null, 0], [null, 0]]
+    ]
+}
