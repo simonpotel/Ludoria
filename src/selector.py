@@ -4,6 +4,7 @@ from tkinter import ttk
 from pathlib import Path
 import json
 from src.katerenga.game import Game as Katerenga
+from src.render import Render
 
 
 class Selector:
@@ -13,8 +14,6 @@ class Selector:
     """
     GAMES = ["katerenga", "congress",
              "isolation"]  # liste des jeux disponibles
-    # couleurs des cellules à l'intérieur des quadrants en fonction de leur index
-    QUADRANTS_CELLS_COLORS = {0: 'red', 1: 'green', 2: 'blue', 3: 'yellow'}
 
     def __init__(self):
         """
@@ -77,14 +76,17 @@ class Selector:
         self.quadrant_selectors = []  # liste des combobox pour la sélection des quadrants
         self.selected_quadrants = []  # Initialize selected_quadrants here
         for i in range(4):
+            # création d'un frame pour la combobox et les boutons de rotation
+            frame = tk.Frame(config_frame)
+            frame.pack(pady=5)
             # création de la combobox pour la sélection du quadrant
-            selector = self.create_quadrant_selector(config_frame, i)
+            selector = self.create_quadrant_selector(frame, i)
             # ajout de la combobox à la liste des combobox
             self.quadrant_selectors.append(selector)
             self.selected_quadrants.append(
                 [row[:] for row in self.quadrants[i]])
             # création des boutons de rotation pour chaque quadrant
-            self.create_rotation_buttons(config_frame, i)
+            self.create_rotation_buttons(frame, i)
 
         tk.Button(config_frame, text="Load Game", command=self.load_game).pack(
             pady=10)  # bouton pour charger le jeu
@@ -115,12 +117,10 @@ class Selector:
         """
         fonction qui crée les boutons de rotation pour un quadrant
         """
-        frame = tk.Frame(parent)
-        frame.pack(pady=5)
-        tk.Button(frame, text="⤴️", command=lambda i=index: self.rotate_left(i)).pack(
+        tk.Button(parent, text="⤴️", command=lambda i=index: self.rotate_left(i)).pack(
             side="left")  # bouton pour rotation à gauche
-        tk.Button(frame, text="⤵️", command=lambda i=index: self.rotate_right(i)).pack(
-            side="right")  # bouton pour rotation à droite
+        tk.Button(parent, text="⤵️", command=lambda i=index: self.rotate_right(i)).pack(
+            side="left")  # bouton pour rotation à droite
 
     def get_saved_games(self):
         """
@@ -156,15 +156,8 @@ class Selector:
         if not game_save:
             messagebox.showerror("Error", "Please enter a game name.")
             return
-        # si le nom de la game_save est dans la liste des jeux sauvegardés ou si le jeu sélectionné est dans la liste des jeux disponibles
         if game_save in self.get_saved_games() or selected_game in self.GAMES:
-            self.selected_quadrants = []
-            for selector in self.quadrant_selectors:
-                quadrant_index = int(selector.get()) - 1
-                # ajout du quadrant sélectionné à la liste des quadrants sélectionnés
-                self.selected_quadrants.append(
-                    [row[:] for row in self.quadrants[quadrant_index]])
-            self.root.destroy()  # fermeture de la fenêtre tkinter
+            self.root.destroy()
             if selected_game == "katerenga":
                 game = Katerenga(game_save, self.selected_quadrants)
                 game.load_game()
@@ -202,7 +195,7 @@ class Selector:
                 # pour chaque colonne du quadrant
                 for col_i, cell in enumerate(row):
                     # couleur de la cellule en fonction de son index
-                    color = self.QUADRANTS_CELLS_COLORS[cell[1]]
+                    color = Render.QUADRANTS_CELLS_COLORS[cell[1]]
                     # coordonnée x du coin supérieur gauche de la cellule
                     x1 = x_offset + col_i * cell_size
                     # coordonnée y du coin supérieur gauche de la cellule
@@ -216,17 +209,27 @@ class Selector:
         """
         procédure qui s'active lorsqu'un changement est détecté dans une combobox de sélection de quadrant
         """
+        self.update_selected_quadrants()
         self.draw_quadrants()
+
+    def update_selected_quadrants(self):
+        for i, selector in enumerate(self.quadrant_selectors):
+            quadrant_index = int(selector.get()) - 1
+            if not self.selected_quadrants[i] == self.quadrants[quadrant_index]:
+                continue
+        self.selected_quadrants[i] = [row[:]
+                                      for row in self.quadrants[quadrant_index]]
 
     def rotate_right(self, index):
         """
         procédure qui fait tourner un quadrant vers la droite
         """
+        current_quadrant = self.selected_quadrants[index]
         rotated_quadrant = []
         for row in range(4):
             new_row = []
             for col in range(4):
-                new_row.append(self.selected_quadrants[index][3 - col][row])
+                new_row.append(current_quadrant[3 - col][row])
             rotated_quadrant.append(new_row)
         self.selected_quadrants[index] = rotated_quadrant
         self.draw_quadrants()
@@ -235,11 +238,12 @@ class Selector:
         """
         procédure qui fait tourner un quadrant vers la gauche
         """
+        current_quadrant = self.selected_quadrants[index]
         rotated_quadrant = []
         for row in range(4):
             new_row = []
             for col in range(4):
-                new_row.append(self.selected_quadrants[index][col][3 - row])
+                new_row.append(current_quadrant[col][3 - row])
             rotated_quadrant.append(new_row)
         self.selected_quadrants[index] = rotated_quadrant
         self.draw_quadrants()
