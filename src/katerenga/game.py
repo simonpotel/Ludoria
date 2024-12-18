@@ -11,6 +11,5 @@ class Game:
         self.board = Board(quadrants, game_number)
         self.render = Render(game=self)
 
-
     def load_game(self):
         self.render.root.mainloop()
