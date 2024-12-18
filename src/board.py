@@ -5,16 +5,17 @@ class Board:
         self.initialize_board()
         self.merge_quadrants()
 
-    def initialize_board(self):
+    def initialize_board(self): #prépose les pions sur le plateau
         match self.game_number:
-            case 0:
+            case 0: # katerenga
                 for i in range(4):
                     self.quadrants[0][0][i][0] = 0
                     self.quadrants[1][0][i][0] = 0
                     self.quadrants[2][3][i][0] = 1
                     self.quadrants[3][3][i][0] = 1
+                    
 
-            case 1:
+            case 1: # congress
                 self.quadrants[0][0][1][0] = 0
                 self.quadrants[0][0][3][0] = 1
                 self.quadrants[0][1][0][0] = 1
