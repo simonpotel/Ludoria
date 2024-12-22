@@ -4,7 +4,8 @@ from PIL import Image, ImageTk
 
 class Render:
     # couleurs des cellules à l'intérieur des quadrants en fonction de leur index
-    QUADRANTS_CELLS_COLORS = {0: 'red', 1: 'green', 2: 'blue', 3: 'yellow', None: 'white'}
+    QUADRANTS_CELLS_COLORS = {0: 'red', 1: 'green', 2: 'blue',
+                              3: 'yellow', 4: 'white', 5: 'black', None: 'grey'}
 
     def __init__(self, game, canvas_size=600):
         self.game = game
@@ -12,8 +13,11 @@ class Render:
         self.board_size = len(game.board.board)  # taille du board dynamique
         self.root = tk.Tk()
         self.root.title("KATARENGA & Co")
-        self.root.geometry(f"{canvas_size}x{canvas_size}")  # taille de la fenêtre
-        self.canvas = tk.Canvas(self.root, width=canvas_size, height=canvas_size)  # canvas pour dessiner le plateau
+        # taille de la fenêtre
+        self.root.geometry(f"{canvas_size}x{canvas_size}")
+        # canvas pour dessiner le plateau
+        self.canvas = tk.Canvas(
+            self.root, width=canvas_size, height=canvas_size)
         self.canvas.pack()  # afficher le canvas
 
         self.load_images()  # charge les images des pièces
@@ -27,12 +31,19 @@ class Render:
         cell_size = self.canvas_size // self.board_size  # taille d'une cellule
 
         for player in [0, 1]:  # joueur 0 ou 1
-            image = Image.open(f"assets/towns/{player}_tower.png")  # ouvrir l'image
-            aspect_ratio = image.width / image.height  # ratio de l'image (largeur / hauteur)
-            width = int(cell_size * aspect_ratio)  # trouver le ratio de la taille de cellule par rapport à l'image
-            height = cell_size - 10  # hauteur de l'image avec un offset pour ne pas coller l'image aux bordures de la cellule
-            resized_image = image.resize((width, height), Image.LANCZOS)  # redimensionner l'image avec la nouvelle taille
-            self.images[f"tower_player_{player}"] = ImageTk.PhotoImage(resized_image)  # ajouter l'image redimensionnée dans le dictionnaire self.images
+            # ouvrir l'image
+            image = Image.open(f"assets/towns/{player}_tower.png")
+            # ratio de l'image (largeur / hauteur)
+            aspect_ratio = image.width / image.height
+            # trouver le ratio de la taille de cellule par rapport à l'image
+            width = int(cell_size * aspect_ratio)
+            # hauteur de l'image avec un offset pour ne pas coller l'image aux bordures de la cellule
+            height = cell_size - 10
+            # redimensionner l'image avec la nouvelle taille
+            resized_image = image.resize((width, height), Image.LANCZOS)
+            # ajouter l'image redimensionnée dans le dictionnaire self.images
+            self.images[f"tower_player_{
+                player}"] = ImageTk.PhotoImage(resized_image)
 
     def render_board(self):
         """
@@ -53,7 +64,8 @@ class Render:
                 x2 = x1 + cell_size
                 y2 = y1 + cell_size
 
-                self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)  # rectangle de la cellule sur le canvas
+                # rectangle de la cellule sur le canvas
+                self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
 
                 if cell[0] is not None:  # une pièce est présente dans la cellule
                     piece = "tower"
