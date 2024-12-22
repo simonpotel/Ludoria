@@ -224,10 +224,7 @@ class Selector:
     def update_selected_quadrants(self):
         for i, selector in enumerate(self.quadrant_selectors):
             quadrant_index = int(selector.get()) - 1
-            if not self.selected_quadrants[i] == self.quadrants[quadrant_index]:
-                continue
-        self.selected_quadrants[i] = [row[:]
-                                      for row in self.quadrants[quadrant_index]]
+            self.selected_quadrants[i] = [row[:] for row in self.quadrants[quadrant_index]]
 
     def rotate_right(self, index):
         """
