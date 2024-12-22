@@ -2,10 +2,10 @@
 
 ## Branches
 
-### Branche Master
+### Branche master
 La branche `master` est une branche stable qui contient du code fiable, testé et généralement sans bug.
 
-### Branche Dev
+### Branche dev
 La branche `dev` contient toutes les modifications. Lorsque nous sommes sûrs que tout fonctionne, nous créons une pull request de `dev` vers `master`.
 
 ## Flux de Travail
@@ -16,6 +16,10 @@ Lorsque vous souhaitez ajouter une fonctionnalité, corriger un bug ou apporter 
 ```bash
 git merge dev
 ```
+
+> [!IMPORTANT]  
+> **git merge dev**
+
 
 ⚠️ **Attention :** S'il y a des conflits, vous devez les résoudre sans causer de problèmes de fonctionnement.
 
