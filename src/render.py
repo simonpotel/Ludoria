@@ -42,8 +42,7 @@ class Render:
             # redimensionner l'image avec la nouvelle taille
             resized_image = image.resize((width, height), Image.LANCZOS)
             # ajouter l'image redimensionnée dans le dictionnaire self.images
-            self.images[f"tower_player_{
-                player}"] = ImageTk.PhotoImage(resized_image)
+            self.images[f"tower_player_{player}"] = ImageTk.PhotoImage(resized_image)
 
     def render_board(self):
         """
@@ -67,7 +66,7 @@ class Render:
                 # rectangle de la cellule sur le canvas
                 self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
 
-                if cell[0] is not None:  # une pièce est présente dans la cellule
+                if cell[0] is not None:  # une town est présente dans la cellule (joueurs index 0 ou 1)
                     piece = "tower"
                     player = cell[0]
                     image_key = f"{piece}_player_{player}"
