@@ -29,7 +29,7 @@ class Board:
     """
 
     def __init__(self, quadrants, game_number):
-        self.quadrants = copy.deepcopy(quadrants)
+        self.quadrants = quadrants
         self.game_number = game_number
         self.board = self.get_board()
         self.setup_board()
@@ -60,13 +60,13 @@ class Board:
                 for j in range(4):
                     match quadrant:  # on gére la disposition car HAUT GAUCHE = Q0, HAUT DROITE = Q1, BAS GAUCHE = Q2, BAS DROITE = Q3
                         case 0:
-                            board[i][j] = self.quadrants[quadrant][i][j]
+                            board[i][j] = copy.deepcopy(self.quadrants[quadrant][i][j])
                         case 1:
-                            board[i][j + 4] = self.quadrants[quadrant][i][j]
+                            board[i][j + 4] = copy.deepcopy(self.quadrants[quadrant][i][j])
                         case 2:
-                            board[i + 4][j] = self.quadrants[quadrant][i][j]
+                            board[i + 4][j] = copy.deepcopy(self.quadrants[quadrant][i][j])
                         case 3:
-                            board[i + 4][j + 4] = self.quadrants[quadrant][i][j]
+                            board[i + 4][j + 4] = copy.deepcopy(self.quadrants[quadrant][i][j])
 
         if self.game_number == 0:  # katerenga
             # ajout d'une de colonne et ligne aux extrémités du plateau pour les camps
