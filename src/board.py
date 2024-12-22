@@ -1,3 +1,5 @@
+import copy
+
 class Board:
     """
     class Board: représente le plateau de jeu
@@ -27,7 +29,7 @@ class Board:
     """
 
     def __init__(self, quadrants, game_number):
-        self.quadrants = quadrants
+        self.quadrants = copy.deepcopy(quadrants)
         self.game_number = game_number
         self.board = self.get_board()
         self.setup_board()
