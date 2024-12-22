@@ -4,6 +4,8 @@ from tkinter import ttk
 from pathlib import Path
 import json
 from src.katerenga.game import Game as Katerenga
+from src.isolation.game import Game as Isolation
+# from src.congress.game import Game as Congress
 from src.render import Render
 
 
@@ -158,12 +160,19 @@ class Selector:
             return
         if game_save in self.get_saved_games() or selected_game in self.GAMES:
             self.root.destroy()
-            if selected_game == "katerenga":
-                game = Katerenga(game_save, self.selected_quadrants)
-                game.load_game()
-            else:
-                messagebox.showerror("Error", "Game not defined.")
-                exit()
+            match selected_game:
+                case "katerenga":
+                    game = Katerenga(game_save, self.selected_quadrants)
+                    game.load_game()
+                case "isolation":
+                    game = Isolation(game_save, self.selected_quadrants)
+                    game.load_game()
+                # case "congress":
+                #    game = Congress(game_save, self.selected_quadrants)
+                #    game.load_game()
+                case _:
+                    messagebox.showerror("Error", "Game not defined.")
+                    exit()
             self.ask_replay()
         else:
             messagebox.showerror("Error", "Please select a valid game.")
