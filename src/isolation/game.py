@@ -10,3 +10,11 @@ class Game:
 
     def load_game(self):
         self.render.root.mainloop()
+
+    def on_click(self, row, col):
+        """
+        procédure appelée lorsqu'une cellule est cliquée dans le jeu Isolation
+        """
+        cell = self.board.board[row][col]
+        print(f"Isolation: Clicked on cell at row {row}, col {col}")
+        print(f"Cell content: {cell}")
