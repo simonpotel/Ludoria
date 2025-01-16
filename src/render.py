@@ -23,6 +23,8 @@ class Render:
         self.load_images()  # charge les images des pièces
         self.render_board()  # rendu du plateau
 
+        self.canvas.bind("<Button-1>", self.handle_click)
+
     def load_images(self):
         """
         procédure : charge les images des pièces (assets) dans le dictionnaire self.images pour les afficher dans le canvas
@@ -42,7 +44,8 @@ class Render:
             # redimensionner l'image avec la nouvelle taille
             resized_image = image.resize((width, height), Image.LANCZOS)
             # ajouter l'image redimensionnée dans le dictionnaire self.images
-            self.images[f"tower_player_{player}"] = ImageTk.PhotoImage(resized_image)
+            self.images[f"tower_player_{
+                player}"] = ImageTk.PhotoImage(resized_image)
 
     def render_board(self):
         """
@@ -66,7 +69,8 @@ class Render:
                 # rectangle de la cellule sur le canvas
                 self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
 
-                if cell[0] is not None:  # une town est présente dans la cellule (joueurs index 0 ou 1)
+                # une town est présente dans la cellule (joueurs index 0 ou 1)
+                if cell[0] is not None:
                     piece = "tower"
                     player = cell[0]
                     image_key = f"{piece}_player_{player}"
@@ -75,3 +79,19 @@ class Render:
                         y1 + cell_size // 2,
                         image=self.images[image_key]
                     )
+
+    def handle_click(self, event):
+        """
+        procédure : gère les clics sur le canvas et appelle la fonction on_click du jeu
+        en fonction du jeu sélectionné
+        """
+        cell_size = self.canvas_size // self.board_size  # taille d'une cellule
+        # conversion des coordonnées du clic en index de cellule dans le tableau game.board
+        row = event.y // cell_size
+        col = event.x // cell_size
+
+        # vérification que le clic est dans les limites du plateau
+        if 0 <= row < self.board_size and 0 <= col < self.board_size:
+            # appel de la fonction on_click du jeu en fonction du jeu sélectionné
+            self.game.on_click(row, col)
+            self.render_board()  # rafraichir l'affichage après la gestion d'un clic
