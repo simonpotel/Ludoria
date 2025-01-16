@@ -19,7 +19,7 @@ class Render:
 
         self.info_label = tk.Label(
             main_frame,
-            text="Tour du Joueur 1 - Placez un pion sur une case non menacée",
+            text="",
             font=('Arial', 12),
             pady=10
         )
