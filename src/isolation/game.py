@@ -2,7 +2,7 @@ from src.board import Board
 from src.render import Render
 from src.captures import is_threatened, has_valid_move
 from tkinter import messagebox
-
+from src.saves import save_game
 
 class Game:
     def __init__(self, game_save, quadrants):
@@ -25,10 +25,11 @@ class Game:
         if is_threatened(self.board.board, row, col, self.round_turn):
             self.render.edit_info_label(
                 "This cell is threatened by an enemy tower")
-            return True 
+            return True
 
         self.board.board[row][col][0] = self.round_turn
         self.round_turn = 1 - self.round_turn
+        save_game(self)
 
         if not has_valid_move(self.board.board, self.round_turn):
             winner = "Player 2" if self.round_turn == 0 else "Player 1"
@@ -42,7 +43,8 @@ class Game:
         self.render.edit_info_label(
             f"Player {self.round_turn + 1} turn - Place your tower."
         )
-        return True 
+
+        return True
 
     def load_game(self):
         self.render.root.mainloop()
