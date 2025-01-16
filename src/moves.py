@@ -1,6 +1,7 @@
-def availableMove(board, iRow, iCol, dRow, dCol):
+def available_move(board, iRow, iCol, dRow, dCol):
     """
-    Vérifie si un déplacement est possible selon les règles du jeu
+    fonction: vérifie si un déplacement est possible selon les règles du jeu
+    
     board: board.board (class board)
     iRow: int initial row
     iCol: int initial column
@@ -8,11 +9,11 @@ def availableMove(board, iRow, iCol, dRow, dCol):
     dCol: int destination column
     """
     initial = board[iRow][iCol]
-    initialPlayer = initial[0]
+    #initialPlayer = initial[0]
     initialCellColor = initial[1]
     destination = board[dRow][dCol]
     destinationPlayer = destination[0]
-    destinationCellColor = destination[1]
+    #destinationCellColor = destination[1]
     
     if destinationPlayer is not None:  
         return False
