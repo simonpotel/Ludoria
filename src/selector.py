@@ -5,7 +5,7 @@ from pathlib import Path
 import json
 from src.katerenga.game import Game as Katerenga
 from src.isolation.game import Game as Isolation
-# from src.congress.game import Game as Congress
+from src.congress.game import Game as Congress
 from src.render import Render
 
 
@@ -167,9 +167,9 @@ class Selector:
                 case "isolation":
                     game = Isolation(game_save, self.selected_quadrants)
                     game.load_game()
-                # case "congress":
-                #    game = Congress(game_save, self.selected_quadrants)
-                #    game.load_game()
+                case "congress":
+                    game = Congress(game_save, self.selected_quadrants)
+                    game.load_game()
                 case _:
                     messagebox.showerror("Error", "Game not defined.")
                     exit()
