@@ -18,18 +18,23 @@ class Game:
 
         if not has_valid_move(self.board.board, self.round_turn):
             winner = "Joueur 2" if self.round_turn == 0 else "Joueur 1"
-            print(f"Partie terminée ! {winner} a gagné !")
+            self.render.edit_info_label(
+                f"Partie terminée ! {winner} a gagné !")
 
         if cell[0] is not None:
-            # print("Cette case est déjà occupée")
+            self.render.edit_info_label("Cette case est déjà occupée")
             return
 
         if is_threatened(self.board.board, row, col, self.round_turn):
-            # print("Cette case est menacée par un pion adverse")
+            self.render.edit_info_label(
+                "Cette case est menacée par un pion adverse")
             return
 
         self.board.board[row][col][0] = self.round_turn
         self.round_turn = 1 - self.round_turn
+        self.render.edit_info_label(
+            f"Tour du Joueur {self.round_turn + 1} - Placez votre pion."
+        )
 
     def load_game(self):
         self.render.root.mainloop()
