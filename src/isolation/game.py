@@ -1,6 +1,7 @@
 from src.board import Board
 from src.render import Render
 from src.captures import is_threatened, has_valid_move
+from tkinter import messagebox
 
 
 class Game:
@@ -14,27 +15,34 @@ class Game:
         """
         procédure appelée lorsqu'une cellule est cliquée dans le jeu Isolation
         """
+
         cell = self.board.board[row][col]
 
-        if not has_valid_move(self.board.board, self.round_turn):
-            winner = "Joueur 2" if self.round_turn == 0 else "Joueur 1"
-            self.render.edit_info_label(
-                f"Partie terminée ! {winner} a gagné !")
-
         if cell[0] is not None:
-            self.render.edit_info_label("Cette case est déjà occupée")
-            return
+            self.render.edit_info_label("This cell is already occupied")
+            return True
 
         if is_threatened(self.board.board, row, col, self.round_turn):
             self.render.edit_info_label(
-                "Cette case est menacée par un pion adverse")
-            return
+                "This cell is threatened by an enemy tower")
+            return True 
 
         self.board.board[row][col][0] = self.round_turn
         self.round_turn = 1 - self.round_turn
+
+        if not has_valid_move(self.board.board, self.round_turn):
+            winner = "Player 2" if self.round_turn == 0 else "Player 1"
+            self.render.edit_info_label(
+                f"Game ended ! {winner} wins !")
+            self.render.root.update_idletasks()
+            messagebox.showinfo("End Game", f"{winner} wins !")
+            self.render.root.destroy()
+            return False
+
         self.render.edit_info_label(
-            f"Tour du Joueur {self.round_turn + 1} - Placez votre pion."
+            f"Player {self.round_turn + 1} turn - Place your tower."
         )
+        return True 
 
     def load_game(self):
         self.render.root.mainloop()

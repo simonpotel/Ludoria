@@ -117,5 +117,6 @@ class Render:
         # vérification que le clic est dans les limites du plateau
         if 0 <= row < self.board_size and 0 <= col < self.board_size:
             # appel de la fonction on_click du jeu en fonction du jeu sélectionné
-            self.game.on_click(row, col)
+            if not self.game.on_click(row, col):
+                return
             self.render_board()  # rafraichir l'affichage après la gestion d'un clic
