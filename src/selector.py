@@ -5,8 +5,9 @@ from pathlib import Path
 import json
 from src.katerenga.game import Game as Katerenga
 from src.isolation.game import Game as Isolation
-# from src.congress.game import Game as Congress
+from src.congress.game import Game as Congress
 from src.render import Render
+from src.saves import load_game
 
 
 class Selector:
@@ -14,8 +15,8 @@ class Selector:
     class Selector : permet de choisir un jeu parmi les jeux disponibles et de choisir les quadrants
     parmis ceux de la configuration
     """
-    GAMES = ["katerenga", "congress",
-             "isolation"]  # liste des jeux disponibles
+    GAMES = ["katerenga", "isolation",
+             "congress"]  # liste des jeux disponibles
 
     def __init__(self):
         """
@@ -63,7 +64,7 @@ class Selector:
         self.entry_game_save.bind("<KeyRelease>", self.on_game_save_change)
 
         # sélection du jeu (game_selection)
-        tk.Label(config_frame, text="Select Game:").pack(
+        self.label_game_name = tk.Label(config_frame, text="Select Game:").pack(
             pady=10)  # label pour la sélection du jeu
         # combobox pour la sélection du jeu
         self.game_selection = ttk.Combobox(
@@ -73,7 +74,7 @@ class Selector:
         self.game_selection.pack(pady=10)  # positionnement de la combobox
 
         # sélection des quadrants (quadrant_selectors)
-        tk.Label(config_frame, text="Assign Quadrants:").pack(
+        self.label_quadrants = tk.Label(config_frame, text="Assign Quadrants:").pack(
             pady=10)  # label pour la sélection des quadrants
         self.quadrant_selectors = []  # liste des combobox pour la sélection des quadrants
         self.selected_quadrants = []  # Initialize selected_quadrants here
@@ -145,9 +146,24 @@ class Selector:
         game_save = self.entry_game_save.get()
         if game_save in self.get_saved_games():  # si le nom de la game_save est dans la liste des jeux sauvegardés
             self.game_selection.pack_forget()  # on cache la combobox de sélection du jeu
+            #self.label_game_name.pack_forget()
+            #self.label_quadrants.pack_forget()
+            #for selector in self.quadrant_selectors:
+            #    selector.pack_forget()
+            try:
+                with open(f"saves/{game_save}.json", 'r') as file:
+                    game_state = json.load(file)
+                    self.game_selection.current(int(game_state['game_number']))
+
+            except FileNotFoundError:
+                messagebox.showerror("Error", "Game save not found in saves/.")
         else:
             # sinon on affiche la combobox de sélection du jeu car cette save n'existe pas déjà
             self.game_selection.pack(pady=10)
+            #self.label_game_name.pack(pady=10)
+            #self.label_quadrants.pack(pady=10)
+            #for selector in self.quadrant_selectors:
+            #    selector.pack(pady=5)
 
     def load_game(self):
         """
@@ -163,16 +179,18 @@ class Selector:
             match selected_game:
                 case "katerenga":
                     game = Katerenga(game_save, self.selected_quadrants)
-                    game.load_game()
                 case "isolation":
                     game = Isolation(game_save, self.selected_quadrants)
-                    game.load_game()
-                # case "congress":
-                #    game = Congress(game_save, self.selected_quadrants)
-                #    game.load_game()
+                case "congress":
+                    game = Congress(game_save, self.selected_quadrants)
                 case _:
                     messagebox.showerror("Error", "Game not defined.")
                     exit()
+            if game_save in self.get_saved_games():
+                load_game(game)
+                game.render.render_board()
+            game.load_game()
+
             self.ask_replay()
         else:
             messagebox.showerror("Error", "Please select a valid game.")

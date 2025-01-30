@@ -20,13 +20,14 @@ class Board:
         chaque ligne est une liste de 8/10 cases
             chaque case est une liste de 2 éléments:
                 (joueur, case)
-                et joueur (0 = joueur 1 et 1 = joueur 2)
+                et joueur (0 = joueur 1 et 1 = joueur 2 ou None si la cellule n'est pas occupé)
                 et case = 0 / 1 / 2 / 3 / 4 / 5 
                 voir src.render.Render.QUADRANTS_CELLS_COLORS
     "board est donc une représentation du plateau de jeu avec les pions placés en 
     fonction du jeu formés avec les quadrants fusionnés"     
 
     """
+
 
     def __init__(self, quadrants, game_number):
         self.quadrants = quadrants
@@ -45,11 +46,28 @@ class Board:
                 for i in range(8):
                     self.board[8][i+1][0] = 1
 
-            case 1:  # congress
-                pass  # à faire plus tard
-
-            case 2:  # isolation
+                
+            case 1:  # isolation
                 pass  # pas de pions à l'initialisation
+
+
+            case 2:  # congress
+                self.board[0][1][0] = 1
+                self.board[0][3][0] = 0
+                self.board[0][4][0] = 1
+                self.board[0][6][0] = 0
+                self.board[1][0][0] = 0
+                self.board[1][7][0] = 1
+                self.board[3][0][0] = 1
+                self.board[3][7][0] = 0
+                self.board[4][0][0] = 0
+                self.board[4][7][0] = 1
+                self.board[6][0][0] = 1
+                self.board[6][7][0] = 0
+                self.board[7][6][0] = 1
+                self.board[7][4][0] = 0
+                self.board[7][3][0] = 1
+                self.board[7][1][0] = 0
 
     def get_board(self):
         board = [[[None, None] for _ in range(8)] for _ in range(8)]
