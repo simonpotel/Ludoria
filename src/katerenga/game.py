@@ -3,8 +3,7 @@ from src.board import Board
 from src.render import Render
 from src.captures import has_valid_move
 from src.saves import save_game
-from src.katerenga.move_k import available_move
-
+from src.moves import available_move
 
 class Game:
     def __init__(self, game_save, quadrants):
@@ -23,17 +22,18 @@ class Game:
         """
         opponent = 1 - player
         # Définir les camps adverses et la ligne d'arrivée en fonction du joueur
-        opponent_camps = [(9,0), (9,9)] if player == 0 else [(0,9), (0,0)]
+        opponent_camps = [(9, 0), (9, 9)] if player == 0 else [(0, 9), (0, 0)]
         finish_line = 0 if player == 0 else 9
-        
+
         # Vérifier si le joueur occupe les deux camps adverses
-        camps_occupied = sum(1 for camp in opponent_camps 
-                            if self.board.board[camp[0]][camp[1]][0] == player)
-        
+        camps_occupied = sum(1 for camp in opponent_camps
+                             if self.board.board[camp[0]][camp[1]][0] == player)
+
         if camps_occupied == 2:
-            messagebox.showinfo("Victory!", f"Player {player + 1} wins by occupying both camps!")
+            messagebox.showinfo("Victory!", f"Player {
+                                player + 1} wins by occupying both camps!")
             return True
-        
+
         # Vérifier si l'adversaire a encore des pions qui peuvent bouger
         opponent_has_moves = False
         for row in range(10):  # Plateau 10x10 pour Katarenga
@@ -42,23 +42,25 @@ class Game:
                     # Vérifier si le pion peut se déplacer
                     for dest_row in range(10):
                         for dest_col in range(10):
-                            if available_move(self.board.board, row, col, dest_row, dest_col):
-                                opponent_has_moves = True
-                                break
+                            if self.board.board[row][col][0] != self.board.board[dest_row][dest_col][0]:
+                                if available_move(self.board.board, row, col, dest_row, dest_col):
+                                    opponent_has_moves = True
+                                    break
                     if opponent_has_moves:
                         break
             if opponent_has_moves:
                 break
-        
+
         # Si l'adversaire ne peut plus bouger, le joueur actuel gagne
         if not opponent_has_moves:
-            messagebox.showinfo("Victory!", f"Player {player + 1} wins by blocking opponent!")
+            messagebox.showinfo("Victory!", f"Player {
+                                player + 1} wins by blocking opponent!")
             return True
-            
+
         return False
 
     def capture_piece(self, row, col):
-       #fonction qui va permettre de capturer une pièce
+       # fonction qui va permettre de capturer une pièce
         self.board.board[row][col][0] = None
 
     def on_click(self, row, col):
@@ -68,7 +70,7 @@ class Game:
         # Initialiser selected_piece si nécessaire
         if not hasattr(self, 'selected_piece'):
             self.selected_piece = None
-        
+
         cell = self.board.board[row][col]
         print(f"Clicked on cell at row {row}, col {col}")
         print(f"Cell content: {cell}")
@@ -133,12 +135,12 @@ class Game:
             self.board.board[old_row][old_col][0] = None
 
         self.selected_piece = None
-        
+
         # Change de joueur et met à jour le statut du premier tour
         self.round_turn = 1 - self.round_turn
         if self.first_turn and self.round_turn == 0:
             self.first_turn = False
-            
+
         self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
         save_game(self)
         self.render.render_board()
