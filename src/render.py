@@ -1,5 +1,6 @@
 import tkinter as tk
 from PIL import Image, ImageTk
+from src.utils.logger import Logger
 
 
 class Render:
@@ -8,6 +9,7 @@ class Render:
                               3: 'yellow', 4: 'white', 5: 'black', None: 'grey'}
 
     def __init__(self, game, canvas_size=600):
+        Logger.info("Render", "Initializing game renderer")
         self.game = game
         self.canvas_size = canvas_size
         self.board_size = len(game.board.board)  # taille du board dynamique
@@ -41,33 +43,40 @@ class Render:
         window_width = self.root.winfo_reqwidth()
         window_height = self.root.winfo_reqheight()
         self.root.geometry(f"{window_width}x{window_height}")
+        Logger.success("Render", "Game renderer initialized successfully")
 
     def load_images(self):
         """
         procédure : charge les images des pièces (assets) dans le dictionnaire self.images pour les afficher dans le canvas
         """
+        Logger.info("Render", "Loading game piece images")
         self.images = {}
         cell_size = self.canvas_size // self.board_size  # taille d'une cellule
 
-        for player in [0, 1]:  # joueur 0 ou 1
-            # ouvrir l'image
-            image = Image.open(f"assets/towns/{player}_tower.png")
-            # ratio de l'image (largeur / hauteur)
-            aspect_ratio = image.width / image.height
-            # trouver le ratio de la taille de cellule par rapport à l'image
-            width = int(cell_size * aspect_ratio)
-            # hauteur de l'image avec un offset pour ne pas coller l'image aux bordures de la cellule
-            height = cell_size - 10
-            # redimensionner l'image avec la nouvelle taille
-            resized_image = image.resize((width, height), Image.LANCZOS)
-            # ajouter l'image redimensionnée dans le dictionnaire self.images
-            self.images[f"tower_player_{
-                player}"] = ImageTk.PhotoImage(resized_image)
+        try:
+            for player in [0, 1]:  # joueur 0 ou 1
+                # ouvrir l'image
+                image = Image.open(f"assets/towns/{player}_tower.png")
+                # ratio de l'image (largeur / hauteur)
+                aspect_ratio = image.width / image.height
+                # trouver le ratio de la taille de cellule par rapport à l'image
+                width = int(cell_size * aspect_ratio)
+                # hauteur de l'image avec un offset pour ne pas coller l'image aux bordures de la cellule
+                height = cell_size - 10
+                # redimensionner l'image avec la nouvelle taille
+                resized_image = image.resize((width, height), Image.LANCZOS)
+                # ajouter l'image redimensionnée dans le dictionnaire self.images
+                self.images[f"tower_player_{player}"] = ImageTk.PhotoImage(resized_image)
+                Logger.success("Render", f"Successfully loaded tower image for player {player}")
+        except Exception as e:
+            Logger.error("Render", f"Failed to load game piece images: {str(e)}")
+            raise
 
     def edit_info_label(self, indications):
         """
         procédure qui modifie le texte de l'info_label
         """
+        Logger.info("Render", f"Updating info label: {indications}")
         self.info_label.config(text=indications)
         self.root.update()
 
@@ -75,6 +84,7 @@ class Render:
         """
         procédure qui dessine le plateau de jeu dans le canvas
         """
+        Logger.board("Render", "Rendering game board")
         self.canvas.delete("all")  # efface tout ce qui est dans le canvas
         cell_size = self.canvas_size // self.board_size  # taille d'une cellule
 
@@ -103,6 +113,7 @@ class Render:
                         y1 + cell_size // 2,
                         image=self.images[image_key]
                     )
+        Logger.success("Render", "Game board rendered successfully")
 
     def handle_click(self, event):
         """
@@ -114,9 +125,15 @@ class Render:
         row = event.y // cell_size
         col = event.x // cell_size
 
+        Logger.game("Render", f"Handling click at position ({row},{col})")
+
         # vérification que le clic est dans les limites du plateau
         if 0 <= row < self.board_size and 0 <= col < self.board_size:
             # appel de la fonction on_click du jeu en fonction du jeu sélectionné
             if not self.game.on_click(row, col):
+                Logger.warning("Render", f"Invalid click at position ({row},{col})")
                 return
             self.render_board()  # rafraichir l'affichage après la gestion d'un clic
+            Logger.success("Render", f"Successfully processed click at ({row},{col})")
+        else:
+            Logger.warning("Render", f"Click outside board boundaries at ({row},{col})")

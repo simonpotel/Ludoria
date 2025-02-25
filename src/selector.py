@@ -8,6 +8,7 @@ from src.isolation.game import Game as Isolation
 from src.congress.game import Game as Congress
 from src.render import Render
 from src.saves import load_game
+from src.utils.logger import Logger
 
 
 class Selector:
@@ -23,11 +24,14 @@ class Selector:
         constructeur qui initialise l'attribut quadrants via le fichier de configuration,
         et charge l'interface graphique de sélection du jeu et des quadrants
         """
+        Logger.initialize()
+        Logger.info("Selector", "Initializing game selector")
         self.root = tk.Tk()
         self.root.title("Smart Games: Selector")
         self.quadrants = self.load_quadrants()
         self.selected_quadrants = []
         self.setup_initial_ui()
+        Logger.info("Selector", "Game selector initialized successfully")
         self.root.mainloop()
 
     def load_quadrants(self):
@@ -35,12 +39,23 @@ class Selector:
         fonction qui charge les quadrants à partir du fichier de configuration quadrants.json
         et return un tableau des quadrants
         """
-        with open('configs/quadrants.json', 'r') as file:
-            quadrants_config = json.load(file)
-        quadrants = []
-        for key in sorted(quadrants_config.keys(), key=int):
-            quadrants.append(quadrants_config[key])
-        return quadrants
+        Logger.info("Selector", "Loading quadrants configuration")
+        try:
+            with open('configs/quadrants.json', 'r') as file:
+                quadrants_config = json.load(file)
+            quadrants = []
+            for key in sorted(quadrants_config.keys(), key=int):
+                quadrants.append(quadrants_config[key])
+            Logger.success("Selector", f"Successfully loaded {len(quadrants)} quadrants")
+            return quadrants
+        except FileNotFoundError:
+            Logger.error("Selector", "Quadrants configuration file not found")
+            messagebox.showerror("Error", "Quadrants configuration file not found.")
+            exit(1)
+        except json.JSONDecodeError:
+            Logger.error("Selector", "Invalid quadrants configuration file format")
+            messagebox.showerror("Error", "Invalid quadrants configuration file format.")
+            exit(1)
 
     def setup_initial_ui(self):
         """
@@ -169,30 +184,49 @@ class Selector:
         """
         procédure qui charge le jeu sélectionné avec les quadrants sélectionnés
         """
-        game_save = self.entry_game_save.get()  # nom du jeu
-        selected_game = self.game_selection.get()  # jeu sélectionné
+        game_save = self.entry_game_save.get()
+        selected_game = self.game_selection.get()
+        
         if not game_save:
+            Logger.warning("Selector", "No game name provided")
             messagebox.showerror("Error", "Please enter a game name.")
             return
+            
+        Logger.info("Selector", f"Loading game: {selected_game} (Save: {game_save})")
+        
         if game_save in self.get_saved_games() or selected_game in self.GAMES:
             self.root.destroy()
-            match selected_game:
-                case "katerenga":
-                    game = Katerenga(game_save, self.selected_quadrants)
-                case "isolation":
-                    game = Isolation(game_save, self.selected_quadrants)
-                case "congress":
-                    game = Congress(game_save, self.selected_quadrants)
-                case _:
-                    messagebox.showerror("Error", "Game not defined.")
-                    exit()
-            if game_save in self.get_saved_games():
-                load_game(game)
-                game.render.render_board()
-            game.load_game()
-
+            try:
+                match selected_game:
+                    case "katerenga":
+                        Logger.game("Selector", "Starting Katerenga game")
+                        game = Katerenga(game_save, self.selected_quadrants)
+                    case "isolation":
+                        Logger.game("Selector", "Starting Isolation game")
+                        game = Isolation(game_save, self.selected_quadrants)
+                    case "congress":
+                        Logger.game("Selector", "Starting Congress game")
+                        game = Congress(game_save, self.selected_quadrants)
+                    case _:
+                        Logger.error("Selector", f"Undefined game type: {selected_game}")
+                        messagebox.showerror("Error", "Game not defined.")
+                        exit()
+                        
+                if game_save in self.get_saved_games():
+                    Logger.info("Selector", f"Loading saved game state: {game_save}")
+                    load_game(game)
+                    game.render.render_board()
+                game.load_game()
+                Logger.success("Selector", f"Successfully loaded game: {selected_game}")
+                
+            except Exception as e:
+                Logger.error("Selector", f"Error loading game: {str(e)}")
+                messagebox.showerror("Error", f"Failed to load game: {str(e)}")
+                return
+                
             self.ask_replay()
         else:
+            Logger.warning("Selector", f"Invalid game selection: {selected_game}")
             messagebox.showerror("Error", "Please select a valid game.")
 
     def ask_replay(self):
@@ -248,26 +282,20 @@ class Selector:
         """
         procédure qui fait tourner un quadrant vers la droite
         """
-        current_quadrant = self.selected_quadrants[index]
-        rotated_quadrant = []
-        for row in range(4):
-            new_row = []
-            for col in range(4):
-                new_row.append(current_quadrant[3 - col][row])
-            rotated_quadrant.append(new_row)
-        self.selected_quadrants[index] = rotated_quadrant
+        Logger.board("Selector", f"Rotating quadrant {index} right")
+        quadrant = self.selected_quadrants[index]
+        rotated = list(zip(*quadrant[::-1]))
+        self.selected_quadrants[index] = [list(row) for row in rotated]
         self.draw_quadrants()
+        Logger.success("Selector", f"Quadrant {index} rotated right successfully")
 
     def rotate_left(self, index):
         """
         procédure qui fait tourner un quadrant vers la gauche
         """
-        current_quadrant = self.selected_quadrants[index]
-        rotated_quadrant = []
-        for row in range(4):
-            new_row = []
-            for col in range(4):
-                new_row.append(current_quadrant[col][3 - row])
-            rotated_quadrant.append(new_row)
-        self.selected_quadrants[index] = rotated_quadrant
+        Logger.board("Selector", f"Rotating quadrant {index} left")
+        quadrant = self.selected_quadrants[index]
+        rotated = list(zip(*quadrant))[::-1]
+        self.selected_quadrants[index] = [list(row) for row in rotated]
         self.draw_quadrants()
+        Logger.success("Selector", f"Quadrant {index} rotated left successfully")
