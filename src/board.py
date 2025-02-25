@@ -77,6 +77,13 @@ class Board:
                 Logger.success("Board", "Congress pieces placed successfully")
 
     def get_board(self):
+        """
+        fonction : crée le plateau de jeu en fusionnant les quadrants
+        paramètres :
+            self : instance de la classe Board
+        retourne :
+            board : plateau de jeu
+        """
         Logger.board("Board", "Creating board from quadrants")
         board = [[[None, None] for _ in range(8)] for _ in range(8)]
 

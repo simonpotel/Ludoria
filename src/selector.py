@@ -13,16 +13,14 @@ from src.utils.logger import Logger
 
 class Selector:
     """
-    class Selector : permet de choisir un jeu parmi les jeux disponibles et de choisir les quadrants
-    parmis ceux de la configuration
+    class Selector : interface graphique permettant de sélectionner et configurer un jeu
+    gère la sélection du jeu, des quadrants et le chargement des sauvegardes
     """
-    GAMES = ["katerenga", "isolation",
-             "congress"]  # liste des jeux disponibles
+    GAMES = ["katerenga", "isolation", "congress"]  # liste des jeux disponibles
 
     def __init__(self):
         """
-        constructeur qui initialise l'attribut quadrants via le fichier de configuration,
-        et charge l'interface graphique de sélection du jeu et des quadrants
+        constructeur : initialise l'interface de sélection du jeu et charge la configuration des quadrants
         """
         Logger.initialize()
         Logger.info("Selector", "Initializing game selector")
@@ -36,8 +34,8 @@ class Selector:
 
     def load_quadrants(self):
         """
-        fonction qui charge les quadrants à partir du fichier de configuration quadrants.json
-        et return un tableau des quadrants
+        fonction : charge la configuration des quadrants depuis le fichier JSON
+        retourne : liste des quadrants disponibles
         """
         Logger.info("Selector", "Loading quadrants configuration")
         try:
@@ -60,66 +58,55 @@ class Selector:
 
     def setup_initial_ui(self):
         """
-        procédure qui charge l'interface graphique de sélection du jeu et des quadrants
+        procédure : crée et configure l'interface graphique principale
         """
-        config_frame = tk.Frame(
-            self.root)  # frame pour les éléments de configuration
-        # positionnement de la frame dans la grid
+        # frame principale pour les éléments de configuration
+        config_frame = tk.Frame(self.root)
         config_frame.grid(row=0, column=0, padx=10, pady=10, sticky="n")
 
-        # nom du jeu (game_save)
-        tk.Label(config_frame, text="Game Name:").pack(
-            pady=10)  # label pour le nom du jeu
-        self.entry_game_save = ttk.Combobox(
-            config_frame, values=self.get_saved_games())  # combobox pour le nom du jeu
-        self.entry_game_save.pack(pady=10)  # positionnement de la combobox
-        # bind de l'événement de sélection de la game_save
-        self.entry_game_save.bind(
-            "<<ComboboxSelected>>", self.on_game_save_change)
-        # bind de l'événement de relâchement de touche de la game_save
+        # configuration du nom de la partie
+        tk.Label(config_frame, text="Game Name:").pack(pady=10)
+        self.entry_game_save = ttk.Combobox(config_frame, values=self.get_saved_games())
+        self.entry_game_save.pack(pady=10)
+        self.entry_game_save.bind("<<ComboboxSelected>>", self.on_game_save_change)
         self.entry_game_save.bind("<KeyRelease>", self.on_game_save_change)
 
-        # sélection du jeu (game_selection)
-        self.label_game_name = tk.Label(config_frame, text="Select Game:").pack(
-            pady=10)  # label pour la sélection du jeu
-        # combobox pour la sélection du jeu
-        self.game_selection = ttk.Combobox(
-            config_frame, state="readonly", values=self.GAMES)
-        # sélection du premier jeu par défaut (katerenga)
+        # sélection du type de jeu
+        self.label_game_name = tk.Label(config_frame, text="Select Game:").pack(pady=10)
+        self.game_selection = ttk.Combobox(config_frame, state="readonly", values=self.GAMES)
         self.game_selection.current(0)
-        self.game_selection.pack(pady=10)  # positionnement de la combobox
+        self.game_selection.pack(pady=10)
 
-        # sélection des quadrants (quadrant_selectors)
-        self.label_quadrants = tk.Label(config_frame, text="Assign Quadrants:").pack(
-            pady=10)  # label pour la sélection des quadrants
-        self.quadrant_selectors = []  # liste des combobox pour la sélection des quadrants
-        self.selected_quadrants = []  # Initialize selected_quadrants here
+        # configuration des quadrants
+        self.label_quadrants = tk.Label(config_frame, text="Assign Quadrants:").pack(pady=10)
+        self.quadrant_selectors = []
+        self.selected_quadrants = []
+        
+        # création des sélecteurs de quadrants
         for i in range(4):
-            # création d'un frame pour la combobox et les boutons de rotation
             frame = tk.Frame(config_frame)
             frame.pack(pady=5)
-            # création de la combobox pour la sélection du quadrant
             selector = self.create_quadrant_selector(frame, i)
-            # ajout de la combobox à la liste des combobox
             self.quadrant_selectors.append(selector)
-            self.selected_quadrants.append(
-                [row[:] for row in self.quadrants[i]])
-            # création des boutons de rotation pour chaque quadrant
+            self.selected_quadrants.append([row[:] for row in self.quadrants[i]])
             self.create_rotation_buttons(frame, i)
 
-        tk.Button(config_frame, text="Load Game", command=self.load_game).pack(
-            pady=10)  # bouton pour charger le jeu
+        # bouton de chargement du jeu
+        tk.Button(config_frame, text="Load Game", command=self.load_game).pack(pady=10)
 
-        # canvas pour afficher les quadrants
+        # canvas pour la prévisualisation des quadrants
         self.canvas = tk.Canvas(self.root, width=400, height=400)
-        # positionnement du canvas dans la grid
         self.canvas.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
 
         self.draw_quadrants()
 
     def create_quadrant_selector(self, parent, index):
         """
-        fonction qui crée une combobox pour la sélection d'un quadrant et la retourne
+        fonction : crée un sélecteur de quadrant avec une combobox
+        paramètres :
+            parent - widget parent
+            index - index du quadrant
+        retourne : le widget combobox créé
         """
         selector = ttk.Combobox(parent, state="readonly", values=self.quadrant_names)
         selector.current(index if index < len(self.quadrants) else 0)
@@ -129,56 +116,48 @@ class Selector:
 
     def create_rotation_buttons(self, parent, index):
         """
-        fonction qui crée les boutons de rotation pour un quadrant
+        procédure : crée les boutons de rotation pour un quadrant
+        paramètres :
+            parent - widget parent
+            index - index du quadrant
         """
-        tk.Button(parent, text="⤴️", command=lambda i=index: self.rotate_left(i)).pack(
-            side="left")  # bouton pour rotation à gauche
-        tk.Button(parent, text="⤵️", command=lambda i=index: self.rotate_right(i)).pack(
-            side="left")  # bouton pour rotation à droite
+        tk.Button(parent, text="⤴️", command=lambda i=index: self.rotate_left(i)).pack(side="left")
+        tk.Button(parent, text="⤵️", command=lambda i=index: self.rotate_right(i)).pack(side="left")
 
     def get_saved_games(self):
         """
-        fonction qui retourne la liste des jeux sauvegardés dans le dossier saves/
-        (tous les fichiers qui ont l'extension .json)
+        fonction : récupère la liste des sauvegardes disponibles
+        retourne : liste des noms de sauvegardes (sans extension)
         """
-        saves_dir = Path('saves')  # dossier des sauvegardes
+        saves_dir = Path('saves')
         if not saves_dir.exists():
-            saves_dir.mkdir()  # création du dossier s'il n'existe pas
+            saves_dir.mkdir()
         saved_games = []
         for file in saves_dir.glob('*.json'):
-            # ajout du nom du fichier sans l'extension à la liste des jeux sauvegardés
             saved_games.append(file.stem)
         return saved_games
 
     def on_game_save_change(self, event=None):
         """
-        procédure qui s'active lorsqu'un changement est détecté dans la combobox de la game_save
+        procédure : gère le changement de sauvegarde sélectionnée
+        met à jour l'interface en fonction de l'existence ou non de la sauvegarde
         """
         game_save = self.entry_game_save.get()
-        if game_save in self.get_saved_games():  # si le nom de la game_save est dans la liste des jeux sauvegardés
-            self.game_selection.pack_forget()  # on cache la combobox de sélection du jeu
-            #self.label_game_name.pack_forget()
-            #self.label_quadrants.pack_forget()
-            #for selector in self.quadrant_selectors:
-            #    selector.pack_forget()
+        if game_save in self.get_saved_games():
+            self.game_selection.pack_forget()
             try:
                 with open(f"saves/{game_save}.json", 'r') as file:
                     game_state = json.load(file)
                     self.game_selection.current(int(game_state['game_number']))
-
             except FileNotFoundError:
                 messagebox.showerror("Error", "Game save not found in saves/.")
         else:
-            # sinon on affiche la combobox de sélection du jeu car cette save n'existe pas déjà
             self.game_selection.pack(pady=10)
-            #self.label_game_name.pack(pady=10)
-            #self.label_quadrants.pack(pady=10)
-            #for selector in self.quadrant_selectors:
-            #    selector.pack(pady=5)
 
     def load_game(self):
         """
-        procédure qui charge le jeu sélectionné avec les quadrants sélectionnés
+        procédure : charge ou crée une nouvelle partie selon la configuration
+        vérifie la validité des paramètres et initialise le jeu approprié
         """
         game_save = self.entry_game_save.get()
         selected_game = self.game_selection.get()
@@ -193,6 +172,7 @@ class Selector:
         if game_save in self.get_saved_games() or selected_game in self.GAMES:
             self.root.destroy()
             try:
+                # création de l'instance du jeu approprié
                 match selected_game:
                     case "katerenga":
                         Logger.game("Selector", "Starting Katerenga game")
@@ -207,7 +187,8 @@ class Selector:
                         Logger.error("Selector", f"Undefined game type: {selected_game}")
                         messagebox.showerror("Error", "Game not defined.")
                         exit()
-                        
+                
+                # charge la sauvegarde si elle existe
                 if game_save in self.get_saved_games():
                     Logger.info("Selector", f"Loading saved game state: {game_save}")
                     load_game(game)
@@ -227,50 +208,49 @@ class Selector:
 
     def ask_replay(self):
         """
-        procédure qui demande à l'utilisateur s'il veut rejouer
+        procédure : demande au joueur s'il souhaite démarrer une nouvelle partie
         """
         if messagebox.askyesno("Smart Games: Selector", "Do you want to replay a new game?"):
             self.__init__()
 
     def draw_quadrants(self):
         """
-        procédure qui dessine les quadrants dans le canvas en fonction des quadrants sélectionnés
+        procédure : dessine la prévisualisation des quadrants sélectionnés dans le canvas
         """
-        self.canvas.delete("all")  # efface tout ce qui est dans le canvas
-        quadrant_size = 200  # taille d'un quadrant
-        cell_size = quadrant_size // 4  # taille d'une cellule dans un quadrant
+        self.canvas.delete("all")
+        quadrant_size = 200
+        cell_size = quadrant_size // 4
 
-        # pour chaque combobox de sélection de quadrant
+        # dessine chaque quadrant
         for i, selector in enumerate(self.quadrant_selectors):
             selected_name = selector.get()
             quadrant_index = self.quadrant_names.index(selected_name)
             quadrant = self.selected_quadrants[i] if self.selected_quadrants else self.quadrants[quadrant_index]
-            x_offset = (i % 2) * quadrant_size  # décalage en x
-            y_offset = (i // 2) * quadrant_size  # décalage en y
+            x_offset = (i % 2) * quadrant_size
+            y_offset = (i // 2) * quadrant_size
 
-            # pour chaque ligne du quadrant
+            # dessine chaque cellule du quadrant
             for row_i, row in enumerate(quadrant):
-                # pour chaque colonne du quadrant
                 for col_i, cell in enumerate(row):
-                    # couleur de la cellule en fonction de son index
                     color = Render.QUADRANTS_CELLS_COLORS[cell[1]]
-                    # coordonnée x du coin supérieur gauche de la cellule
                     x1 = x_offset + col_i * cell_size
-                    # coordonnée y du coin supérieur gauche de la cellule
                     y1 = y_offset + row_i * cell_size
-                    x2 = x1 + cell_size  # coordonnée x du coin inférieur droit de la cellule
-                    y2 = y1 + cell_size  # coordonnée y du coin inférieur droit de la cellule
-                    # dessine la cellule dans le canvas
+                    x2 = x1 + cell_size
+                    y2 = y1 + cell_size
                     self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
 
     def event_combo(self, event=None):
         """
-        procédure qui s'active lorsqu'un changement est détecté dans une combobox de sélection de quadrant
+        procédure : gère le changement de sélection d'un quadrant
+        met à jour l'affichage des quadrants
         """
         self.update_selected_quadrants()
         self.draw_quadrants()
 
     def update_selected_quadrants(self):
+        """
+        procédure : met à jour la liste des quadrants sélectionnés
+        """
         for i, selector in enumerate(self.quadrant_selectors):
             selected_name = selector.get()
             quadrant_index = self.quadrant_names.index(selected_name)
@@ -278,7 +258,9 @@ class Selector:
 
     def rotate_right(self, index):
         """
-        procédure qui fait tourner un quadrant vers la droite
+        procédure : effectue une rotation horaire du quadrant spécifié
+        paramètres :
+            index - index du quadrant à faire pivoter
         """
         Logger.board("Selector", f"Rotating quadrant {index} right")
         quadrant = self.selected_quadrants[index]
@@ -289,7 +271,9 @@ class Selector:
 
     def rotate_left(self, index):
         """
-        procédure qui fait tourner un quadrant vers la gauche
+        procédure : effectue une rotation antihoraire du quadrant spécifié
+        paramètres :
+            index - index du quadrant à faire pivoter
         """
         Logger.board("Selector", f"Rotating quadrant {index} left")
         quadrant = self.selected_quadrants[index]
