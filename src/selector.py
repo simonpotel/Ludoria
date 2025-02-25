@@ -42,10 +42,11 @@ class Selector:
         Logger.info("Selector", "Loading quadrants configuration")
         try:
             with open('configs/quadrants.json', 'r') as file:
-                quadrants_config = json.load(file)
+                self.quadrants_config = json.load(file)
+            self.quadrant_names = sorted(self.quadrants_config.keys())
             quadrants = []
-            for key in sorted(quadrants_config.keys(), key=int):
-                quadrants.append(quadrants_config[key])
+            for key in self.quadrant_names:
+                quadrants.append(self.quadrants_config[key])
             Logger.success("Selector", f"Successfully loaded {len(quadrants)} quadrants")
             return quadrants
         except FileNotFoundError:
@@ -120,16 +121,11 @@ class Selector:
         """
         fonction qui crée une combobox pour la sélection d'un quadrant et la retourne
         """
-        values = [f"{j+1}" for j in range(len(self.quadrants))
-                  ]  # valeurs possibles pour la sélection du quadrant
-        # combobox pour la sélection du quadrant
-        selector = ttk.Combobox(parent, state="readonly", values=values)
-        # sélection du premier quadrant par défaut
+        selector = ttk.Combobox(parent, state="readonly", values=self.quadrant_names)
         selector.current(index if index < len(self.quadrants) else 0)
-        selector.pack(pady=5)  # positionnement de la combobox
-        # bind de l'événement de sélection de la combobox
+        selector.pack(pady=5)
         selector.bind("<<ComboboxSelected>>", self.event_combo)
-        return selector  # retourne la combobox
+        return selector
 
     def create_rotation_buttons(self, parent, index):
         """
@@ -246,7 +242,8 @@ class Selector:
 
         # pour chaque combobox de sélection de quadrant
         for i, selector in enumerate(self.quadrant_selectors):
-            quadrant_index = int(selector.get()) - 1
+            selected_name = selector.get()
+            quadrant_index = self.quadrant_names.index(selected_name)
             quadrant = self.selected_quadrants[i] if self.selected_quadrants else self.quadrants[quadrant_index]
             x_offset = (i % 2) * quadrant_size  # décalage en x
             y_offset = (i // 2) * quadrant_size  # décalage en y
@@ -275,7 +272,8 @@ class Selector:
 
     def update_selected_quadrants(self):
         for i, selector in enumerate(self.quadrant_selectors):
-            quadrant_index = int(selector.get()) - 1
+            selected_name = selector.get()
+            quadrant_index = self.quadrant_names.index(selected_name)
             self.selected_quadrants[i] = [row[:] for row in self.quadrants[quadrant_index]]
 
     def rotate_right(self, index):
