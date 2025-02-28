@@ -17,6 +17,7 @@ class Selector:
     gère la sélection du jeu, des quadrants et le chargement des sauvegardes
     """
     GAMES = ["katerenga", "isolation", "congress"]  # liste des jeux disponibles
+    GAME_MODES = ["Solo", "Bot", "Network"]  # liste des modes de jeu disponibles
 
     def __init__(self):
         """
@@ -70,6 +71,11 @@ class Selector:
         self.entry_game_save.pack(pady=10)
         self.entry_game_save.bind("<<ComboboxSelected>>", self.on_game_save_change)
         self.entry_game_save.bind("<KeyRelease>", self.on_game_save_change)
+
+        tk.Label(config_frame, text="Select Game Mode:").pack(pady=10)
+        self.mode_selection = ttk.Combobox(config_frame, state="readonly", values=self.GAME_MODES)
+        self.mode_selection.current(0)  
+        self.mode_selection.pack(pady=10)
 
         # sélection du type de jeu
         self.label_game_name = tk.Label(config_frame, text="Select Game:").pack(pady=10)
@@ -161,15 +167,21 @@ class Selector:
         """
         game_save = self.entry_game_save.get()
         selected_game = self.game_selection.get()
+        selected_mode = self.mode_selection.get()
         
         if not game_save:
             Logger.warning("Selector", "No game name provided")
             messagebox.showerror("Error", "Please enter a game name.")
             return
             
-        Logger.info("Selector", f"Loading game: {selected_game} (Save: {game_save})")
+        Logger.info("Selector", f"Loading game: {selected_game} (Save: {game_save}, Mode: {selected_mode})")
         
         if game_save in self.get_saved_games() or selected_game in self.GAMES:
+            if selected_mode != "Solo":
+                Logger.warning("Selector", f"Game mode {selected_mode} not yet implemented")
+                messagebox.showerror("Error", f"Game mode {selected_mode} is not yet implemented.")
+                return
+
             self.root.destroy()
             try:
                 # création de l'instance du jeu approprié
