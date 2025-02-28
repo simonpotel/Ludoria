@@ -1,0 +1,6 @@
+{
+    "host": "localhost",
+    "port": 5000,
+    "max_players": 100,
+    "timeout": 30
+} 

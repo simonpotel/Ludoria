@@ -177,24 +177,19 @@ class Selector:
         Logger.info("Selector", f"Loading game: {selected_game} (Save: {game_save}, Mode: {selected_mode})")
         
         if game_save in self.get_saved_games() or selected_game in self.GAMES:
-            if selected_mode != "Solo":
-                Logger.warning("Selector", f"Game mode {selected_mode} not yet implemented")
-                messagebox.showerror("Error", f"Game mode {selected_mode} is not yet implemented.")
-                return
-
             self.root.destroy()
             try:
                 # création de l'instance du jeu approprié
                 match selected_game:
                     case "katerenga":
                         Logger.game("Selector", "Starting Katerenga game")
-                        game = Katerenga(game_save, self.selected_quadrants)
+                        game = Katerenga(game_save, self.selected_quadrants, selected_mode)
                     case "isolation":
                         Logger.game("Selector", "Starting Isolation game")
-                        game = Isolation(game_save, self.selected_quadrants)
+                        game = Isolation(game_save, self.selected_quadrants, selected_mode)
                     case "congress":
                         Logger.game("Selector", "Starting Congress game")
-                        game = Congress(game_save, self.selected_quadrants)
+                        game = Congress(game_save, self.selected_quadrants, selected_mode)
                     case _:
                         Logger.error("Selector", f"Undefined game type: {selected_game}")
                         messagebox.showerror("Error", "Game not defined.")

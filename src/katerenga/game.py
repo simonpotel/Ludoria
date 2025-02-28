@@ -4,23 +4,62 @@ from src.render import Render
 from src.captures import has_valid_move
 from src.saves import save_game
 from src.moves import available_move
+from src.game_base import GameBase
 
-class Game:
-    def __init__(self, game_save, quadrants):
+class Game(GameBase):
+    def __init__(self, game_save, quadrants, game_mode="Solo"):
         """
         constructeur : initialise une nouvelle partie de katarenga
         """
-        self.game_save = game_save
+        super().__init__(game_save, quadrants, game_mode)
         self.board = Board(quadrants, 0)
         self.render = Render(game=self)
         self.round_turn = 0
-        self.first_turn = True  
+        self.first_turn = True
+        self.selected_piece = None
+
+        if self.is_network_game:
+            self.update_status_message("Waiting for another player to join...")
+
+    def on_network_action(self, action_data):
+        """Handle move received from other player"""
+        board_state = action_data["board_state"]
+        self.board.board = [[cell[:] for cell in row] for row in board_state["board"]]
+        self.round_turn = board_state["round_turn"]
+        self.first_turn = board_state["first_turn"]
+        
+        old_row = action_data["from_row"]
+        old_col = action_data["from_col"]
+        new_row = action_data["to_row"]
+        new_col = action_data["to_col"]
+        
+        if self.board.board[new_row][new_col][0] is not None:
+            if not self.first_turn:
+                self.capture_piece(new_row, new_col)
+        
+        self.board.board[new_row][new_col][0] = self.board.board[old_row][old_col][0]
+        self.board.board[old_row][old_col][0] = None
+        
+        self.round_turn = 1 - self.round_turn
+        if self.first_turn and self.round_turn == 0:
+            self.first_turn = False
+            
+        save_game(self)
+        self.render.render_board()
+        
+        if self.check_win(1 - self.round_turn):
+            self.cleanup()
+            self.render.root.destroy()
+            return False
+            
+        return True
 
     def load_game(self):
         """
         procédure : lance la boucle principale du jeu
         """
         self.render.root.mainloop()
+        self.cleanup()
 
     def check_win(self, player):
         """
@@ -75,8 +114,12 @@ class Game:
         paramètres : row (ligne), col (colonne) - coordonnées du clic
         retourne : True si le jeu continue, False si la partie est terminée
         """
-        if not hasattr(self, 'selected_piece'):
-            self.selected_piece = None
+        if self.is_network_game:
+            if not self.game_started:
+                self.render.edit_info_label("Waiting for another player to join...")
+                return True
+            if not self.can_play():
+                return True
 
         cell = self.board.board[row][col]
 
@@ -115,6 +158,14 @@ class Game:
                 self.render.edit_info_label("No capture allowed on first turn")
                 return True
 
+        if self.is_network_game:
+            self.send_network_action({
+                "from_row": old_row,
+                "from_col": old_col,
+                "to_row": row,
+                "to_col": col
+            })
+
         # vérifie si la pièce atteint un camp adverse
         finish_line = 0 if self.round_turn == 1 else 9
         if row == finish_line:
@@ -124,6 +175,7 @@ class Game:
                 self.selected_piece = None
 
                 if self.check_win(self.round_turn):
+                    self.cleanup()
                     self.render.root.destroy()
                     return False
 
