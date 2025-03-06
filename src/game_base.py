@@ -149,21 +149,23 @@ class GameBase:
         self.update_status_message(f"Game ended: {message}", "red")
         messagebox.showinfo("Game Over", f"Game ended: {message}")
         
-        if messagebox.askyesno("Play Again?", "Would you like to start a new game?"):
-            if self.render and hasattr(self.render, 'root') and self.render.root:
+        play_again = messagebox.askyesno("Play Again?", "Would you like to start a new game?")
+        
+        if self.render and hasattr(self.render, 'root') and self.render.root:
+            root = self.render.root
+            self.render.root = None
+            
+            def start_new_game():
                 try:
-                    self.render.root.destroy()
+                    root.destroy()
                 except:
                     pass
-            from src.selector import Selector
-            Selector()
-        else:
-            if self.render and hasattr(self.render, 'root') and self.render.root:
-                try:
-                    self.render.root.destroy()
-                except:
-                    pass
-        self.cleanup()
+                self.cleanup()
+                if play_again:
+                    from src.selector import Selector
+                    Selector()
+            
+            root.after(100, start_new_game)
 
     def send_network_action(self, action_data):
         """
