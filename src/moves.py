@@ -18,12 +18,10 @@ def available_move(board, iRow, iCol, dRow, dCol):
     destination = board[dRow][dCol]
     destinationPlayer = destination[0]
     
-    # vérifie si la case de destination est occupée
-    if destinationPlayer is not None:
-        Logger.warning("Moves", f"Invalid move: destination cell ({dRow},{dCol}) is occupied")
+    if destinationPlayer is not None and destinationPlayer == initial[0]:
+        Logger.warning("Moves", f"Invalid move: destination cell ({dRow},{dCol}) is occupied by your own piece")
         return False
         
-    # vérifie le mouvement selon la couleur de la case de départ
     match initialCellColor:
         case 0:  # rouge (tour)
             if iRow != dRow and iCol != dCol:

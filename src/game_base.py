@@ -1,4 +1,4 @@
-from tkinter import messagebox
+from tkinter import messagebox, Frame, Label
 from src.network.client import NetworkClient
 from src.utils.logger import Logger
 from src.saves import save_game
@@ -14,6 +14,9 @@ class GameBase:
         self.is_my_turn = False
         self.game_started = not self.is_network_game
         self.render = None
+        self.selected_piece = None
+        self.status_frame = None
+        self.status_label = None
         
         if self.is_network_game:
             self.setup_network()
@@ -27,52 +30,79 @@ class GameBase:
         self.network_client.register_handler("player_assignment", self.on_player_assignment)
         self.network_client.register_handler("game_state", self.on_game_state)
         
+        Logger.info("Game", f"Connecting to server with game name: {self.game_save}")
         if not self.network_client.connect(self.game_save):
             messagebox.showerror("Error", "Failed to connect to game server")
             return
             
         Logger.info("Game", "Connected to game server")
 
-    def update_status_message(self, message: str):
-        if self.render:
-            self.render.edit_info_label(message)
+    def setup_status_display(self, parent):
+        if self.is_network_game:
+            self.status_frame = Frame(parent)
+            self.status_frame.pack(side="bottom", fill="x", padx=10, pady=5)
+            self.status_label = Label(self.status_frame, text="Connecting to server...", fg="blue")
+            self.status_label.pack()
+
+    def update_status_message(self, message: str, color: str = "black"):
+        if self.is_network_game and self.status_label:
+            self.status_label.config(text=message, fg=color)
 
     def on_player_assignment(self, data):
         self.player_number = data["player_number"]
-        self.game_id = data["game_id"]
-        self.update_status_message(f"You are Player {self.player_number}. Waiting for game to start...")
-        Logger.info("Game", f"Assigned as Player {self.player_number}")
+        self.game_id = data.get("game_id")
+        self.update_status_message(f"You are Player {self.player_number}. Waiting for other player...", "blue")
+        Logger.info("Game", f"Assigned as Player {self.player_number} in game {self.game_id}")
 
     def on_turn_started(self):
+        Logger.info("Game", "Turn started")
         self.game_started = True
         self.is_my_turn = True
-        self.update_status_message("Your turn")
+        self.update_status_message(f"Your turn (Player {self.player_number})", "green")
         if self.render:
             self.render.render_board()
 
     def on_turn_ended(self):
+        Logger.info("Game", "Turn ended")
         self.game_started = True
         self.is_my_turn = False
-        self.update_status_message("Waiting for other player...")
+        other_player = 2 if self.player_number == 1 else 1
+        self.update_status_message(f"Player {other_player}'s turn", "orange")
         if self.render:
             self.render.render_board()
 
     def on_network_action(self, action_data):
-        pass
+        Logger.info("Game", f"Received network action from other player")
+        if "board_state" in action_data:
+            self.update_board_from_state(action_data["board_state"])
+            self.render.render_board()
+
+    def update_board_from_state(self, state):
+        if not state:
+            return
+        self.board.board = [[cell[:] for cell in row] for row in state["board"]]
+        self.round_turn = state["round_turn"]
+        self.first_turn = state["first_turn"]
+        Logger.info("Game", "Board state updated from network action")
 
     def on_game_state(self, state_data):
         pass
 
     def on_player_disconnected(self, message):
+        Logger.info("Game", f"Disconnection event: {message}")
+        self.game_started = False
+        self.is_my_turn = False
+        self.update_status_message(f"Game ended: {message}", "red")
         messagebox.showinfo("Game Over", f"Game ended: {message}")
-        if self.render:
+        if self.render and self.render.root:
             self.render.root.destroy()
 
     def send_network_action(self, action_data):
-        if self.is_network_game and self.network_client:
+        if self.is_network_game and self.network_client and self.is_my_turn:
             action_data["board_state"] = self.get_board_state()
             self.network_client.send_game_action(action_data)
             save_game(self)
+            Logger.info("Game", "Sent network action to other player")
 
     def get_board_state(self):
         return {
@@ -84,8 +114,19 @@ class GameBase:
     def can_play(self) -> bool:
         if not self.is_network_game:
             return True
-        return self.game_started and self.is_my_turn
+        if not self.game_started:
+            self.update_status_message("Waiting for game to start...", "blue")
+            return False
+        if not self.is_my_turn:
+            other_player = 2 if self.player_number == 1 else 1
+            self.update_status_message(f"Player {other_player}'s turn", "orange")
+            return False
+        return True
 
     def cleanup(self):
         if self.network_client:
-            self.network_client.disconnect() 
+            self.network_client.disconnect()
+            self.game_started = False
+            self.is_my_turn = False
+            if self.render and self.render.root:
+                self.render.root.destroy() 

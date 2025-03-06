@@ -5,6 +5,7 @@ from src.captures import has_valid_move
 from src.saves import save_game
 from src.moves import available_move
 from src.game_base import GameBase
+from src.utils.logger import Logger
 
 class Game(GameBase):
     def __init__(self, game_save, quadrants, game_mode="Solo"):
@@ -23,15 +24,27 @@ class Game(GameBase):
 
     def on_network_action(self, action_data):
         """Handle move received from other player"""
-        board_state = action_data["board_state"]
+        if not action_data:
+            Logger.error("Game", "Received empty action data")
+            return False
+        
+        board_state = action_data.get("board_state")
+        if not board_state:
+            Logger.error("Game", "Received empty board state")
+            return False
+        
+        old_row = action_data.get("from_row")
+        old_col = action_data.get("from_col")
+        new_row = action_data.get("to_row")
+        new_col = action_data.get("to_col")
+        
+        if None in (old_row, old_col, new_row, new_col):
+            Logger.error("Game", "Missing move coordinates in action data")
+            return False
+        
         self.board.board = [[cell[:] for cell in row] for row in board_state["board"]]
         self.round_turn = board_state["round_turn"]
         self.first_turn = board_state["first_turn"]
-        
-        old_row = action_data["from_row"]
-        old_col = action_data["from_col"]
-        new_row = action_data["to_row"]
-        new_col = action_data["to_col"]
         
         if self.board.board[new_row][new_col][0] is not None:
             if not self.first_turn:
@@ -43,7 +56,7 @@ class Game(GameBase):
         self.round_turn = 1 - self.round_turn
         if self.first_turn and self.round_turn == 0:
             self.first_turn = False
-            
+        
         save_game(self)
         self.render.render_board()
         
@@ -51,7 +64,14 @@ class Game(GameBase):
             self.cleanup()
             self.render.root.destroy()
             return False
-            
+        
+        if self.is_network_game:
+            if self.is_my_turn:
+                self.update_status_message(f"Your turn (Player {self.player_number})", "green")
+            else:
+                other_player = 2 if self.player_number == 1 else 1
+                self.update_status_message(f"Player {other_player}'s turn", "orange")
+        
         return True
 
     def load_game(self):
@@ -69,7 +89,6 @@ class Game(GameBase):
         """
         opponent = 1 - player
         opponent_camps = [(9, 0), (9, 9)] if player == 0 else [(0, 9), (0, 0)]
-        finish_line = 0 if player == 0 else 9
 
         # vérifie si le joueur occupe les deux camps adverses
         camps_occupied = sum(1 for camp in opponent_camps
@@ -82,18 +101,21 @@ class Game(GameBase):
         # vérifie si l'adversaire n'a plus de mouvements possibles
         opponent_has_moves = False
         for row in range(10):  
+            if opponent_has_moves:
+                break
             for col in range(10):
                 if self.board.board[row][col][0] == opponent:
                     for dest_row in range(10):
                         for dest_col in range(10):
-                            if self.board.board[row][col][0] != self.board.board[dest_row][dest_col][0]:
+                            if (self.board.board[dest_row][dest_col][0] is None or 
+                                self.board.board[dest_row][dest_col][0] != opponent):
                                 if available_move(self.board.board, row, col, dest_row, dest_col):
                                     opponent_has_moves = True
                                     break
-                    if opponent_has_moves:
-                        break
-            if opponent_has_moves:
-                break
+                        if opponent_has_moves:
+                            break
+                if opponent_has_moves:
+                    break
 
         if not opponent_has_moves:
             messagebox.showinfo("Victory!", f"Player {player + 1} wins by blocking opponent!")
