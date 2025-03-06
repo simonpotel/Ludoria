@@ -169,6 +169,11 @@ class Selector:
         selected_game = self.game_selection.get()
         selected_mode = self.mode_selection.get()
         
+        if selected_mode == "Bot":
+            Logger.warning("Selector", "Bot mode not implemented yet")
+            messagebox.showerror("Error", "Bot mode not implemented yet")
+            return
+        
         if not game_save:
             Logger.warning("Selector", "No game name provided")
             messagebox.showerror("Error", "Please enter a game name.")
