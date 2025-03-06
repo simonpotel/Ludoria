@@ -1,42 +1,41 @@
 from datetime import datetime
 from enum import Enum
 from typing import Any
-import colorama  
+import colorama
+from colorama import Fore, Style
 
-colorama.init(convert=True)
+colorama.init(autoreset=True)
 
 class LogLevel(Enum):
     """
-    énumération : définit les différents niveaux de log avec leurs couleurs associées
+    énumération : niveaux de log avec leurs couleurs
     """
-    INFO = ('\033[94m', 'INFO')         # bleu
-    SUCCESS = ('\033[92m', 'SUCCESS')   # vert
-    WARNING = ('\033[93m', 'WARNING')   # jaune
-    ERROR = ('\033[91m', 'ERROR')       # rouge
-    MOVE = ('\033[95m', 'MOVE')         # magenta
-    GAME = ('\033[96m', 'GAME')         # cyan
-    BOARD = ('\033[97m', 'BOARD')       # blanc
-    AI = ('\033[38;5;208m', 'AI')       # orange
+    INFO = (Fore.BLUE, 'INFO')
+    SUCCESS = (Fore.GREEN, 'SUCCESS')
+    WARNING = (Fore.YELLOW, 'WARNING')
+    ERROR = (Fore.RED, 'ERROR')
+    MOVE = (Fore.MAGENTA, 'MOVE')
+    GAME = (Fore.CYAN, 'GAME')
+    BOARD = (Fore.WHITE, 'BOARD')
+    AI = (Fore.LIGHTRED_EX, 'AI')
 
 class Logger:
     """
-    class Logger : gère l'affichage des messages de log avec différents niveaux et couleurs
-    utilise le pattern singleton pour assurer une instance unique
+    classe : gestionnaire de logs avec différents niveaux et couleurs
+    implémente le pattern singleton
     """
-    RESET = '\033[0m'
-    BOLD = '\033[1m'
     _instance = None
 
     def __init__(self):
         """
-        constructeur : initialise le logger avec les couleurs activées par défaut
+        procédure : initialise le logger
         """
         self.enable_colors = True
 
     @classmethod
     def initialize(cls):
         """
-        procédure : initialise l'instance unique du logger si elle n'existe pas déjà
+        procédure : crée l'instance unique du logger
         """
         if cls._instance is None:
             cls._instance = Logger()
@@ -44,26 +43,25 @@ class Logger:
     @classmethod
     def _format_message(cls, level: LogLevel, component: str, message: Any) -> str:
         """
-        fonction : formate un message de log avec timestamp, niveau, composant et couleur
-        paramètres :
-            level - niveau de log (LogLevel)
-            component - nom du composant source
+        fonction : formate un message de log
+        params :
+            level - niveau de log
+            component - composant source
             message - contenu du message
-        retourne : message formaté avec les codes couleur
+        retour : message formaté avec couleurs
         """
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         color_code, level_name = level.value
-        
         base_message = f"[{timestamp}] [{level_name}] [{component}] {str(message)}"
-        return f"{color_code}{base_message}{cls.RESET}"
+        return f"{color_code}{Style.BRIGHT}{base_message}{Style.RESET_ALL}"
 
     @classmethod
     def _log(cls, level: LogLevel, component: str, message: Any):
         """
-        procédure : affiche un message de log avec le niveau spécifié
-        paramètres :
-            level - niveau de log (LogLevel)
-            component - nom du composant source
+        procédure : affiche un message de log
+        params :
+            level - niveau de log
+            component - composant source
             message - contenu du message
         """
         if not cls._instance:
@@ -73,55 +71,79 @@ class Logger:
     @classmethod
     def info(cls, component: str, message: Any):
         """
-        procédure : affiche un message de niveau INFO (bleu)
+        procédure : log niveau info (bleu)
+        params :
+            component - composant source
+            message - contenu du message
         """
         cls._log(LogLevel.INFO, component, message)
 
     @classmethod
     def success(cls, component: str, message: Any):
         """
-        procédure : affiche un message de niveau SUCCESS (vert)
+        procédure : log niveau succès (vert)
+        params :
+            component - composant source
+            message - contenu du message
         """
         cls._log(LogLevel.SUCCESS, component, message)
 
     @classmethod
     def warning(cls, component: str, message: Any):
         """
-        procédure : affiche un message de niveau WARNING (jaune)
+        procédure : log niveau avertissement (jaune)
+        params :
+            component - composant source
+            message - contenu du message
         """
         cls._log(LogLevel.WARNING, component, message)
 
     @classmethod
     def error(cls, component: str, message: Any):
         """
-        procédure : affiche un message de niveau ERROR (rouge)
+        procédure : log niveau erreur (rouge)
+        params :
+            component - composant source
+            message - contenu du message
         """
         cls._log(LogLevel.ERROR, component, message)
 
     @classmethod
     def move(cls, component: str, message: Any):
         """
-        procédure : affiche un message de niveau MOVE (magenta)
+        procédure : log niveau déplacement (magenta)
+        params :
+            component - composant source
+            message - contenu du message
         """
         cls._log(LogLevel.MOVE, component, message)
 
     @classmethod
     def game(cls, component: str, message: Any):
         """
-        procédure : affiche un message de niveau GAME (cyan)
+        procédure : log niveau jeu (cyan)
+        params :
+            component - composant source
+            message - contenu du message
         """
         cls._log(LogLevel.GAME, component, message)
 
     @classmethod
     def board(cls, component: str, message: Any):
         """
-        procédure : affiche un message de niveau BOARD (blanc)
+        procédure : log niveau plateau (blanc)
+        params :
+            component - composant source
+            message - contenu du message
         """
         cls._log(LogLevel.BOARD, component, message)
 
     @classmethod
     def ai(cls, component: str, message: Any):
         """
-        procédure : affiche un message de niveau AI (orange)
+        procédure : log niveau ia (orange)
+        params :
+            component - composant source
+            message - contenu du message
         """
         cls._log(LogLevel.AI, component, message) 

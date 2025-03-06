@@ -2,68 +2,56 @@ from src.utils.logger import Logger
 
 def available_move(board, iRow, iCol, dRow, dCol):
     """
-    fonction : vérifie si un déplacement est possible selon les règles du jeu
-    paramètres :
-        board - plateau de jeu (board.board)
+    fonction : vérifie la validité d'un déplacement selon les règles du jeu
+    params :
+        board - plateau de jeu
         iRow - ligne de départ
         iCol - colonne de départ
         dRow - ligne d'arrivée
         dCol - colonne d'arrivée
-    retourne : True si le déplacement est valide, False sinon
+    retour : bool indiquant si le déplacement est valide
     """
     Logger.move("Moves", f"Checking move from ({iRow},{iCol}) to ({dRow},{dCol})")
     
     initial = board[iRow][iCol]
-    initialCellColor = initial[1]
     destination = board[dRow][dCol]
-    destinationPlayer = destination[0]
     
-    # vérifie si la case de destination est occupée
-    if destinationPlayer is not None:
-        Logger.warning("Moves", f"Invalid move: destination cell ({dRow},{dCol}) is occupied")
+    if destination[0] is not None and destination[0] == initial[0]:
+        Logger.warning("Moves", f"Invalid move: destination cell ({dRow},{dCol}) is occupied by your own piece")
         return False
         
-    # vérifie le mouvement selon la couleur de la case de départ
-    match initialCellColor:
-        case 0:  # rouge (tour)
+    match initial[1]:
+        case 0:
             if iRow != dRow and iCol != dCol:
                 Logger.warning("Moves", "Invalid Rook move: must move in straight line")
                 return False
                 
-            if iRow == dRow:  # déplacement horizontal
-                step = 1 if dCol > iCol else -1
-                for col in range(iCol + step, dCol, step):
-                    if board[iRow][col][0] is not None:
-                        Logger.warning("Moves", f"Invalid Rook move: path blocked at ({iRow},{col})")
-                        return False
-            else:  # déplacement vertical
-                step = 1 if dRow > iRow else -1
-                for row in range(iRow + step, dRow, step):
-                    if board[row][iCol][0] is not None:
-                        Logger.warning("Moves", f"Invalid Rook move: path blocked at ({row},{iCol})")
-                        return False
+            step = 1 if dCol > iCol else -1 if iCol > dCol else 0
+            for i in range(iRow + (0 if step else 1), dRow, 1 if dRow > iRow else -1):
+                if board[i][iCol][0] is not None:
+                    Logger.warning("Moves", f"Invalid Rook move: path blocked at ({i},{iCol})")
+                    return False
+                    
+            for j in range(iCol + step, dCol, step):
+                if board[iRow][j][0] is not None:
+                    Logger.warning("Moves", f"Invalid Rook move: path blocked at ({iRow},{j})")
+                    return False
             
             Logger.success("Moves", "Valid Rook move")
             return True
             
-        case 1:  # vert (cavalier)
+        case 1:
             valid = (abs(dRow - iRow) == 2 and abs(dCol - iCol) == 1) or \
                    (abs(dRow - iRow) == 1 and abs(dCol - iCol) == 2)
-            if valid:
-                Logger.success("Moves", "Valid Knight move")
-            else:
-                Logger.warning("Moves", "Invalid Knight move: must move in L-shape")
+            Logger.success("Moves", "Valid Knight move") if valid else Logger.warning("Moves", "Invalid Knight move")
             return valid
             
-        case 2:  # bleu (roi)
+        case 2:
             valid = abs(dRow - iRow) <= 1 and abs(dCol - iCol) <= 1
-            if valid:
-                Logger.success("Moves", "Valid King move")
-            else:
-                Logger.warning("Moves", "Invalid King move: can only move one square in any direction")
+            Logger.success("Moves", "Valid King move") if valid else Logger.warning("Moves", "Invalid King move")
             return valid
             
-        case 3:  # jaune (fou)
+        case 3:
             if abs(dRow - iRow) != abs(dCol - iCol):
                 Logger.warning("Moves", "Invalid Bishop move: must move diagonally")
                 return False
@@ -82,6 +70,6 @@ def available_move(board, iRow, iCol, dRow, dCol):
             Logger.success("Moves", "Valid Bishop move")
             return True
             
-    Logger.error("Moves", f"Invalid piece type: {initialCellColor}")
+    Logger.error("Moves", f"Invalid piece type: {initial[1]}")
     return False  
                 

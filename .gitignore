@@ -1,3 +1,4 @@
 saves/*
 *.pyc
 .DS_Store
+builds/*
