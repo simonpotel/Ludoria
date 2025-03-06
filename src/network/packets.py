@@ -96,16 +96,6 @@ def create_player_assignment_packet(player_number: int, game_id: str) -> Packet:
     """
     return Packet(PacketType.PLAYER_ASSIGNMENT, {"player_number": player_number}, game_id)
 
-def create_game_state_packet(state: Dict[str, Any], game_id: str) -> Packet:
-    """
-    fonction : crée un paquet d'état de jeu
-    params :
-        state - état du jeu
-        game_id - identifiant de la partie
-    retour : paquet d'état
-    """
-    return Packet(PacketType.GAME_STATE, state, game_id)
-
 def create_wait_turn_packet(game_id: str) -> Packet:
     """
     fonction : crée un paquet d'attente de tour

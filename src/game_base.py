@@ -6,23 +6,24 @@ import json
 
 class GameBase:
     """
-    classe : classe de base pour les jeux, gère le réseau et l'interface
+    classe : base commune pour tous les jeux
     """
     def __init__(self, game_save, quadrants, game_mode="Solo"):
         """
-        procédure : initialise une partie
+        procédure : initialise un jeu
         params :
-            game_save - nom de la sauvegarde
-            quadrants - quadrants du plateau
+            game_save - sauvegarde à charger ou None
+            quadrants - configuration des quadrants
             game_mode - mode de jeu (Solo ou Network)
         """
         self.game_save = game_save
+        self.quadrants = quadrants
         self.game_mode = game_mode
-        self.network_client = None
         self.is_network_game = game_mode == "Network"
+        self.game_started = False
         self.player_number = None
         self.is_my_turn = False
-        self.game_started = not self.is_network_game
+        self.network_client = None
         self.render = None
         self.selected_piece = None
         self.status_frame = None
@@ -33,7 +34,7 @@ class GameBase:
 
     def setup_network(self):
         """
-        procédure : configure la connexion réseau
+        procédure : initialise le mode réseau
         """
         self.network_client = NetworkClient()
         self._register_network_handlers()
@@ -49,22 +50,17 @@ class GameBase:
         """
         procédure : enregistre les gestionnaires d'événements réseau
         """
-        handlers = {
-            "turn_started": self.on_turn_started,
-            "turn_ended": self.on_turn_ended,
-            "game_action": self.on_network_action,
-            "player_disconnected": self.on_player_disconnected,
-            "player_assignment": self.on_player_assignment,
-            "game_state": self.on_game_state
-        }
-        for event, handler in handlers.items():
-            self.network_client.register_handler(event, handler)
+        self.network_client.register_handler("player_assignment", self.on_player_assignment)
+        self.network_client.register_handler("turn_started", self.on_turn_started)
+        self.network_client.register_handler("turn_ended", self.on_turn_ended)
+        self.network_client.register_handler("game_action", self.on_network_action)
+        self.network_client.register_handler("player_disconnected", self.on_player_disconnected)
 
     def setup_status_display(self, parent):
         """
-        procédure : configure l'affichage du statut
+        procédure : configure l'affichage des messages d'état
         params :
-            parent - widget parent pour l'affichage
+            parent - widget parent
         """
         if self.is_network_game:
             self.status_frame = Frame(parent)
@@ -74,9 +70,9 @@ class GameBase:
 
     def update_status_message(self, message: str, color: str = "black"):
         """
-        procédure : met à jour le message de statut
+        procédure : met à jour le message d'état
         params :
-            message - message à afficher
+            message - nouveau message
             color - couleur du texte
         """
         if self.is_network_game and self.status_label:
@@ -90,6 +86,7 @@ class GameBase:
         """
         self.player_number = data["player_number"]
         self.game_id = data.get("game_id")
+        self.game_started = True
         self.update_status_message(f"You are Player {self.player_number}. Waiting for other player...", "blue")
         Logger.info("Game", f"Assigned as Player {self.player_number} in game {self.game_id}")
 
@@ -102,6 +99,7 @@ class GameBase:
         self.update_status_message(f"Your turn (Player {self.player_number})", "green")
         if self.render:
             self.render.render_board()
+        Logger.info("Game", "Turn started")
 
     def on_turn_ended(self):
         """
@@ -113,10 +111,11 @@ class GameBase:
         self.update_status_message(f"Player {other_player}'s turn", "orange")
         if self.render:
             self.render.render_board()
+        Logger.info("Game", "Turn ended")
 
     def on_network_action(self, action_data):
         """
-        procédure : gère une action réseau reçue
+        procédure : gère une action reçue du réseau
         params :
             action_data - données de l'action
         """
@@ -138,9 +137,6 @@ class GameBase:
         self.first_turn = state["first_turn"]
         Logger.info("Game", "Board state updated from network action")
 
-    def on_game_state(self, state_data):
-        pass
-
     def on_player_disconnected(self, message):
         """
         procédure : gère la déconnexion d'un joueur
@@ -154,6 +150,7 @@ class GameBase:
         messagebox.showinfo("Game Over", f"Game ended: {message}")
         if self.render and self.render.root:
             self.render.root.destroy()
+        self.cleanup()
 
     def send_network_action(self, action_data):
         """
@@ -169,8 +166,8 @@ class GameBase:
 
     def get_board_state(self):
         """
-        fonction : récupère l'état actuel du plateau
-        retour : dictionnaire contenant l'état du jeu
+        fonction : récupère l'état du plateau
+        retour : état du plateau
         """
         return {
             "board": [[cell[:] for cell in row] for row in self.board.board],
@@ -181,7 +178,7 @@ class GameBase:
     def can_play(self) -> bool:
         """
         fonction : vérifie si le joueur peut jouer
-        retour : bool indiquant si le joueur peut jouer
+        retour : True si le joueur peut jouer, False sinon
         """
         if not self.is_network_game:
             return True

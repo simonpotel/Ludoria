@@ -26,7 +26,6 @@ class GameSession:
         self.players: Dict[int, socket.socket] = {}
         self.player_buffers: Dict[socket.socket, bytearray] = {}
         self.current_turn = 1
-        self.board_state = None
         self.active = True
 
     def add_player(self, player_socket: socket.socket) -> int:
@@ -113,12 +112,6 @@ class GameSession:
         """
         self.active = True
         self.current_turn = 1
-
-    def update_board_state(self, state):
-        self.board_state = state
-
-    def get_board_state(self):
-        return self.board_state
 
     def broadcast(self, packet: Packet, exclude_socket: Optional[socket.socket] = None):
         """
