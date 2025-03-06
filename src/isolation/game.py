@@ -43,11 +43,20 @@ class Game(GameBase):
         save_game(self)
         self.render.render_board()
         
-        if not has_valid_move(self.board.board, self.round_turn):
-            winner = "Player 2" if self.round_turn == 0 else "Player 1"
+        current_player = 0 if self.player_number == 1 else 1
+        if not has_valid_move(self.board.board, current_player):
+            winner = f"Player {3 - self.player_number}"
+            messagebox.showinfo("End Game", f"{winner} wins!")
             self.cleanup()
             self.render.root.destroy()
             return False
+            
+        if self.is_network_game:
+            if self.is_my_turn:
+                self.update_status_message(f"Your turn (Player {self.player_number})", "green")
+            else:
+                other_player = 2 if self.player_number == 1 else 1
+                self.update_status_message(f"Player {other_player}'s turn", "orange")
             
         return True
 
@@ -71,42 +80,38 @@ class Game(GameBase):
             self.render.edit_info_label("This cell is already occupied")
             return True
 
-        # vérifie si la case est menacée par une tour adverse
-        if is_threatened(self.board.board, row, col, self.round_turn):
+        current_player = 0 if self.player_number == 1 else 1 if self.is_network_game else self.round_turn
+        if is_threatened(self.board.board, row, col, current_player):
             self.render.edit_info_label("This cell is threatened by an enemy tower")
             return True
 
         if self.is_network_game:
+            self.board.board[row][col][0] = current_player
+            self.render.render_board()
+            
             self.send_network_action({
                 "row": row,
-                "col": col,
-                "board_state": self.get_board_state()
+                "col": col
             })
+            return True
 
         # place la tour du joueur actuel
         self.board.board[row][col][0] = self.round_turn
+        
         self.round_turn = 1 - self.round_turn
         save_game(self)
-
-        # vérifie si le joueur suivant a encore des mouvements possibles
+        
         if not has_valid_move(self.board.board, self.round_turn):
-            winner = "Player 2" if self.round_turn == 0 else "Player 1"
-            self.render.edit_info_label(f"Game ended ! {winner} wins !")
-            messagebox.showinfo("End Game", f"{winner} wins !")
+            winner = f"Player {2 - self.round_turn}"
+            self.render.edit_info_label(f"Game ended! {winner} wins!")
+            messagebox.showinfo("End Game", f"{winner} wins!")
             self.cleanup()
             self.render.root.destroy()
             return False
 
         # passe au tour du joueur suivant
-        if self.is_network_game:
-            if self.is_my_turn:
-                self.update_status_message(f"Your turn (Player {self.player_number})", "green")
-            else:
-                other_player = 2 if self.player_number == 1 else 1
-                self.update_status_message(f"Player {other_player}'s turn", "orange")
-        else:
-            self.render.edit_info_label(f"Player {self.round_turn + 1} turn - Place your tower.")
-
+        self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn - Place your tower.")
+        self.render.render_board()
         return True
 
     def load_game(self):

@@ -47,11 +47,20 @@ class Game(GameBase):
         save_game(self)
         self.render.render_board()
         
-        if self.check_connected_pieces(1 - self.round_turn):
-            winner = "Player 1" if self.round_turn == 1 else "Player 2"
+        other_player = 1 if self.player_number == 1 else 0
+        if self.check_connected_pieces(other_player):
+            winner = f"Player {3 - self.player_number}"
+            messagebox.showinfo("Game Over", f"{winner} has won!")
             self.cleanup()
             self.render.root.destroy()
             return False
+            
+        if self.is_network_game:
+            if self.is_my_turn:
+                self.update_status_message(f"Your turn (Player {self.player_number})", "green")
+            else:
+                other_player = 2 if self.player_number == 1 else 1
+                self.update_status_message(f"Player {other_player}'s turn", "orange")
             
         return True
 
@@ -112,9 +121,16 @@ class Game(GameBase):
 
         # gestion du premier clic - sélection d'une pièce
         if self.selected_piece is None:
-            if cell[0] is None or cell[0] != self.round_turn:
-                self.render.edit_info_label("Select your own piece")
-                return True
+            if self.is_network_game:
+                player_pieces = 0 if self.player_number == 1 else 1
+                if cell[0] is None or cell[0] != player_pieces:
+                    self.render.edit_info_label("Select your own piece")
+                    return True
+            else:
+                if cell[0] is None or cell[0] != self.round_turn:
+                    self.render.edit_info_label("Select your own piece")
+                    return True
+                    
             self.selected_piece = (row, col)
             self.render.edit_info_label("Select destination")
             self.render.render_board()
@@ -129,22 +145,27 @@ class Game(GameBase):
             return True
 
         if self.is_network_game:
+            temp_piece = self.board.board[old_row][old_col][0]
+            self.board.board[row][col][0] = temp_piece
+            self.board.board[old_row][old_col][0] = None
+            self.selected_piece = None
+            self.render.render_board()
+            
             self.send_network_action({
                 "from_row": old_row,
                 "from_col": old_col,
                 "to_row": row,
-                "to_col": col,
-                "board_state": self.get_board_state()
+                "to_col": col
             })
+            return True
 
-        # effectue le déplacement de la pièce
         self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
         self.board.board[old_row][old_col][0] = None
         self.selected_piece = None
 
         # vérifie la condition de victoire
         if self.check_connected_pieces(self.round_turn):
-            winner = "Player 1" if self.round_turn == 0 else "Player 2"
+            winner = f"Player {self.round_turn + 1}"
             self.render.edit_info_label(f"Game Over! {winner} wins!")
             messagebox.showinfo("Game Over", f"{winner} has won!")
             self.cleanup()
@@ -153,17 +174,9 @@ class Game(GameBase):
 
         # passe au tour du joueur suivant
         self.round_turn = 1 - self.round_turn
-        
-        if self.is_network_game:
-            if self.is_my_turn:
-                self.update_status_message(f"Your turn (Player {self.player_number})", "green")
-            else:
-                other_player = 2 if self.player_number == 1 else 1
-                self.update_status_message(f"Player {other_player}'s turn", "orange")
-        else:
-            self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
-            
         save_game(self)
+        
+        self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
         self.render.render_board()
         return True
 
