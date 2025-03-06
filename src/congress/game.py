@@ -19,7 +19,7 @@ class Game(GameBase):
         self.selected_piece = None
         
         if self.is_network_game:
-            self.update_status_message("Waiting for another player to join...")
+            self.update_status_message("Waiting for another player...")
 
     def on_network_action(self, action_data):
         """Handle move received from other player"""
@@ -109,7 +109,7 @@ class Game(GameBase):
         """
         if self.is_network_game:
             if not self.game_started:
-                self.render.edit_info_label("Waiting for another player to join...")
+                self.render.edit_info_label("Waiting for another player...")
                 return True
             if not self.can_play():
                 return True

@@ -5,26 +5,24 @@ from src.utils.logger import Logger
 
 def save_game(game):
     """
-    procédure : sauvegarde l'état actuel du jeu dans un fichier JSON
-    paramètres :
+    procédure : sauvegarde l'état du jeu
+    params :
         game - instance du jeu à sauvegarder
     """
     Logger.info("Saves", f"Saving game state for {game.game_save}")
     try:
-        # prépare les données à sauvegarder
         game_state = {
             'board': [[[cell[0], cell[1]] for cell in row] for row in game.board.board],
             'game_number': game.board.game_number,
             'round_turn': game.round_turn,
         }
 
-        # crée le dossier de sauvegarde si nécessaire
         os.makedirs("saves", exist_ok=True)
+        save_path = f"saves/{game.game_save}.json"
         
-        # écrit les données dans le fichier
-        with open(f"saves/{game.game_save}.json", 'w') as file:
+        with open(save_path, 'w') as file:
             json.dump(game_state, file, indent=4)
-        Logger.success("Saves", f"Game state saved successfully to saves/{game.game_save}.json")
+        Logger.success("Saves", f"Game state saved to {save_path}")
     except Exception as e:
         Logger.error("Saves", f"Failed to save game state: {str(e)}")
         raise
@@ -32,36 +30,44 @@ def save_game(game):
 
 def load_game(game):
     """
-    fonction : charge l'état du jeu depuis un fichier JSON
-    paramètres :
+    fonction : charge l'état du jeu depuis une sauvegarde
+    params :
         game - instance du jeu à charger
-    retourne : True si le chargement réussit, False sinon
+    retour : bool indiquant si le chargement a réussi
     """
-    Logger.info("Saves", f"Loading game state for {game.game_save}")
+    save_path = f"saves/{game.game_save}.json"
+    Logger.info("Saves", f"Loading game state from {save_path}")
+    
     try:
-        # lit le fichier de sauvegarde
-        with open(f"saves/{game.game_save}.json", 'r') as file:
+        with open(save_path, 'r') as file:
             game_state = json.load(file)
-            
-            # met à jour l'état du plateau
-            Logger.board("Saves", "Updating board state from save file")
-            for i in range(len(game.board.board)):
-                for j in range(len(game.board.board[i])):
-                    game.board.board[i][j][0] = game_state['board'][i][j][0]
-                    game.board.board[i][j][1] = game_state['board'][i][j][1]
-            
-            # met à jour les autres attributs du jeu
-            game.board.game_number = game_state['game_number']
-            game.round_turn = game_state['round_turn']
-            
-            Logger.success("Saves", f"Game state loaded successfully from saves/{game.game_save}.json")
+            _update_game_state(game, game_state)
+            Logger.success("Saves", f"Game state loaded from {save_path}")
             return True
+            
     except FileNotFoundError:
-        Logger.warning("Saves", f"Save file not found: saves/{game.game_save}.json")
+        Logger.warning("Saves", f"Save file not found: {save_path}")
         return False
     except json.JSONDecodeError:
-        Logger.error("Saves", f"Invalid save file format: saves/{game.game_save}.json")
+        Logger.error("Saves", f"Invalid save file format: {save_path}")
         return False
     except Exception as e:
         Logger.error("Saves", f"Failed to load game state: {str(e)}")
         return False
+
+
+def _update_game_state(game, game_state):
+    """
+    procédure : met à jour l'état du jeu avec les données chargées
+    params :
+        game - instance du jeu à mettre à jour
+        game_state - données de sauvegarde
+    """
+    Logger.board("Saves", "Updating board state from save file")
+    for i in range(len(game.board.board)):
+        for j in range(len(game.board.board[i])):
+            game.board.board[i][j][0] = game_state['board'][i][j][0]
+            game.board.board[i][j][1] = game_state['board'][i][j][1]
+    
+    game.board.game_number = game_state['game_number']
+    game.round_turn = game_state['round_turn']

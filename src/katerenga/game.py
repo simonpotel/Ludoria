@@ -20,7 +20,7 @@ class Game(GameBase):
         self.selected_piece = None
 
         if self.is_network_game:
-            self.update_status_message("Waiting for another player to join...")
+            self.update_status_message("Waiting for another player...")
 
     def on_network_action(self, action_data):
         """Handle move received from other player"""
@@ -95,7 +95,7 @@ class Game(GameBase):
                              if self.board.board[camp[0]][camp[1]][0] == player)
 
         if camps_occupied == 2:
-            messagebox.showinfo("Victory!", f"Player {player + 1} wins by occupying both camps!")
+            messagebox.showinfo("Victory", f"Player {player + 1} wins by occupying both camps!")
             return True
 
         # vérifie si l'adversaire n'a plus de mouvements possibles
@@ -118,7 +118,7 @@ class Game(GameBase):
                     break
 
         if not opponent_has_moves:
-            messagebox.showinfo("Victory!", f"Player {player + 1} wins by blocking opponent!")
+            messagebox.showinfo("Victory", f"Player {player + 1} wins by blocking opponent!")
             return True
 
         return False
@@ -138,7 +138,7 @@ class Game(GameBase):
         """
         if self.is_network_game:
             if not self.game_started:
-                self.render.edit_info_label("Waiting for another player to join...")
+                self.render.edit_info_label("Waiting for another player...")
                 return True
             if not self.can_play():
                 return True

@@ -17,7 +17,7 @@ class Game(GameBase):
         self.round_turn = 0
         
         if self.is_network_game:
-            self.update_status_message("Waiting for another player to join...")
+            self.update_status_message("Waiting for another player...")
 
     def on_network_action(self, action_data):
         """Handle move received from other player"""
@@ -46,7 +46,7 @@ class Game(GameBase):
         current_player = 0 if self.player_number == 1 else 1
         if not has_valid_move(self.board.board, current_player):
             winner = f"Player {3 - self.player_number}"
-            messagebox.showinfo("End Game", f"{winner} wins!")
+            messagebox.showinfo("Game Over", f"{winner} wins!")
             self.cleanup()
             self.render.root.destroy()
             return False
@@ -68,7 +68,7 @@ class Game(GameBase):
         """
         if self.is_network_game:
             if not self.game_started:
-                self.render.edit_info_label("Waiting for another player to join...")
+                self.render.edit_info_label("Waiting for another player...")
                 return True
             if not self.can_play():
                 return True
@@ -103,14 +103,14 @@ class Game(GameBase):
         
         if not has_valid_move(self.board.board, self.round_turn):
             winner = f"Player {2 - self.round_turn}"
-            self.render.edit_info_label(f"Game ended! {winner} wins!")
-            messagebox.showinfo("End Game", f"{winner} wins!")
+            self.render.edit_info_label(f"Game Over! {winner} wins!")
+            messagebox.showinfo("Game Over", f"{winner} wins!")
             self.cleanup()
             self.render.root.destroy()
             return False
 
         # passe au tour du joueur suivant
-        self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn - Place your tower.")
+        self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn - Place your tower")
         self.render.render_board()
         return True
 

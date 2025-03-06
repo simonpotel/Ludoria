@@ -3,34 +3,20 @@ from src.utils.logger import Logger
 
 class Board:
     """
-    class Board: représente le plateau de jeu
-    en fonction du jeu (Katerega, Congress, Isolation), les pions sont placés différemment
-    au démarrage.
-
-    structure:
-    quadrants: liste de 4 quadrants
-        chaque quadrant est une liste de 4 lignes
-            chaque ligne est une liste de 4 cases
-                chaque case est une liste de 2 éléments:
-                    (joueur, case)
-                    et joueur (0 = joueur 1 et 1 = joueur 2)
-                    et case = 0 / 1 / 2 / 3 / 4 / 5 
-                    voir src.render.Render.QUADRANTS_CELLS_COLORS
-
-    board: liste de 8/10 lignes
-        chaque ligne est une liste de 8/10 cases
-            chaque case est une liste de 2 éléments:
-                (joueur, case)
-                et joueur (0 = joueur 1 et 1 = joueur 2 ou None si la cellule n'est pas occupé)
-                et case = 0 / 1 / 2 / 3 / 4 / 5 
-                voir src.render.Render.QUADRANTS_CELLS_COLORS
-    "board est donc une représentation du plateau de jeu avec les pions placés en 
-    fonction du jeu formés avec les quadrants fusionnés"     
-
+    classe : gère le plateau de jeu et son initialisation
+    structure du plateau :
+        board : matrice 8x8 ou 10x10 selon le jeu
+        chaque case : [joueur, type_case]
+            joueur : 0 (joueur 1), 1 (joueur 2), None (case vide)
+            type_case : 0-5 (voir render.py pour les couleurs)
     """
-
-
     def __init__(self, quadrants, game_number):
+        """
+        procédure : initialise le plateau avec les quadrants donnés
+        params :
+            quadrants - liste des 4 quadrants du plateau
+            game_number - type de jeu (0: katerenga, 1: isolation, 2: congress)
+        """
         Logger.board("Board", f"Initializing board for game {game_number}")
         self.quadrants = quadrants
         self.game_number = game_number
@@ -40,81 +26,69 @@ class Board:
 
     def setup_board(self):
         """
-        procédure : place les pions sur le plateau de jeu en fonction du jeu pour que la partie puisse démarrer
+        procédure : place les pions initiaux selon le type de jeu
         """
         Logger.board("Board", f"Setting up board for game type {self.game_number}")
         match self.game_number:
-            case 0:  # katerenga
-                Logger.board("Board", "Setting up Katerenga initial positions")
+            case 0:
                 for i in range(8):
                     self.board[1][i+1][0] = 0
-                for i in range(8):
                     self.board[8][i+1][0] = 1
-                Logger.success("Board", "Katerenga pieces placed successfully")
 
-            case 1:  # isolation
-                Logger.board("Board", "Setting up Isolation board (no initial pieces)")
-                pass  # pas de pions à l'initialisation
+            case 1:
+                pass
 
-            case 2:  # congress
-                Logger.board("Board", "Setting up Congress initial positions")
-                self.board[0][1][0] = 1
-                self.board[0][3][0] = 0
-                self.board[0][4][0] = 1
-                self.board[0][6][0] = 0
-                self.board[1][0][0] = 0
-                self.board[1][7][0] = 1
-                self.board[3][0][0] = 1
-                self.board[3][7][0] = 0
-                self.board[4][0][0] = 0
-                self.board[4][7][0] = 1
-                self.board[6][0][0] = 1
-                self.board[6][7][0] = 0
-                self.board[7][6][0] = 1
-                self.board[7][4][0] = 0
-                self.board[7][3][0] = 1
-                self.board[7][1][0] = 0
-                Logger.success("Board", "Congress pieces placed successfully")
+            case 2:
+                positions = [
+                    (0,1,1), (0,3,0), (0,4,1), (0,6,0),
+                    (1,0,0), (1,7,1), (3,0,1), (3,7,0),
+                    (4,0,0), (4,7,1), (6,0,1), (6,7,0),
+                    (7,6,1), (7,4,0), (7,3,1), (7,1,0)
+                ]
+                for row, col, player in positions:
+                    self.board[row][col][0] = player
+
+        Logger.success("Board", "Board setup completed")
 
     def get_board(self):
         """
-        fonction : crée le plateau de jeu en fusionnant les quadrants
-        paramètres :
-            self : instance de la classe Board
-        retourne :
-            board : plateau de jeu
+        fonction : crée le plateau en fusionnant les quadrants
+        retour : plateau complet initialisé
         """
         Logger.board("Board", "Creating board from quadrants")
         board = [[[None, None] for _ in range(8)] for _ in range(8)]
 
-        for quadrant in range(4):
-            Logger.board("Board", f"Processing quadrant {quadrant}")
-            # i & j = 4 car on a 4 quadrants de 4x4 cases
+        quadrant_positions = [
+            (0, 0, 0), (0, 4, 1),
+            (4, 0, 2), (4, 4, 3)
+        ]
+
+        for base_row, base_col, q in quadrant_positions:
             for i in range(4):
                 for j in range(4):
-                    match quadrant:  # on gére la disposition car HAUT GAUCHE = Q0, HAUT DROITE = Q1, BAS GAUCHE = Q2, BAS DROITE = Q3
-                        case 0:
-                            board[i][j] = copy.deepcopy(self.quadrants[quadrant][i][j])
-                        case 1:
-                            board[i][j + 4] = copy.deepcopy(self.quadrants[quadrant][i][j])
-                        case 2:
-                            board[i + 4][j] = copy.deepcopy(self.quadrants[quadrant][i][j])
-                        case 3:
-                            board[i + 4][j + 4] = copy.deepcopy(self.quadrants[quadrant][i][j])
+                    board[base_row + i][base_col + j] = copy.deepcopy(self.quadrants[q][i][j])
 
-        if self.game_number == 0:  # katerenga
-            Logger.board("Board", "Adding Katerenga camps to the board")
-            # ajout d'une de colonne et ligne aux extrémités du plateau pour les camps
-            for i in range(len(board)):
-                board[i] = [[None, None]] + board[i] + [[None, None]]
-            board = [[[None, None] for _ in range(
-                10)]] + board + [[[None, None] for _ in range(10)]]
+        if self.game_number == 0:
+            board = self._add_katerenga_camps(board)
 
-            board[0][0] = [None, 4]  # black camp 1 (player 1 (index 0))
-            board[0][9] = [None, 4]  # black camp 2 (player 1 (index 0))
-            board[9][0] = [None, 5]  # white camp 1 (player 2 (index 1))
-            board[9][9] = [None, 5]  # white camp 2 (player 2 (index 1))
-            Logger.success("Board", "Katerenga camps added successfully")
-        
         Logger.success("Board", "Board creation completed")
         return board
+
+    def _add_katerenga_camps(self, board):
+        """
+        fonction : ajoute les camps pour le jeu katerenga
+        params :
+            board - plateau de base 8x8
+        retour : plateau 10x10 avec camps
+        """
+        extended_board = [[[None, None] for _ in range(10)] for _ in range(10)]
+        
+        for i in range(8):
+            for j in range(8):
+                extended_board[i+1][j+1] = board[i][j]
+
+        camps = [(0,0,4), (0,9,4), (9,0,5), (9,9,5)]
+        for row, col, camp_type in camps:
+            extended_board[row][col] = [None, camp_type]
+
+        return extended_board
