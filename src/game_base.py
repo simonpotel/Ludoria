@@ -148,8 +148,21 @@ class GameBase:
         self.is_my_turn = False
         self.update_status_message(f"Game ended: {message}", "red")
         messagebox.showinfo("Game Over", f"Game ended: {message}")
-        if self.render and self.render.root:
-            self.render.root.destroy()
+        
+        if messagebox.askyesno("Play Again?", "Would you like to start a new game?"):
+            if self.render and hasattr(self.render, 'root') and self.render.root:
+                try:
+                    self.render.root.destroy()
+                except:
+                    pass
+            from src.selector import Selector
+            Selector()
+        else:
+            if self.render and hasattr(self.render, 'root') and self.render.root:
+                try:
+                    self.render.root.destroy()
+                except:
+                    pass
         self.cleanup()
 
     def send_network_action(self, action_data):
@@ -199,5 +212,8 @@ class GameBase:
             self.network_client.disconnect()
             self.game_started = False
             self.is_my_turn = False
-            if self.render and self.render.root:
-                self.render.root.destroy() 
+            if self.render and hasattr(self.render, 'root') and self.render.root:
+                try:
+                    self.render.root.destroy()
+                except:
+                    pass 

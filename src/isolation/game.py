@@ -48,7 +48,6 @@ class Game(GameBase):
             winner = f"Player {3 - self.player_number}"
             messagebox.showinfo("Game Over", f"{winner} wins!")
             self.cleanup()
-            self.render.root.destroy()
             return False
             
         if self.is_network_game:

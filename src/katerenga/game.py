@@ -62,7 +62,6 @@ class Game(GameBase):
         
         if self.check_win(1 - self.round_turn):
             self.cleanup()
-            self.render.root.destroy()
             return False
         
         if self.is_network_game:
