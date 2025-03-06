@@ -1,22 +1,23 @@
 from datetime import datetime
 from enum import Enum
 from typing import Any
-import colorama  
+import colorama
+from colorama import Fore, Style
 
-colorama.init(convert=True)
+colorama.init(autoreset=True)
 
 class LogLevel(Enum):
     """
     énumération : définit les différents niveaux de log avec leurs couleurs associées
     """
-    INFO = ('\033[94m', 'INFO')         # bleu
-    SUCCESS = ('\033[92m', 'SUCCESS')   # vert
-    WARNING = ('\033[93m', 'WARNING')   # jaune
-    ERROR = ('\033[91m', 'ERROR')       # rouge
-    MOVE = ('\033[95m', 'MOVE')         # magenta
-    GAME = ('\033[96m', 'GAME')         # cyan
-    BOARD = ('\033[97m', 'BOARD')       # blanc
-    AI = ('\033[38;5;208m', 'AI')       # orange
+    INFO = (Fore.BLUE, 'INFO')         # bleu
+    SUCCESS = (Fore.GREEN, 'SUCCESS')   # vert
+    WARNING = (Fore.YELLOW, 'WARNING')   # jaune
+    ERROR = (Fore.RED, 'ERROR')       # rouge
+    MOVE = (Fore.MAGENTA, 'MOVE')         # magenta
+    GAME = (Fore.CYAN, 'GAME')         # cyan
+    BOARD = (Fore.WHITE, 'BOARD')       # blanc
+    AI = (Fore.LIGHTRED_EX, 'AI')       # orange
 
 class Logger:
     """
@@ -55,7 +56,7 @@ class Logger:
         color_code, level_name = level.value
         
         base_message = f"[{timestamp}] [{level_name}] [{component}] {str(message)}"
-        return f"{color_code}{base_message}{cls.RESET}"
+        return f"{color_code}{Style.BRIGHT}{base_message}{Style.RESET_ALL}"
 
     @classmethod
     def _log(cls, level: LogLevel, component: str, message: Any):
