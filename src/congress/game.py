@@ -6,6 +6,7 @@ from src.saves import save_game
 from src.moves import available_move
 from src.game_base import GameBase
 from src.utils.logger import Logger
+from src.congress.bot import CongressBot
 
 class Game(GameBase):
     def __init__(self, game_save, quadrants, game_mode="Solo"):
@@ -18,6 +19,11 @@ class Game(GameBase):
         self.round_turn = 0
         self.selected_piece = None
         
+        # Initialiser le bot si mode Bot
+        self.bot = None
+        if game_mode == "Bot":
+            self.bot = CongressBot(self)
+
         if self.is_network_game:
             self.update_status_message("Waiting for another player...")
 
@@ -177,6 +183,17 @@ class Game(GameBase):
         
         self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
         self.render.render_board()
+
+        # Après le tour du joueur, faire jouer le bot
+        if self.game_mode == "Bot" and self.round_turn == 1:
+            if self.bot.make_move():
+                self.round_turn = 0
+                self.render.render_board()
+            else:
+                # Le bot ne peut plus jouer
+                messagebox.showinfo("Game Over", "Player 1 wins! Bot has no more moves.")
+                return False
+
         return True
 
     def load_game(self):
