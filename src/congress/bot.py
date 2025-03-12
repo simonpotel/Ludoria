@@ -1,10 +1,13 @@
 import random
 from src.moves import available_move
+import time
 
 class CongressBot:
     def __init__(self, game):
         self.game = game
         self.player = 1  # Le bot est toujours le joueur 2 (indice 1)
+        self.move_history = []  # Historique des derniers mouvements
+        self.max_history = 5    # Nombre de mouvements à mémoriser
 
     def get_move(self):
         """
@@ -17,19 +20,46 @@ class CongressBot:
         if not possible_moves:
             return None  # Aucun coup possible
             
-        # Évaluer chaque coup possible et choisir le meilleur
-        best_move = None
-        best_score = float('-inf')
+        # Évaluer chaque coup possible
+        scored_moves = []
         
         for from_pos, to_pos in possible_moves:
             # Simuler le coup
             score = self._evaluate_move(from_pos, to_pos)
             
-            if score > best_score:
-                best_score = score
-                best_move = (from_pos, to_pos)
+            # Pénaliser les mouvements récemment joués pour éviter les boucles
+            if (from_pos, to_pos) in self.move_history:
+                score -= 100 * (self.move_history.count((from_pos, to_pos)))
+            
+            # Pénaliser les mouvements qui annulent le dernier mouvement
+            if len(self.move_history) > 0:
+                last_from, last_to = self.move_history[-1]
+                if to_pos == last_from and from_pos == last_to:
+                    score -= 200
+            
+            scored_moves.append((score, from_pos, to_pos))
         
-        return best_move
+        # Trier les mouvements par score
+        scored_moves.sort(reverse=True)
+        
+        # Sélectionner un mouvement parmi les meilleurs avec un peu d'aléatoire
+        # Prendre les 3 meilleurs mouvements et en choisir un au hasard
+        top_n = min(3, len(scored_moves))
+        if top_n > 0:
+            # 70% de chance de choisir le meilleur mouvement, 30% de choisir parmi les autres bons mouvements
+            if random.random() < 0.7 and scored_moves[0][0] > 0:
+                best_score, best_from, best_to = scored_moves[0]
+            else:
+                best_score, best_from, best_to = random.choice(scored_moves[:top_n])
+            
+            # Ajouter le mouvement à l'historique
+            self.move_history.append((best_from, best_to))
+            if len(self.move_history) > self.max_history:
+                self.move_history.pop(0)
+                
+            return (best_from, best_to)
+        
+        return None
 
     def _get_all_possible_moves(self):
         """
@@ -46,8 +76,15 @@ class CongressBot:
                     # Chercher toutes les destinations possibles
                     for to_row in range(8):
                         for to_col in range(8):
-                            if available_move(board, row, col, to_row, to_col):
-                                moves.append(((row, col), (to_row, to_col)))
+                            # Éviter de vérifier le mouvement vers la même position
+                            if row == to_row and col == to_col:
+                                continue
+                            try:
+                                if available_move(board, row, col, to_row, to_col):
+                                    moves.append(((row, col), (to_row, to_col)))
+                            except ValueError:
+                                # Ignorer les erreurs de range() avec step=0
+                                continue
         
         return moves
 
@@ -64,73 +101,69 @@ class CongressBot:
         from_row, from_col = from_pos
         to_row, to_col = to_pos
         
-        # Bonus pour la capture d'une pièce adverse
-        if board[to_row][to_col][0] == 1 - self.player:
-            score += 100
-            
-        # Bonus pour se rapprocher du centre
-        center_dist = abs(3.5 - to_row) + abs(3.5 - to_col)
-        score += (8 - center_dist) * 5
+        # Vérifier que la destination est vide (pas de capture dans Congress)
+        if board[to_row][to_col][0] is not None:
+            return float('-inf')  # Mouvement invalide, retourner un score très négatif
         
-        # Bonus pour protéger ses pièces
-        if self._is_protected(to_row, to_col):
-            score += 30
-            
-        # Malus pour s'éloigner de ses pièces
-        if self._is_isolated(to_row, to_col):
-            score -= 20
-            
-        # Bonus pour les mouvements qui menacent les pièces adverses
-        threatened_pieces = self._count_threatened_pieces(to_row, to_col)
-        score += threatened_pieces * 15
+        # Simuler le mouvement
+        temp_board = [[cell[:] for cell in row] for row in board]
+        temp_board[to_row][to_col][0] = temp_board[from_row][from_col][0]
+        temp_board[from_row][from_col][0] = None
+        
+        # Bonus pour se rapprocher des autres pions (favoriser la connexion)
+        adjacent_count = 0
+        directions = [(0,1), (0,-1), (1,0), (-1,0)]
+        for dr, dc in directions:
+            new_row, new_col = to_row + dr, to_col + dc
+            if 0 <= new_row < 8 and 0 <= new_col < 8:
+                if board[new_row][new_col][0] == self.player:
+                    adjacent_count += 1
+        
+        # Bonus important pour la connexion avec d'autres pions
+        score += adjacent_count * 50
+        
+        # Bonus pour les mouvements qui contribuent à former un bloc
+        # Plus le nombre de pions connectés est grand, plus le score est élevé
+        connected_count = self._count_connected_pieces(temp_board, to_row, to_col)
+        score += connected_count * 30
+        
+        # Bonus pour se rapprocher du centre (stratégie générale)
+        center_dist = abs(3.5 - to_row) + abs(3.5 - to_col)
+        score += (8 - center_dist) * 2
         
         return score
 
-    def _is_protected(self, row, col):
+    def _count_connected_pieces(self, board, row, col):
         """
-        Vérifie si une position est protégée par d'autres pièces alliées
+        Compte le nombre de pièces alliées connectées à partir d'une position
         """
-        board = self.game.board.board
-        directions = [(0,1), (0,-1), (1,0), (-1,0), (1,1), (1,-1), (-1,1), (-1,-1)]
+        if not (0 <= row < 8 and 0 <= col < 8) or board[row][col][0] != self.player:
+            return 0
         
-        protected = 0
-        for dr, dc in directions:
-            new_row, new_col = row + dr, col + dc
-            if 0 <= new_row < 8 and 0 <= new_col < 8:
-                if board[new_row][new_col][0] == self.player:
-                    protected += 1
+        visited = set()
+        stack = [(row, col)]
         
-        return protected >= 2
-
-    def _is_isolated(self, row, col):
-        """
-        Vérifie si une position est isolée des autres pièces alliées
-        """
-        board = self.game.board.board
-        directions = [(0,1), (0,-1), (1,0), (-1,0), (1,1), (1,-1), (-1,1), (-1,-1)]
+        while stack:
+            current = stack.pop()
+            if current not in visited:
+                visited.add(current)
+                r, c = current
+                
+                directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+                for dr, dc in directions:
+                    new_r, new_c = r + dr, c + dc
+                    if (0 <= new_r < 8 and 0 <= new_c < 8 and 
+                        board[new_r][new_c][0] == self.player and 
+                        (new_r, new_c) not in visited):
+                        stack.append((new_r, new_c))
         
-        for dr, dc in directions:
-            new_row, new_col = row + dr, col + dc
-            if 0 <= new_row < 8 and 0 <= new_col < 8:
-                if board[new_row][new_col][0] == self.player:
-                    return False
-        return True
+        return len(visited)
 
     def _count_threatened_pieces(self, row, col):
         """
-        Compte le nombre de pièces adverses menacées depuis une position
+        Cette méthode n'est plus utilisée car il n'y a pas de capture dans Congress
         """
-        board = self.game.board.board
-        threatened = 0
-        
-        # Vérifier toutes les destinations possibles depuis cette position
-        for to_row in range(8):
-            for to_col in range(8):
-                if available_move(board, row, col, to_row, to_col):
-                    if board[to_row][to_col][0] == 1 - self.player:
-                        threatened += 1
-                        
-        return threatened
+        return 0
 
     def make_move(self):
         """
@@ -149,5 +182,17 @@ class CongressBot:
         board = self.game.board.board
         board[to_row][to_col][0] = board[from_row][from_col][0]
         board[from_row][from_col][0] = None
+        
+        # Forcer le rendu du plateau avant de vérifier la victoire
+        self.game.render.render_board()
+        
+        # Ajouter un petit délai pour que le joueur puisse voir le mouvement
+        time.sleep(0.5)
+        
+        # Vérifier si le bot a gagné (tous les pions sont connectés)
+        if self.game.check_connected_pieces(self.player):
+            from tkinter import messagebox
+            messagebox.showinfo("Game Over", "Bot wins!")
+            return False
         
         return True
