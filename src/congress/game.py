@@ -4,7 +4,7 @@ from src.render import Render
 from src.captures import has_valid_move
 from src.saves import save_game
 from src.moves import available_move
-from src.game_base import GameBase
+from src.network.client.game_base import GameBase
 from src.utils.logger import Logger
 
 class Game(GameBase):

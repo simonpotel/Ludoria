@@ -3,7 +3,7 @@ from src.render import Render
 from src.captures import is_threatened, has_valid_move
 from tkinter import messagebox
 from src.saves import save_game
-from src.game_base import GameBase
+from src.network.client.game_base import GameBase
 from src.utils.logger import Logger
 
 class Game(GameBase):

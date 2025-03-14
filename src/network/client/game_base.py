@@ -1,5 +1,5 @@
 from tkinter import messagebox, Frame, Label
-from src.network.client import NetworkClient
+from src.network.client.client import NetworkClient
 from src.utils.logger import Logger
 from src.saves import save_game
 import json
