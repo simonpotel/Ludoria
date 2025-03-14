@@ -26,16 +26,18 @@ def available_move(board, iRow, iCol, dRow, dCol):
                 Logger.warning("Moves", "Invalid Rook move: must move in straight line")
                 return False
                 
-            step = 1 if dCol > iCol else -1 if iCol > dCol else 0
-            for i in range(iRow + (0 if step else 1), dRow, 1 if dRow > iRow else -1):
-                if board[i][iCol][0] is not None:
-                    Logger.warning("Moves", f"Invalid Rook move: path blocked at ({i},{iCol})")
-                    return False
-                    
-            for j in range(iCol + step, dCol, step):
-                if board[iRow][j][0] is not None:
-                    Logger.warning("Moves", f"Invalid Rook move: path blocked at ({iRow},{j})")
-                    return False
+            if iRow != dRow:
+                for i in range(iRow + (1 if dRow > iRow else -1), dRow, 1 if dRow > iRow else -1):
+                    if board[i][iCol][0] is not None:
+                        Logger.warning("Moves", f"Invalid Rook move: path blocked at ({i},{iCol})")
+                        return False
+            
+            if iCol != dCol:
+                step = 1 if dCol > iCol else -1
+                for j in range(iCol + step, dCol, step):
+                    if board[iRow][j][0] is not None:
+                        Logger.warning("Moves", f"Invalid Rook move: path blocked at ({iRow},{j})")
+                        return False
             
             Logger.success("Moves", "Valid Rook move")
             return True
