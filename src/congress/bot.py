@@ -4,54 +4,52 @@ from src.moves import available_move
 
 class CongressBot:
     def __init__(self, game):
+        """
+        constructeur : initialise une nouvelle instance de bot
+        params :
+            game - instance du jeu
+        """
         self.game = game
-        self.player = 1  # Le bot est toujours le joueur 2 (indice 1)
-        self.opponent = 0  # L'adversaire est le joueur 1 (indice 0)
-        self.move_history = []  # Historique des derniers mouvements
-        self.max_history = 5    # Nombre de mouvements à mémoriser
-        self.max_depth = 2      # Profondeur réduite pour plus de rapidité
+        self.player = 1
+        self.opponent = 0
+        self.move_history = []
+        self.max_history = 5
+        self.max_depth = 2      # profondeur de recherche 
 
     def get_move(self):
         """
-        Fonction qui détermine le meilleur coup à jouer
-        Retourne: (from_pos, to_pos) où chaque position est un tuple (row, col)
+        fonction : détermine le meilleur coup à jouer
+        retour : (from_pos, to_pos) où chaque position est un tuple (row, col)
         """
-        # Liste de tous les coups possibles
         possible_moves = self._get_all_possible_moves()
         
         if not possible_moves:
-            return None  # Aucun coup possible
+            return None
             
-        # Évaluer chaque coup possible
         scored_moves = []
         
-        # Créer une copie du plateau pour la simulation
+        # créer une copie du plateau pour la simulation
         board = self.game.board.board
         
         for from_pos, to_pos in possible_moves:
-            # Simuler le mouvement
             from_row, from_col = from_pos
             to_row, to_col = to_pos
             
-            # Sauvegarder l'état actuel
             temp = board[to_row][to_col][0]
             
-            # Effectuer le mouvement
             board[to_row][to_col][0] = board[from_row][from_col][0]
             board[from_row][from_col][0] = None
             
-            # Évaluer la position
             score = self._evaluate_position(board)
             
-            # Annuler le mouvement
             board[from_row][from_col][0] = board[to_row][to_col][0]
             board[to_row][to_col][0] = temp
             
-            # Pénaliser les mouvements récemment joués pour éviter les boucles
+            # enleve des points si le coup a été joué récemment 
             if (from_pos, to_pos) in self.move_history:
                 score -= 50 * (self.move_history.count((from_pos, to_pos)))
             
-            # Pénaliser les mouvements qui annulent le dernier mouvement
+            # enleve des points si le coup annule le dernier coup
             if len(self.move_history) > 0:
                 last_from, last_to = self.move_history[-1]
                 if to_pos == last_from and from_pos == last_to:
@@ -59,10 +57,10 @@ class CongressBot:
             
             scored_moves.append((score, from_pos, to_pos))
         
-        # Trier les mouvements par score
+        # remet les coups par ordre de score pour connaitre le meilleur coup
         scored_moves.sort(reverse=True)
         
-        # Sélectionner un mouvement parmi les meilleurs avec un peu d'aléatoire
+        # choisi aléatoirement parmi les meilleurs coups 
         top_n = min(3, len(scored_moves))
         if top_n > 0:
             # 80% de chance de choisir le meilleur mouvement, 20% de choisir parmi les autres bons mouvements
@@ -71,7 +69,7 @@ class CongressBot:
             else:
                 best_score, best_from, best_to = random.choice(scored_moves[:top_n])
             
-            # Ajouter le mouvement à l'historique
+            # enregistrer le coup dans l'historique
             self.move_history.append((best_from, best_to))
             if len(self.move_history) > self.max_history:
                 self.move_history.pop(0)
@@ -82,26 +80,30 @@ class CongressBot:
     
     def _evaluate_position(self, board):
         """
-        Évalue la position actuelle du plateau de manière optimisée
+        fonction : Évalue la position actuelle du plateau de manière optimisée
+        params : 
+            board - plateau de jeu
+        retourne : score de la position
         """
-        # Vérifier si le bot a gagné
         if self._check_connected_pieces(board, self.player):
             return 1000
         
-        # Vérifier si l'adversaire a gagné
         if self._check_connected_pieces(board, self.opponent):
             return -1000
         
-        # Calculer le score basé sur la connectivité
         bot_score = self._calculate_connectivity_score(board, self.player)
         opponent_score = self._calculate_connectivity_score(board, self.opponent)
         
-        # Favoriser notre connectivité et pénaliser celle de l'adversaire
+        # Favorise la connectivité du bot et pénalise celle de l'adversaire
         return bot_score - opponent_score * 0.7
     
     def _calculate_connectivity_score(self, board, player):
         """
-        Calcule un score de connectivité optimisé
+        fonction : calcule un score de connectivité optimisé
+        params :
+            board - plateau de jeu
+            player - joueur
+        retourne : score de connectivité
         """
         score = 0
         
@@ -119,18 +121,18 @@ class CongressBot:
         
         score += adjacent_pairs * 20
         
-        # Bonus pour les pions proches du centre
+        # bonus pour les pions proches du centre
         center_proximity = 0
         for i in range(8):
             for j in range(8):
                 if board[i][j][0] == player:
-                    # Distance au centre (3.5, 3.5)
+                    # distance au centre (3.5, 3.5)
                     center_dist = abs(i - 3.5) + abs(j - 3.5)
                     center_proximity += (8 - center_dist)
         
         score += center_proximity * 2
         
-        # Bonus pour le plus grand groupe connecté
+        # bonus pour le plus grand groupe connecté
         largest_group = self._find_largest_group(board, player)
         score += largest_group * 30
         
@@ -138,8 +140,11 @@ class CongressBot:
     
     def _find_largest_group(self, board, player):
         """
-        Trouve la taille du plus grand groupe connecté de pions
-        Version optimisée
+        fonction : trouve la taille du plus grand groupe connecté de pions
+        params :
+            board - plateau de jeu
+            player - joueur
+        retourne : taille du plus grand groupe connecté
         """
         visited = set()
         max_size = 0
@@ -147,7 +152,6 @@ class CongressBot:
         for i in range(8):
             for j in range(8):
                 if board[i][j][0] == player and (i, j) not in visited:
-                    # Nouveau groupe
                     size = 0
                     stack = [(i, j)]
                     while stack:
@@ -156,7 +160,6 @@ class CongressBot:
                             visited.add((r, c))
                             size += 1
                             
-                            # Vérifier les 4 directions
                             for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
                                 nr, nc = r + dr, c + dc
                                 if (0 <= nr < 8 and 0 <= nc < 8 and 
@@ -170,10 +173,12 @@ class CongressBot:
     
     def _check_connected_pieces(self, board, player):
         """
-        Vérifie si tous les pions d'un joueur sont connectés
-        Version optimisée
+        fonction : vérifie si tous les pions d'un joueur sont connectés
+        params :
+            board - plateau de jeu
+            player - joueur
+        retourne : True si tous les pions sont connectés, False sinon
         """
-        # Trouver le premier pion
         start_pos = None
         total_pieces = 0
         
@@ -187,7 +192,6 @@ class CongressBot:
         if total_pieces == 0:
             return False
         
-        # Parcourir depuis le premier pion
         visited = set()
         stack = [start_pos]
         
@@ -196,7 +200,6 @@ class CongressBot:
             if (r, c) not in visited:
                 visited.add((r, c))
                 
-                # Vérifier les 4 directions
                 for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
                     nr, nc = r + dr, c + dc
                     if (0 <= nr < 8 and 0 <= nc < 8 and 
@@ -204,43 +207,43 @@ class CongressBot:
                         (nr, nc) not in visited):
                         stack.append((nr, nc))
         
-        # Si tous les pions sont visités, ils sont tous connectés
+        # si tous les pions sont visités, ils sont tous connectés
         return len(visited) == total_pieces
     
     def _get_all_possible_moves(self):
         """
-        Fonction qui récupère tous les coups possibles pour le bot
+        fonction : récupère tous les coups possibles pour le bot
         Version optimisée
+        params :
+            board - plateau de jeu
+        retourne : liste de coups possibles
         """
         moves = []
         board = self.game.board.board
         
-        # Parcourir toutes les pièces du bot
         for row in range(8):
             for col in range(8):
                 if board[row][col][0] == self.player:
-                    # Chercher toutes les destinations possibles
                     for to_row in range(8):
                         for to_col in range(8):
-                            # Éviter de vérifier le mouvement vers la même position
                             if row == to_row and col == to_col:
                                 continue
-                            # Vérifier que la destination est vide
                             if board[to_row][to_col][0] is not None:
                                 continue
                             try:
                                 if available_move(board, row, col, to_row, to_col):
                                     moves.append(((row, col), (to_row, to_col)))
                             except (ValueError, IndexError):
-                                # Ignorer les erreurs
                                 continue
         
         return moves
 
     def make_move(self):
         """
-        Exécute le meilleur coup trouvé
-        Retourne: True si un coup a été joué, False sinon
+        fonction : exécute le meilleur coup trouvé
+        params :
+            board - plateau de jeu
+        retour : True si un coup a été joué, False sinon
         """
         move = self.get_move()
         if move is None:
@@ -250,18 +253,16 @@ class CongressBot:
         from_row, from_col = from_pos
         to_row, to_col = to_pos
         
-        # Effectuer le mouvement
         board = self.game.board.board
         board[to_row][to_col][0] = board[from_row][from_col][0]
         board[from_row][from_col][0] = None
         
-        # Forcer le rendu du plateau avant de vérifier la victoire
         self.game.render.render_board()
         
-        # Ajouter un petit délai pour que le joueur puisse voir le mouvement
-        time.sleep(0.3)  # Délai réduit pour plus de fluidité
+        # ajout d'un petit délai pour que le joueur puisse voir le mouvement
+        time.sleep(0.3)
         
-        # Vérifier si le bot a gagné (tous les pions sont connectés)
+        # vérifie si le bot a gagné (tous les pions sont connectés)
         if self.game.check_connected_pieces(self.player):
             from tkinter import messagebox
             messagebox.showinfo("Game Over", "Bot wins!")
