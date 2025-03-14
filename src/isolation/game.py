@@ -72,6 +72,10 @@ class Game(GameBase):
             if not self.can_play():
                 return True
 
+        if row >= len(self.board.board) or col >= len(self.board.board[0]):
+            self.render.edit_info_label("Invalid move: out of bounds")
+            return True
+
         cell = self.board.board[row][col]
 
         # vérifie si la case est déjà occupée
