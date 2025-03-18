@@ -6,6 +6,7 @@ from src.saves import save_game
 from src.moves import available_move
 from src.network.client.game_base import GameBase
 from src.utils.logger import Logger
+from src.congress.bot import CongressBot
 
 class Game(GameBase):
     def __init__(self, game_save, quadrants, game_mode="Solo"):
@@ -17,7 +18,11 @@ class Game(GameBase):
         self.render = Render(game=self)
         self.round_turn = 0
         self.selected_piece = None
-        
+        self.game_mode = game_mode
+        self.bot = None
+        if game_mode == "Bot":
+            self.bot = CongressBot(self)
+
         if self.is_network_game:
             self.update_status_message("Waiting for another player...")
 
@@ -113,6 +118,11 @@ class Game(GameBase):
             if not self.can_play():
                 return True
 
+        # Si c'est le tour du bot (joueur 2) et que le mode bot est activé, ignorer les clics
+        if self.game_mode == "Bot" and self.round_turn == 1:
+            self.render.edit_info_label("C'est le tour du bot, veuillez patienter...")
+            return True
+
         if not hasattr(self, 'selected_piece'):
             self.selected_piece = None
         
@@ -136,6 +146,12 @@ class Game(GameBase):
             return True
 
         old_row, old_col = self.selected_piece
+        
+        # Vérifier que la case de destination est vide (pas de capture dans Congress)
+        if cell[0] is not None:
+            self.selected_piece = None
+            self.render.edit_info_label("Cannot move to an occupied cell")
+            return True
         
         # vérifie si le mouvement est valide
         if not available_move(self.board.board, old_row, old_col, row, col):
@@ -177,7 +193,29 @@ class Game(GameBase):
         
         self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
         self.render.render_board()
+
+        # Après le tour du joueur, faire jouer le bot si c'est son tour
+        if self.game_mode == "Bot" and self.round_turn == 1:
+            # Petit délai avant que le bot ne joue pour une meilleure expérience utilisateur
+            self.render.root.after(500, self._bot_play)
+
         return True
+    
+    def _bot_play(self):
+        """
+        Méthode pour faire jouer le bot dans un thread séparé
+        """
+        if self.bot.make_move():
+            self.round_turn = 0  # Passe au joueur 1
+            self.render.edit_info_label("Player 1's turn")
+            self.render.render_board()
+            save_game(self)
+        else:
+            # Le bot ne peut plus jouer ou a gagné
+            if not self.check_connected_pieces(1):  # Si le bot n'a pas gagné
+                messagebox.showinfo("Game Over", "Player 1 wins! Bot has no more moves.")
+            self.cleanup()
+            self.render.root.destroy()
 
     def load_game(self):
         """

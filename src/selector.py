@@ -204,11 +204,6 @@ class Selector:
             selected_mode - mode de jeu sélectionné
         retour : bool indiquant si les paramètres sont valides
         """
-        if selected_mode == "Bot":
-            Logger.warning("Selector", "Bot mode not implemented yet")
-            messagebox.showerror("Error", "Bot mode not implemented yet")
-            return False
-        
         if not game_save:
             Logger.warning("Selector", "No game name provided")
             messagebox.showerror("Error", "Please enter a game name.")
