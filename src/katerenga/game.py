@@ -22,6 +22,9 @@ class Game(GameBase):
         self.game_mode = game_mode
         self.locked_pieces = []
         self.bot = None
+        
+        self.camps = [(0, 0), (0, 9), (9, 0), (9, 9)]
+        
         if game_mode == "Bot":
             self.bot = KaterengaBot(self)
             Logger.game("Game", "Katerenga bot mode initialized")
@@ -101,10 +104,13 @@ class Game(GameBase):
         opponent_camps = [(9, 0), (9, 9)] if player == 0 else [(0, 9), (0, 0)]
 
         # vérifie si le joueur occupe les deux camps adverses
-        camps_occupied = sum(1 for camp in opponent_camps
-                             if self.board.board[camp[0]][camp[1]][0] == player)
-
-        if camps_occupied == 2:
+        camps_occupied = []
+        for camp in opponent_camps:
+            if self.board.board[camp[0]][camp[1]][0] == player:
+                camps_occupied.append(camp)
+        
+        if len(camps_occupied) == 2:
+            Logger.success("Game", f"Player {player + 1} won by occupying both camps: {camps_occupied}")
             messagebox.showinfo("Victory", f"Player {player + 1} wins by occupying both camps!")
             return True
 
@@ -128,6 +134,7 @@ class Game(GameBase):
                     break
 
         if not opponent_has_moves:
+            Logger.success("Game", f"Player {player + 1} won by blocking opponent from making moves")
             messagebox.showinfo("Victory", f"Player {player + 1} wins by blocking opponent!")
             return True
 
@@ -206,14 +213,14 @@ class Game(GameBase):
         # vérifie si la pièce atteint un camp adverse
         finish_line = 0 if self.round_turn == 1 else 9
         if row == finish_line:
-            if (row == 0 and (col == 0 or col == 9)) or (row == 9 and (col == 0 or col == 9)):
+            if self.is_camp_position(row, col):
                 self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
                 self.board.board[old_row][old_col][0] = None
                 self.selected_piece = None
                 
                 # si le joueur occupe un camp, ajoute cette position à la liste des pièces verrouillées
                 self.locked_pieces.append((row, col))
-                Logger.info("Game", f"Piece locked in camp at ({row}, {col})")
+                Logger.game("Game", f"Piece locked in camp at ({row}, {col}) for player {self.round_turn + 1}")
                 
                 if self.check_win(self.round_turn):
                     self.cleanup()
@@ -246,15 +253,24 @@ class Game(GameBase):
         """
         fonction : fait jouer le bot dans un thread séparé
         """
-        if self.bot.make_move():
-            # la méthode make_move du bot s'occupe déjà de changer le tour et de mettre à jour l'interface
-            pass
-        else:
-            # le bot ne peut plus jouer ou a gagné
-            if not self.check_win(1):  # si le bot n'a pas gagné
-                messagebox.showinfo("Game Over", "Player 1 wins! Bot has no more moves.")
-            self.cleanup()
-            self.render.root.destroy()
+        try:
+            Logger.game("Game", "Bot starting its move")
+            if self.bot.make_move():
+                # la méthode make_move du bot s'occupe déjà de changer le tour et de mettre à jour l'interface
+                Logger.game("Game", "Bot completed its move successfully")
+            else:
+                # le bot ne peut plus jouer ou a gagné
+                Logger.game("Game", "Bot could not make a move or has won")
+                if not self.check_win(1):  # si le bot n'a pas gagné
+                    messagebox.showinfo("Game Over", "Player 1 wins! Bot has no more moves.")
+                self.cleanup()
+                self.render.root.destroy()
+        except Exception as e:
+            Logger.error("Game", f"Error during bot play: {str(e)}")
+            self.render.edit_info_label(f"Error during bot play: {str(e)}")
+            self.round_turn = 0  # Switch back to player 1
+            self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
+            self.render.render_board()
             
     def get_board_state(self):
         """
@@ -265,4 +281,12 @@ class Game(GameBase):
             "board": [[cell[:] for cell in row] for row in self.board.board],
             "round_turn": self.round_turn,
             "first_turn": self.first_turn
-        } 
+        }
+
+    def is_camp_position(self, row, col):
+        """
+        fonction : vérifie si une position correspond à un camp
+        paramètres : row (ligne), col (colonne) - coordonnées à vérifier
+        retourne : True si la position est un camp, False sinon
+        """
+        return (row, col) in self.camps 

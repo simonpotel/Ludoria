@@ -13,7 +13,7 @@ class KaterengaBot:
             game - instance du jeu
         """
         self.game = game
-        self.locked_pieces = getattr(game, 'locked_pieces', [])
+        self.locked_pieces = game.locked_pieces
         Logger.bot("KaterengaBot", "Bot initialized")
 
     def make_move(self):
@@ -21,6 +21,8 @@ class KaterengaBot:
         fonction : exécute le meilleur coup trouvé
         retourne : True si un coup a été joué, False sinon
         """
+        self.locked_pieces = self.game.locked_pieces
+        
         board = self.game.board.board
         size = len(board)
         best_moves = []
@@ -28,17 +30,23 @@ class KaterengaBot:
         
         Logger.bot("KaterengaBot", "Finding best move")
         
+        bot_camps = [camp for camp in self.game.camps if camp[0] == 0]  # Camps at row 0
+        
         for i in range(size):
             for j in range(size):
-                if board[i][j][0] == 1:
+                if board[i][j][0] == 1:  # This is a bot piece
                     if (i, j) in self.locked_pieces:
+                        Logger.bot("KaterengaBot", f"Piece at ({i}, {j}) is locked in a camp, skipping")
                         continue
-                        
-                    if i == 0:
-                        if board[0][0][0] is None or board[0][0][0] != 1:
-                            camp_moves.append((i, j, 0, 0))
-                        elif board[0][9][0] is None or board[0][9][0] != 1:
-                            camp_moves.append((i, j, 0, 9))
+                    
+                    # Check if piece can move to any camp
+                    for camp_row, camp_col in bot_camps:
+                        if (board[camp_row][camp_col][0] is None or board[camp_row][camp_col][0] != 1) and \
+                           available_move(board, i, j, camp_row, camp_col):
+                            Logger.bot("KaterengaBot", f"Found possible camp move from ({i}, {j}) to ({camp_row}, {camp_col})")
+                            camp_moves.append((i, j, camp_row, camp_col))
+                    
+                    # Get other possible moves
                     possible_moves = self._get_possible_moves(i, j)
                     for move in possible_moves:
                         captures = self._simulate_move_and_count_captures(i, j, move)
@@ -74,7 +82,10 @@ class KaterengaBot:
             return False
         
         start_row, start_col, end_row, end_col = best_move
-        is_camp_move = (start_row == 0 and end_row == 0 and (end_col == 0 or end_col == 9))
+        bot_camps = [camp for camp in self.game.camps if camp[0] == 0]  # Camps at row 0
+        is_camp_move = (end_row, end_col) in bot_camps
+        
+        Logger.bot("KaterengaBot", f"Executing move from ({start_row},{start_col}) to ({end_row},{end_col})")
         
         if not is_camp_move and not available_move(self.game.board.board, start_row, start_col, end_row, end_col):
             Logger.warning("KaterengaBot", "Invalid move attempted")
@@ -123,12 +134,24 @@ class KaterengaBot:
             end - position d'arrivée (row, col)
         retourne : nombre de pièces capturées ou -1 si le mouvement est invalide
         """
-        if not available_move(self.game.board.board, start_row, start_col, end[0], end[1]):
+        end_row, end_col = end
+        bot_camps = [camp for camp in self.game.camps if camp[0] == 0]  # Camps at row 0
+        is_camp_move = (end_row, end_col) in bot_camps
+        
+        if is_camp_move:
+            if start_row == 0:
+                temp_board = copy.deepcopy(self.game.board.board)
+                player = temp_board[start_row][start_col][0]
+                
+                if temp_board[end_row][end_col][0] is None or temp_board[end_row][end_col][0] != player:
+                    return 5  # Very high value for camp moves
+                return -1
+        
+        if not available_move(self.game.board.board, start_row, start_col, end_row, end_col):
             return -1
             
         temp_board = copy.deepcopy(self.game.board.board)
         player = temp_board[start_row][start_col][0]
-        end_row, end_col = end
 
         if temp_board[end_row][end_col][0] is not None and temp_board[end_row][end_col][0] != player:
             temp_board[end_row][end_col][0] = player
