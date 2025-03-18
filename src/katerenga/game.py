@@ -4,8 +4,7 @@ from src.render import Render
 from src.captures import has_valid_move
 from src.saves import save_game
 from src.moves import available_move
-from src.game_base import GameBase
-from src.katerenga.bot import Bot
+from src.network.client.game_base import GameBase
 from src.utils.logger import Logger
 
 class Game(GameBase):
@@ -19,9 +18,6 @@ class Game(GameBase):
         self.round_turn = 0
         self.first_turn = True
         self.selected_piece = None
-        self.bot_game = game_mode == "Bot"
-        self.bot = Bot(self) if self.bot_game else None
-        self.locked_pieces = set()
 
         if self.is_network_game:
             self.update_status_message("Waiting for another player...")
@@ -49,11 +45,6 @@ class Game(GameBase):
         self.board.board = [[cell[:] for cell in row] for row in board_state["board"]]
         self.round_turn = board_state["round_turn"]
         self.first_turn = board_state["first_turn"]
-        
-        self.is_my_turn = (self.player_number == self.round_turn)
-        if self.is_my_turn:
-            self.update_status_message(f"Your turn (Player {self.player_number})", "green")
-            self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
         
         if self.board.board[new_row][new_col][0] is not None:
             if not self.first_turn:
@@ -148,20 +139,14 @@ class Game(GameBase):
             if not self.game_started:
                 self.render.edit_info_label("Waiting for another player...")
                 return True
-            if not self.is_my_turn:
-                self.render.edit_info_label("Not your turn")
+            if not self.can_play():
                 return True
-            
-        if self.game_mode == "Bot" and self.round_turn == 1:
-            self.render.edit_info_label("Bot's turn")
-            return True
 
         cell = self.board.board[row][col]
 
-        # si aucune pièce n'est sélectionnée
+        # gestion du premier clic - sélection d'une pièce
         if self.selected_piece is None:
-            # si la case contient une pièce du joueur actuel
-            if cell[0] == self.round_turn:
+            if cell[0] is not None and cell[0] == self.round_turn:
                 self.selected_piece = (row, col)
                 self.render.edit_info_label("Select destination")
                 self.render.render_board()
@@ -179,23 +164,20 @@ class Game(GameBase):
             self.render.render_board()
             return True
 
-        finish_line = 0 if self.round_turn == 1 else 9
-        is_on_finish_line = old_row == finish_line
-        is_camp_move = (row == 0 and (col == 0 or col == 9)) or (row == 9 and (col == 0 or col == 9))
-        
-        if is_on_finish_line and is_camp_move:
-            pass
-        else:
-            if not available_move(self.board.board, old_row, old_col, row, col):
-                self.selected_piece = None
-                self.render.edit_info_label("Invalid move")
-                return True
-
-        is_capture = cell[0] is not None and cell[0] != self.round_turn
-        if is_capture and self.first_turn:
+        # vérifie si le mouvement est valide
+        if not available_move(self.board.board, old_row, old_col, row, col):
             self.selected_piece = None
-            self.render.edit_info_label("No capture allowed on first turn")
+            self.render.edit_info_label("Invalid move")
             return True
+
+        # gestion de la capture de pièce
+        if cell[0] is not None and cell[0] != self.round_turn:
+            if not self.first_turn:
+                self.capture_piece(row, col)
+            else:
+                self.selected_piece = None
+                self.render.edit_info_label("No capture allowed on first turn")
+                return True
 
         if self.is_network_game:
             self.send_network_action({
@@ -205,44 +187,33 @@ class Game(GameBase):
                 "to_col": col
             })
 
-        player = self.board.board[old_row][old_col][0]
-        
-        if is_capture:
-            import logging
-            logging.info(f"Player {player} captures piece at ({row},{col}) by moving onto it")
-        
-        self.board.board[row][col][0] = player  # Placer la pièce sur la case d'arrivée
-        self.board.board[old_row][old_col][0] = None  # Vider la case de départ
+        # vérifie si la pièce atteint un camp adverse
+        finish_line = 0 if self.round_turn == 1 else 9
+        if row == finish_line:
+            if (row == 0 and (col == 0 or col == 9)) or (row == 9 and (col == 0 or col == 9)):
+                self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
+                self.board.board[old_row][old_col][0] = None
+                self.selected_piece = None
 
-        if is_camp_move:
-            # Si c'est le bot qui a atteint un camp, on verrouille la pièce
-            if self.bot_game and player == 1:
-                self.locked_pieces.add((row, col))
-                
-            if self.check_win(self.round_turn):
-                self.cleanup()
-                self.render.root.destroy()
-                return False
+                if self.check_win(self.round_turn):
+                    self.cleanup()
+                    self.render.root.destroy()
+                    return False
+
+        else:
+            # effectue le déplacement normal
+            self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
+            self.board.board[old_row][old_col][0] = None
 
         self.selected_piece = None
 
+        # passe au tour du joueur suivant
         self.round_turn = 1 - self.round_turn
-        self.first_turn = False
-        
-        if self.is_network_game:
-            self.is_my_turn = False
-            other_player = 2 if self.player_number == 1 else 1
-            self.update_status_message(f"Player {other_player}'s turn", "orange")
-        
+        if self.first_turn and self.round_turn == 0:
+            self.first_turn = False
+
         self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
         save_game(self)
         self.render.render_board()
-        # si c'est au tour du bot, il joue
-        if self.game_mode == "Bot" and self.round_turn == 1:
-            bot = Bot(self)
-            bot.play()
-            
-        # vérifier si le joueur actuel a perdu
-        self.check_win(1 - self.round_turn)
-        
+
         return True 

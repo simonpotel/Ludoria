@@ -132,4 +132,14 @@ def create_player_disconnected_packet(message: str, game_id: str) -> Packet:
         game_id - identifiant de la partie
     retour : paquet de déconnexion de joueur
     """
-    return Packet(PacketType.PLAYER_DISCONNECTED, {"message": message}, game_id) 
+    return Packet(PacketType.PLAYER_DISCONNECTED, {"message": message}, game_id)
+
+def create_game_state_packet(state: Dict[str, Any], game_id: str) -> Packet:
+    """
+    fonction : crée un paquet d'état de jeu
+    params :
+        state - état du jeu
+        game_id - identifiant de la partie
+    retour : paquet d'état
+    """
+    return Packet(PacketType.GAME_STATE, state, game_id) 

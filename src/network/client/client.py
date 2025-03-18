@@ -2,7 +2,7 @@ import socket
 import json
 import threading
 from typing import Optional, Callable, Dict
-from src.network.packets import Packet, PacketType, create_connect_packet, create_game_action_packet
+from src.network.common.packets import Packet, PacketType, create_connect_packet, create_game_action_packet
 from src.utils.logger import Logger
 import pickle
 

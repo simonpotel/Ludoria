@@ -16,10 +16,6 @@ def available_move(board, iRow, iCol, dRow, dCol):
     initial = board[iRow][iCol]
     destination = board[dRow][dCol]
     
-    if destination[1] is None: # Vérifier si la case de destination est grise
-        Logger.warning("Moves", f"Invalid move: destination cell ({dRow},{dCol}) is a restricted grey cell")
-        return False
-    
     if destination[0] is not None and destination[0] == initial[0]:
         Logger.warning("Moves", f"Invalid move: destination cell ({dRow},{dCol}) is occupied by your own piece")
         return False
@@ -30,27 +26,17 @@ def available_move(board, iRow, iCol, dRow, dCol):
                 Logger.warning("Moves", "Invalid Rook move: must move in straight line")
                 return False
                 
-            # Mouvement vertical
             if iRow != dRow:
-                step = 1 if dRow > iRow else -1
-                for i in range(iRow + step, dRow, step):
+                for i in range(iRow + (1 if dRow > iRow else -1), dRow, 1 if dRow > iRow else -1):
                     if board[i][iCol][0] is not None:
                         Logger.warning("Moves", f"Invalid Rook move: path blocked at ({i},{iCol})")
                         return False
-                    # Vérifier si une case grise est sur le chemin
-                    if board[i][iCol][1] is None:
-                        Logger.warning("Moves", f"Invalid Rook move: grey cell in path at ({i},{iCol})")
-                        return False
-                        
-            # Mouvement horizontal
+            
             if iCol != dCol:
                 step = 1 if dCol > iCol else -1
                 for j in range(iCol + step, dCol, step):
                     if board[iRow][j][0] is not None:
                         Logger.warning("Moves", f"Invalid Rook move: path blocked at ({iRow},{j})")
-                        return False
-                    if board[iRow][j][1] is None:
-                        Logger.warning("Moves", f"Invalid Rook move: grey cell in path at ({iRow},{j})")
                         return False
             
             Logger.success("Moves", "Valid Rook move")
@@ -79,9 +65,6 @@ def available_move(board, iRow, iCol, dRow, dCol):
             while row != dRow and col != dCol:
                 if board[row][col][0] is not None:
                     Logger.warning("Moves", f"Invalid Bishop move: path blocked at ({row},{col})")
-                    return False
-                if board[row][col][1] is None:
-                    Logger.warning("Moves", f"Invalid Bishop move: grey cell in path at ({row},{col})")
                     return False
                 row += step_row
                 col += step_col

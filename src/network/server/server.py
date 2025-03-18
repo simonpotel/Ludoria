@@ -4,7 +4,7 @@ import threading
 import random
 from typing import Dict, Set, Optional
 from pathlib import Path
-from src.network.packets import (
+from src.network.common.packets import (
     Packet, PacketType, create_player_assignment_packet,
     create_wait_turn_packet, create_your_turn_packet,
     create_disconnect_packet, create_player_disconnected_packet
