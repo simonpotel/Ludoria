@@ -1,6 +1,7 @@
 import random
 import time
 from src.moves import available_move
+from src.utils.logger import Logger
 
 class CongressBot:
     def __init__(self, game):
@@ -15,6 +16,7 @@ class CongressBot:
         self.move_history = []
         self.max_history = 5
         self.max_depth = 2      # profondeur de recherche 
+        Logger.bot("CongressBot", "Bot initialized")
 
     def get_move(self):
         """
@@ -24,12 +26,15 @@ class CongressBot:
         possible_moves = self._get_all_possible_moves()
         
         if not possible_moves:
+            Logger.warning("CongressBot", "No valid moves found")
             return None
             
         scored_moves = []
         
         # créer une copie du plateau pour la simulation
         board = self.game.board.board
+        
+        Logger.bot("CongressBot", "Evaluating possible moves")
         
         for from_pos, to_pos in possible_moves:
             from_row, from_col = from_pos
@@ -68,6 +73,8 @@ class CongressBot:
                 best_score, best_from, best_to = scored_moves[0]
             else:
                 best_score, best_from, best_to = random.choice(scored_moves[:top_n])
+            
+            Logger.bot("CongressBot", f"Selected move from {best_from} to {best_to} with score {best_score}")
             
             # enregistrer le coup dans l'historique
             self.move_history.append((best_from, best_to))
@@ -247,6 +254,7 @@ class CongressBot:
         """
         move = self.get_move()
         if move is None:
+            Logger.warning("CongressBot", "No valid moves available")
             return False
             
         from_pos, to_pos = move
@@ -265,6 +273,7 @@ class CongressBot:
         # vérifie si le bot a gagné (tous les pions sont connectés)
         if self.game.check_connected_pieces(self.player):
             from tkinter import messagebox
+            Logger.success("CongressBot", "Bot won the game")
             messagebox.showinfo("Game Over", "Bot wins!")
             return False
         

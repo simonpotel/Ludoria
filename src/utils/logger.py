@@ -17,7 +17,7 @@ class LogLevel(Enum):
     MOVE = (Fore.MAGENTA, 'MOVE')
     GAME = (Fore.CYAN, 'GAME')
     BOARD = (Fore.WHITE, 'BOARD')
-    AI = (Fore.LIGHTRED_EX, 'AI')
+    BOT = (Fore.LIGHTBLUE_EX, 'BOT')
 
 class Logger:
     """
@@ -139,11 +139,11 @@ class Logger:
         cls._log(LogLevel.BOARD, component, message)
 
     @classmethod
-    def ai(cls, component: str, message: Any):
+    def bot(cls, component: str, message: Any):
         """
-        procédure : log niveau ia (orange)
+        procédure : log niveau bot (bleu clair)
         params :
             component - composant source
             message - contenu du message
         """
-        cls._log(LogLevel.AI, component, message) 
+        cls._log(LogLevel.BOT, component, message)

@@ -14,7 +14,7 @@ class KaterengaBot:
         """
         self.game = game
         self.locked_pieces = getattr(game, 'locked_pieces', [])
-        Logger.info("KaterengaBot", "Bot initialized")
+        Logger.bot("KaterengaBot", "Bot initialized")
 
     def make_move(self):
         """
@@ -26,7 +26,7 @@ class KaterengaBot:
         best_moves = []
         camp_moves = []
         
-        Logger.debug("KaterengaBot", "Finding best move")
+        Logger.bot("KaterengaBot", "Finding best move")
         
         for i in range(size):
             for j in range(size):
@@ -53,14 +53,14 @@ class KaterengaBot:
         
         if camp_moves:
             best_move = random.choice(camp_moves)
-            Logger.info("KaterengaBot", f"Selected camp move: {best_move}")
+            Logger.bot("KaterengaBot", f"Selected camp move: {best_move}")
         else:
             if best_moves:
                 best_moves.sort(key=lambda x: x['value'], reverse=True)
                 top_moves_count = max(1, len(best_moves) // 4)
                 top_moves = best_moves[:top_moves_count]
                 best_move = random.choice(top_moves)['move']
-                Logger.info("KaterengaBot", f"Selected move with value {top_moves[0]['value']}")
+                Logger.bot("KaterengaBot", f"Selected move with value {top_moves[0]['value']}")
             else:
                 Logger.warning("KaterengaBot", "No valid moves found")
                 best_move = None
@@ -107,7 +107,7 @@ class KaterengaBot:
         time.sleep(0.3)
         
         if self.game.check_win(1):
-            Logger.info("KaterengaBot", "Bot won the game")
+            Logger.success("KaterengaBot", "Bot won the game")
             return False
         
         save_game(self.game)

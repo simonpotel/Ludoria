@@ -22,6 +22,7 @@ class Game(GameBase):
         self.bot = None
         if game_mode == "Bot":
             self.bot = CongressBot(self)
+            Logger.game("Game", "Congress bot mode initialized")
 
         if self.is_network_game:
             self.update_status_message("Waiting for another player...")
