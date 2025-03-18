@@ -6,6 +6,7 @@ from src.saves import save_game
 from src.moves import available_move
 from src.network.client.game_base import GameBase
 from src.utils.logger import Logger
+from src.katerenga.bot import KaterengaBot
 
 class Game(GameBase):
     def __init__(self, game_save, quadrants, game_mode="Solo"):
@@ -18,12 +19,22 @@ class Game(GameBase):
         self.round_turn = 0
         self.first_turn = True
         self.selected_piece = None
+        self.game_mode = game_mode
+        self.locked_pieces = []
+        self.bot = None
+        if game_mode == "Bot":
+            self.bot = KaterengaBot(self)
+            Logger.info("Game", "Katerenga bot mode initialized")
 
         if self.is_network_game:
             self.update_status_message("Waiting for another player...")
 
     def on_network_action(self, action_data):
-        """Handle move received from other player"""
+        """
+        fonction : traite une action reçue d'un autre joueur en réseau
+        paramètres : action_data - données de l'action
+        retourne : True si l'action a été traitée avec succès, False sinon
+        """
         if not action_data:
             Logger.error("Game", "Received empty action data")
             return False
@@ -141,6 +152,11 @@ class Game(GameBase):
                 return True
             if not self.can_play():
                 return True
+                
+        # si c'est le tour du bot et que le mode bot est activé, ignorer les clics
+        if self.game_mode == "Bot" and self.round_turn == 1:
+            self.render.edit_info_label("C'est le tour du bot, veuillez patienter...")
+            return True
 
         cell = self.board.board[row][col]
 
@@ -194,12 +210,15 @@ class Game(GameBase):
                 self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
                 self.board.board[old_row][old_col][0] = None
                 self.selected_piece = None
-
+                
+                # si le joueur occupe un camp, ajoute cette position à la liste des pièces verrouillées
+                self.locked_pieces.append((row, col))
+                Logger.info("Game", f"Piece locked in camp at ({row}, {col})")
+                
                 if self.check_win(self.round_turn):
                     self.cleanup()
                     self.render.root.destroy()
                     return False
-
         else:
             # effectue le déplacement normal
             self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
@@ -215,5 +234,35 @@ class Game(GameBase):
         self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
         save_game(self)
         self.render.render_board()
+        
+        # après le tour du joueur, faire jouer le bot si c'est son tour
+        if self.game_mode == "Bot" and self.round_turn == 1:
+            # petit délai avant que le bot ne joue pour une meilleure expérience utilisateur
+            self.render.root.after(500, self._bot_play)
 
-        return True 
+        return True
+        
+    def _bot_play(self):
+        """
+        fonction : fait jouer le bot dans un thread séparé
+        """
+        if self.bot.make_move():
+            # la méthode make_move du bot s'occupe déjà de changer le tour et de mettre à jour l'interface
+            pass
+        else:
+            # le bot ne peut plus jouer ou a gagné
+            if not self.check_win(1):  # si le bot n'a pas gagné
+                messagebox.showinfo("Game Over", "Player 1 wins! Bot has no more moves.")
+            self.cleanup()
+            self.render.root.destroy()
+            
+    def get_board_state(self):
+        """
+        fonction : retourne l'état actuel du plateau
+        retourne : dictionnaire contenant l'état du plateau
+        """
+        return {
+            "board": [[cell[:] for cell in row] for row in self.board.board],
+            "round_turn": self.round_turn,
+            "first_turn": self.first_turn
+        } 
