@@ -18,7 +18,7 @@ class IsolationBot:
         self.player_id = player_id - 1
         self.opponent_id = 1 - self.player_id
         self.max_depth = depth
-        self.max_time = 2.0  # Temps maximum en secondes pour prendre une décision
+        self.max_time = 2.0 
         
     def get_valid_moves(self, board: List[List[List]]) -> List[Tuple[int, int]]:
         """
@@ -33,7 +33,6 @@ class IsolationBot:
         valid_moves = []
         for row in range(len(board)):
             for col in range(len(board[0])):
-                # Vérifier si la case est vide et non menacée
                 if board[row][col][0] is None and not is_threatened(board, row, col, self.player_id):
                     valid_moves.append((row, col))
         return valid_moves

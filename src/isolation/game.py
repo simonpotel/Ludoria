@@ -17,7 +17,6 @@ class Game(GameBase):
         self.render = Render(game=self)
         self.round_turn = 0
         
-        # Initialiser le bot si le mode de jeu est "Bot"
         self.bot = None
         if game_mode == "Bot":
             self.bot = IsolationBot(player_id=2, depth=4)
@@ -111,7 +110,6 @@ class Game(GameBase):
         self.round_turn = 1 - self.round_turn
         save_game(self)
         
-        # Mettre à jour l'affichage après le coup du joueur
         self.render.render_board()
         self.render.root.update()
         
