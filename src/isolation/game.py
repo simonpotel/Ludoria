@@ -5,6 +5,7 @@ from tkinter import messagebox
 from src.saves import save_game
 from src.network.client.game_base import GameBase
 from src.utils.logger import Logger
+from src.isolation.bot import IsolationBot
 
 class Game(GameBase):
     def __init__(self, game_save, quadrants, game_mode="Solo"):
@@ -15,6 +16,11 @@ class Game(GameBase):
         self.board = Board(quadrants, 1)
         self.render = Render(game=self)
         self.round_turn = 0
+        
+        self.bot = None
+        if game_mode == "Bot":
+            self.bot = IsolationBot(player_id=2, depth=4)
+            self.render.edit_info_label("Player 1's turn - Place your tower")
         
         if self.is_network_game:
             self.update_status_message("Waiting for another player...")
@@ -104,6 +110,9 @@ class Game(GameBase):
         self.round_turn = 1 - self.round_turn
         save_game(self)
         
+        self.render.render_board()
+        self.render.root.update()
+        
         if not has_valid_move(self.board.board, self.round_turn):
             winner = f"Player {2 - self.round_turn}"
             self.render.edit_info_label(f"Game Over! {winner} wins!")
@@ -112,8 +121,38 @@ class Game(GameBase):
             self.render.root.destroy()
             return False
 
+        # si c'est au tour du bot
+        if self.round_turn == 1 and self.game_mode == "Bot":
+            self.render.edit_info_label("Bot is thinking...")
+            self.render.root.update()
+            
+            try:
+                # obtenir le coup du bot
+                bot_row, bot_col = self.bot.get_move(self.board.board)
+                
+                # placer le pion du bot
+                self.board.board[bot_row][bot_col][0] = self.round_turn
+                self.round_turn = 1 - self.round_turn
+                save_game(self)
+                
+                # vérifier si le bot a encore des coups valides
+                if not has_valid_move(self.board.board, self.round_turn):
+                    winner = "Bot"
+                    self.render.edit_info_label(f"Game Over! {winner} wins!")
+                    messagebox.showinfo("Game Over", f"{winner} wins!")
+                    self.cleanup()
+                    self.render.root.destroy()
+                    return False
+                
+                self.render.edit_info_label("Player 1's turn - Place your tower")
+            except Exception as e:
+                Logger.error("Game", f"Bot error: {str(e)}")
+                self.render.edit_info_label(f"Bot error: {str(e)}")
+
         # passe au tour du joueur suivant
-        self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn - Place your tower")
+        else:
+            self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn - Place your tower")
+            
         self.render.render_board()
         return True
 
