@@ -3,53 +3,75 @@ from src.network.client.client import NetworkClient
 from src.utils.logger import Logger
 from src.saves import save_game
 import json
+import random
+from typing import Optional, Dict
 
 class GameBase:
     """
     classe : base commune pour tous les jeux
     """
-    def __init__(self, game_save, quadrants, game_mode="Solo"):
+    def __init__(self, game_save, quadrants, game_mode="Solo", player_name=None):
         """
         procédure : initialise un jeu
         params :
             game_save - sauvegarde à charger ou None
             quadrants - configuration des quadrants
             game_mode - mode de jeu (Solo ou Network)
+            player_name - nom du joueur local (requis pour le mode réseau)
         """
         self.game_save = game_save
         self.quadrants = quadrants
         self.game_mode = game_mode
         self.is_network_game = game_mode == "Network"
+        self.local_player_name = player_name
         self.game_started = False
         self.player_number = None
         self.is_my_turn = False
-        self.network_client = None
+        self.network_client: Optional[NetworkClient] = None
         self.render = None
         self.selected_piece = None
         self.status_frame = None
         self.status_label = None
+        self.game_id = None
         
         if self.is_network_game:
+            if not self.local_player_name:
+                self.local_player_name = f"Player_{random.randint(100, 999)}"
+                Logger.warning("GameBase", f"No player name provided for network game, using default: {self.local_player_name}")
             self.setup_network()
 
     def setup_network(self):
         """
         procédure : initialise le mode réseau
         """
+        if not self.local_player_name:
+            Logger.error("GameBase", "Cannot setup network without a local player name.")
+            messagebox.showerror("Network Error", "Local player name is missing.")
+            return
+        if not self.game_save:
+            Logger.error("GameBase", "Cannot setup network without a game name (game_save).")
+            messagebox.showerror("Network Error", "Game name/ID is missing.")
+            return
+
         self.network_client = NetworkClient()
         self._register_network_handlers()
         
-        Logger.info("Game", f"Connecting to server with game name: {self.game_save}")
-        if not self.network_client.connect(self.game_save):
-            messagebox.showerror("Error", "Failed to connect to game server")
+        game_name = self.game_save
+        Logger.info("GameBase", f"Connecting to server for game '{game_name}' as player '{self.local_player_name}'")
+        if not self.network_client.connect(self.local_player_name, game_name):
+            messagebox.showerror("Connection Error", "Failed to connect to the game server.")
+            self.cleanup()
             return
             
-        Logger.info("Game", "Connected to game server")
+        Logger.info("GameBase", "Connected to game server, waiting for assignment...")
+        self.update_status_message("Connected, waiting for player assignment...", "blue")
 
     def _register_network_handlers(self):
         """
         procédure : enregistre les gestionnaires d'événements réseau
         """
+        if not self.network_client:
+            return
         self.network_client.register_handler("player_assignment", self.on_player_assignment)
         self.network_client.register_handler("turn_started", self.on_turn_started)
         self.network_client.register_handler("turn_ended", self.on_turn_ended)
@@ -84,6 +106,17 @@ class GameBase:
         params :
             data - données d'assignation
         """
+        try:
+            self.player_number = data["player_number"]
+            self.game_id = data.get("game_id", self.game_save)
+            self.game_started = True
+            self.update_status_message(f"Assigned as Player {self.player_number}. Waiting...", "blue")
+            Logger.info("GameBase", f"Assigned as Player {self.player_number} in game {self.game_id}")
+        except KeyError:
+            Logger.error("GameBase", f"Received invalid player assignment data: {data}")
+            self.update_status_message("Error receiving player assignment!", "red")
+        except Exception as e:
+            Logger.error("GameBase", f"Error in on_player_assignment: {e}")
         self.player_number = data["player_number"]
         self.game_id = data.get("game_id")
         self.game_started = True
