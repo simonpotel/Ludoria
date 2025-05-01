@@ -1,4 +1,4 @@
-from tkinter import messagebox, Frame, Label
+import pygame
 from src.network.client.client import NetworkClient
 from src.utils.logger import Logger
 from src.saves import save_game
@@ -8,59 +8,64 @@ from typing import Optional, Dict
 
 class GameBase:
     """
-    classe : base commune pour tous les jeux
+    classe : base commune pour tous les jeux réseau ou locaux
+    gère la connexion réseau, l'état de base du jeu et les interactions communes.
     """
     def __init__(self, game_save, quadrants, game_mode="Solo", player_name=None):
         """
-        procédure : initialise un jeu
-        params :
-            game_save - sauvegarde à charger ou None
-            quadrants - configuration des quadrants
-            game_mode - mode de jeu (Solo ou Network)
-            player_name - nom du joueur local (requis pour le mode réseau)
+        constructeur : initialise un jeu, potentiellement en mode réseau.
+
+        params:
+            game_save: nom de la sauvegarde ou identifiant de la partie réseau.
+            quadrants: configuration initiale des quadrants (peut être utilisé par les sous-classes).
+            game_mode: mode de jeu ("Solo", "Bot", "Network").
+            player_name: nom du joueur local (requis pour le mode réseau).
         """
         self.game_save = game_save
         self.quadrants = quadrants
         self.game_mode = game_mode
         self.is_network_game = game_mode == "Network"
         self.local_player_name = player_name
-        self.game_started = False
-        self.player_number = None
-        self.is_my_turn = False
-        self.network_client: Optional[NetworkClient] = None
-        self.render = None
-        self.selected_piece = None
-        self.status_frame = None
-        self.status_label = None
-        self.game_id = None
+        self.game_started = False # indique si la partie réseau a démarré (deux joueurs connectés)
+        self.player_number = None # 1 ou 2 en mode réseau
+        self.is_my_turn = False # true si c'est le tour du joueur local en réseau
+        self.network_client: Optional[NetworkClient] = None # client réseau
+        self.render = None # référence à l'objet render (doit être défini par la sous-classe)
+        self.selected_piece = None # pièce sélectionnée (utilisé par certaines sous-classes)
+        self.status_message = "" # message affiché à l'utilisateur
+        self.status_color = (0, 0, 0) # couleur du message
+        self.game_id = None # id unique de la partie réseau
+        self._bot_timer_set = False # flag pour le timer du bot
         
         if self.is_network_game:
             if not self.local_player_name:
+                # génère un nom par défaut si non fourni
                 self.local_player_name = f"Player_{random.randint(100, 999)}"
                 Logger.warning("GameBase", f"No player name provided for network game, using default: {self.local_player_name}")
             self.setup_network()
 
     def setup_network(self):
         """
-        procédure : initialise le mode réseau
+        procédure : initialise et configure la connexion réseau.
         """
         if not self.local_player_name:
             Logger.error("GameBase", "Cannot setup network without a local player name.")
-            messagebox.showerror("Network Error", "Local player name is missing.")
             return
         if not self.game_save:
+            # en mode réseau, game_save est utilisé comme nom/id de la partie
             Logger.error("GameBase", "Cannot setup network without a game name (game_save).")
-            messagebox.showerror("Network Error", "Game name/ID is missing.")
             return
 
         self.network_client = NetworkClient()
         self._register_network_handlers()
         
-        game_name = self.game_save
+        game_name = self.game_save # utilise le nom de sauvegarde comme id de partie
         Logger.info("GameBase", f"Connecting to server for game '{game_name}' as player '{self.local_player_name}'")
         if not self.network_client.connect(self.local_player_name, game_name):
-            messagebox.showerror("Connection Error", "Failed to connect to the game server.")
+            Logger.error("GameBase", "Failed to connect to the game server")
+            self.update_status_message("Connection failed!", "red")
             self.cleanup()
+            # idéalement, informer l'utilisateur et revenir au menu principal ici
             return
             
         Logger.info("GameBase", "Connected to game server, waiting for assignment...")
@@ -68,187 +73,271 @@ class GameBase:
 
     def _register_network_handlers(self):
         """
-        procédure : enregistre les gestionnaires d'événements réseau
+        procédure : enregistre les méthodes de cette classe pour gérer les messages du serveur.
         """
         if not self.network_client:
             return
+        # association des types de messages aux méthodes correspondantes
         self.network_client.register_handler("player_assignment", self.on_player_assignment)
         self.network_client.register_handler("turn_started", self.on_turn_started)
         self.network_client.register_handler("turn_ended", self.on_turn_ended)
         self.network_client.register_handler("game_action", self.on_network_action)
         self.network_client.register_handler("player_disconnected", self.on_player_disconnected)
+        # ajouter d'autres handlers si nécessaire (ex: "game_over", "chat_message")
 
-    def setup_status_display(self, parent):
+    def update_status_message(self, message: str, color=(0, 0, 0)):
         """
-        procédure : configure l'affichage des messages d'état
-        params :
-            parent - widget parent
-        """
-        if self.is_network_game:
-            self.status_frame = Frame(parent)
-            self.status_frame.pack(side="bottom", fill="x", padx=10, pady=5)
-            self.status_label = Label(self.status_frame, text="Connecting to server...", fg="blue")
-            self.status_label.pack()
+        procédure : met à jour le message d'état affiché à l'utilisateur et sa couleur.
+        déclenche un rafraîchissement de l'affichage si le message ou la couleur change.
 
-    def update_status_message(self, message: str, color: str = "black"):
+        params:
+            message: le nouveau message à afficher.
+            color: la couleur du texte (tuple RGB ou nom de couleur prédéfini).
         """
-        procédure : met à jour le message d'état
-        params :
-            message - nouveau message
-            color - couleur du texte
-        """
-        if self.is_network_game and self.status_label:
-            self.status_label.config(text=message, fg=color)
+        needs_redraw = False
+        if self.status_message != message:
+            self.status_message = message
+            needs_redraw = True
+        
+        # conversion des noms de couleur en RGB
+        if isinstance(color, str):
+            if color == "red": color = (255, 0, 0)
+            elif color == "green": color = (0, 255, 0)
+            elif color == "blue": color = (0, 0, 255)
+            elif color == "orange": color = (255, 165, 0)
+            else: color = (0, 0, 0) # noir par défaut
+                
+        if self.status_color != color:
+            self.status_color = color
+            needs_redraw = True
+            
+        # redessine le plateau si nécessaire et si le rendu est disponible
+        if needs_redraw and self.render:
+            self.render.render_board()
 
-    def on_player_assignment(self, data):
+    def on_player_assignment(self, data: Dict):
         """
-        procédure : gère l'assignation du numéro de joueur
-        params :
-            data - données d'assignation
+        procédure : gère la réception du message d'assignation du numéro de joueur.
+
+        params:
+            data: dictionnaire contenant les données d'assignation ('player_number', 'game_id').
         """
         try:
             self.player_number = data["player_number"]
             self.game_id = data.get("game_id", self.game_save)
-            self.game_started = True
-            self.update_status_message(f"Assigned as Player {self.player_number}. Waiting...", "blue")
-            Logger.info("GameBase", f"Assigned as Player {self.player_number} in game {self.game_id}")
-        except KeyError:
-            Logger.error("GameBase", f"Received invalid player assignment data: {data}")
+            self.game_started = True # la partie peut commencer (même si on attend le 2eme joueur)
+            # détermine si c'est notre tour initialement
+            self.is_my_turn = (self.player_number == 1)
+            
+            status = f"You are Player {self.player_number}. "
+            if self.is_my_turn:
+                 status += "Your turn!"
+                 color = "green"
+            else:
+                 status += "Waiting for Player 1..."
+                 color = "orange"
+                 
+            self.update_status_message(status, color)
+            Logger.info("GameBase", f"Assigned as Player {self.player_number} in game {self.game_id}. My turn: {self.is_my_turn}")
+            if self.render: self.render.render_board()
+        except KeyError as e:
+            Logger.error("GameBase", f"Received invalid player assignment data: {data}. Missing key: {e}")
             self.update_status_message("Error receiving player assignment!", "red")
         except Exception as e:
             Logger.error("GameBase", f"Error in on_player_assignment: {e}")
-        self.player_number = data["player_number"]
-        self.game_id = data.get("game_id")
-        self.game_started = True
-        self.update_status_message(f"You are Player {self.player_number}. Waiting for other player...", "blue")
-        Logger.info("Game", f"Assigned as Player {self.player_number} in game {self.game_id}")
+            self.update_status_message("Error processing player assignment!", "red")
 
-    def on_turn_started(self):
+    def on_turn_started(self, data: Optional[Dict] = None):
         """
-        procédure : gère le début du tour du joueur
+        procédure : gère le début du tour du joueur local.
+        le paramètre 'data' est inclus pour la compatibilité future mais n'est pas utilisé.
         """
-        self.game_started = True
+        self.game_started = True # confirme que le jeu est actif
         self.is_my_turn = True
         self.update_status_message(f"Your turn (Player {self.player_number})", "green")
         if self.render:
-            self.render.render_board()
-        Logger.info("Game", "Turn started")
+            self.render.render_board() # rafraîchit pour indiquer que c'est notre tour
+        Logger.info("GameBase", f"Turn started for Player {self.player_number}")
 
-    def on_turn_ended(self):
+    def on_turn_ended(self, data: Optional[Dict] = None):
         """
-        procédure : gère la fin du tour du joueur
+        procédure : gère la fin du tour du joueur local.
+        le paramètre 'data' est inclus pour la compatibilité future mais n'est pas utilisé.
         """
         self.game_started = True
         self.is_my_turn = False
         other_player = 2 if self.player_number == 1 else 1
         self.update_status_message(f"Player {other_player}'s turn", "orange")
         if self.render:
-            self.render.render_board()
-        Logger.info("Game", "Turn ended")
+            self.render.render_board() # rafraîchit pour indiquer l'attente
+        Logger.info("GameBase", f"Turn ended for Player {self.player_number}")
 
-    def on_network_action(self, action_data):
+    def on_network_action(self, action_data: Dict):
         """
-        procédure : gère une action reçue du réseau
-        params :
-            action_data - données de l'action
+        procédure : gère une action de jeu reçue du serveur (provenant de l'autre joueur).
+        cette méthode doit être surchargée par les classes de jeu spécifiques.
+
+        params:
+            action_data: dictionnaire contenant les détails de l'action.
         """
-        Logger.info("Game", "Received network action from other player")
+        Logger.info("GameBase", f"Received network action: {action_data}")
+        # cette méthode est une base, les sous-classes doivent l'implémenter
+        # pour traiter les actions spécifiques à leur jeu.
+        # exemple: mettre à jour self.board.board, self.round_turn, etc.
+        
+        # tentative de mise à jour générique si la sous-classe n'a pas traité l'action
         if "board_state" in action_data:
-            self.update_board_from_state(action_data["board_state"])
-            self.render.render_board()
+            processed = self.update_board_from_state(action_data["board_state"])
+            if processed:
+                Logger.info("GameBase", "Generic board update applied.")
+                if self.render: self.render.render_board()
+            else:
+                 Logger.warning("GameBase", "Received action with board_state, but generic update failed or was skipped.")
+        else:
+            Logger.warning("GameBase", "Received network action was not processed by subclass and lacks 'board_state'.")
 
-    def update_board_from_state(self, state):
+    def update_board_from_state(self, state: Dict) -> bool:
         """
-        procédure : met à jour l'état du plateau
-        params :
-            state - nouvel état du plateau
-        """
-        if not state:
-            return
-        self.board.board = [[cell[:] for cell in row] for row in state["board"]]
-        self.round_turn = state["round_turn"]
-        self.first_turn = state["first_turn"]
-        Logger.info("Game", "Board state updated from network action")
+        procédure : met à jour l'état interne du jeu (plateau, tour) à partir d'un état reçu.
 
-    def on_player_disconnected(self, message):
+        params:
+            state: dictionnaire contenant l'état ('board', 'round_turn', optionnellement 'first_turn').
+        
+        retour:
+            bool: True si la mise à jour a été effectuée, False sinon (état invalide).
         """
-        procédure : gère la déconnexion d'un joueur
-        params :
-            message - message de déconnexion
+        if not state or "board" not in state or "round_turn" not in state:
+             Logger.error("GameBase", f"Invalid board state received for update: {state}")
+             return False
+             
+        try:
+             # assure une copie profonde pour éviter les références partagées
+             self.board.board = [[cell[:] for cell in row] for row in state["board"]]
+             self.round_turn = state["round_turn"]
+             # mise à jour conditionnelle des attributs spécifiques (ex: katerenga)
+             if hasattr(self, 'first_turn') and "first_turn" in state:
+                 self.first_turn = state["first_turn"]
+             if hasattr(self, 'locked_pieces') and "locked_pieces" in state:
+                  self.locked_pieces = list(state["locked_pieces"])
+                  
+             Logger.info("GameBase", "Board state updated successfully from network data.")
+             save_game(self) # sauvegarde l'état reçu
+             return True
+        except Exception as e:
+             Logger.error("GameBase", f"Error applying board state update: {e}. State: {state}")
+             return False
+
+    def on_player_disconnected(self, data: Dict):
         """
-        Logger.info("Game", f"Disconnection event: {message}")
+        procédure : gère l'annonce de la déconnexion de l'autre joueur.
+
+        params:
+            data: dictionnaire contenant le message de déconnexion.
+        """
+        message = data.get("message", "Opponent disconnected.")
+        Logger.warning("GameBase", f"Disconnection event: {message}")
         self.game_started = False
         self.is_my_turn = False
         self.update_status_message(f"Game ended: {message}", "red")
-        messagebox.showinfo("Game Over", f"Game ended: {message}")
-        
-        play_again = messagebox.askyesno("Play Again?", "Would you like to start a new game?")
-        
-        if self.render and hasattr(self.render, 'root') and self.render.root:
-            root = self.render.root
-            self.render.root = None
-            
-            def start_new_game():
-                try:
-                    root.destroy()
-                except:
-                    pass
-                self.cleanup()
-                if play_again:
-                    from src.selector import Selector
-                    Selector()
-            
-            root.after(100, start_new_game)
+        if self.render:
+            self.render.running = False # arrête la boucle de jeu du rendu
+        # self.cleanup() # le cleanup se fait souvent à la fermeture de la fenêtre
 
-    def send_network_action(self, action_data):
+    def send_network_action(self, action_data: Dict):
         """
-        procédure : envoie une action au serveur
-        params :
-            action_data - données de l'action
+        procédure : envoie une action de jeu locale au serveur.
+        ajoute automatiquement l'état actuel du plateau à l'action.
+
+        params:
+            action_data: dictionnaire contenant les détails spécifiques de l'action (ex: coup joué).
         """
         if self.is_network_game and self.network_client and self.is_my_turn:
+            # ajoute l'état complet du jeu pour synchronisation
             action_data["board_state"] = self.get_board_state()
             self.network_client.send_game_action(action_data)
+            # sauvegarde locale après avoir envoyé le coup
             save_game(self)
-            Logger.info("Game", "Sent network action to other player")
+            Logger.info("GameBase", f"Sent network action: {action_data}")
+            # la confirmation de fin de tour viendra du serveur via on_turn_ended
+        elif not self.is_my_turn:
+             Logger.warning("GameBase", "Attempted to send action when not my turn.")
 
-    def get_board_state(self):
+    def get_board_state(self) -> Dict:
         """
-        fonction : récupère l'état du plateau
-        retour : état du plateau
+        fonction : retourne l'état actuel complet du jeu, utilisé pour la sauvegarde et le réseau.
+        les sous-classes peuvent surcharger pour ajouter des informations spécifiques.
+
+        retour:
+            dict: dictionnaire représentant l'état du jeu.
         """
-        return {
-            "board": [[cell[:] for cell in row] for row in self.board.board],
-            "round_turn": self.round_turn,
-            "first_turn": self.first_turn
+        # état de base commun à tous les jeux
+        state = {
+            "board": [[cell[:] for cell in row] for row in self.board.board], # copie profonde
+            "round_turn": self.round_turn
         }
+        # ajoute des éléments spécifiques si présents dans la classe fille
+        if hasattr(self, 'first_turn'):
+            state["first_turn"] = self.first_turn
+        if hasattr(self, 'locked_pieces'):
+             state["locked_pieces"] = list(self.locked_pieces)
+             
+        return state
 
     def can_play(self) -> bool:
         """
-        fonction : vérifie si le joueur peut jouer
-        retour : True si le joueur peut jouer, False sinon
+        fonction : vérifie si le joueur local a le droit de jouer maintenant.
+        utile pour bloquer les inputs en dehors de son tour en mode réseau.
+
+        retour:
+            bool: True si le joueur peut jouer, False sinon.
         """
         if not self.is_network_game:
+            # en mode solo/bot, on peut toujours jouer (la logique de tour est gérée ailleurs)
             return True
+            
+        # vérifications pour le mode réseau
         if not self.game_started:
             self.update_status_message("Waiting for game to start...", "blue")
             return False
         if not self.is_my_turn:
             other_player = 2 if self.player_number == 1 else 1
-            self.update_status_message(f"Player {other_player}'s turn", "orange")
+            self.update_status_message(f"Waiting for Player {other_player}...", "orange")
             return False
+            
+        # si on arrive ici, c'est notre tour en réseau
         return True
 
     def cleanup(self):
         """
-        procédure : nettoie les ressources du jeu
+        procédure : nettoie les ressources, notamment la connexion réseau.
+        appelée à la fin du jeu ou en cas d'erreur.
         """
+        Logger.info("GameBase", "Cleaning up game resources.")
         if self.network_client:
             self.network_client.disconnect()
-            self.game_started = False
-            self.is_my_turn = False
-            if self.render and hasattr(self.render, 'root') and self.render.root:
-                try:
-                    self.render.root.destroy()
-                except:
-                    pass 
+            self.network_client = None # libère la référence
+        self.game_started = False
+        self.is_my_turn = False
+        
+    def handle_events(self, event) -> bool:
+        """
+        procédure : gère les événements pygame communs, notamment le timer du bot.
+        les sous-classes doivent appeler super().handle_events(event).
+
+        params:
+            event: l'événement pygame à traiter.
+
+        retour:
+            bool: True si l'événement n'a pas été traité par cette méthode (doit être traité par la sous-classe), False sinon.
+        """
+        # gestion du timer pour déclencher le coup du bot
+        if hasattr(self, '_bot_timer_set') and self._bot_timer_set:
+            if event.type == pygame.USEREVENT:
+                pygame.time.set_timer(pygame.USEREVENT, 0) # désactive le timer
+                self._bot_timer_set = False
+                if hasattr(self, '_bot_play'):
+                    # exécute le coup du bot
+                    if self._bot_play(): # si le bot a joué (et le jeu n'est pas fini)
+                         if self.render: self.render.render_board() # rafraîchit après le coup du bot
+                    return False # événement traité (timer du bot)
+        return True # événement non traité par la classe de base 

@@ -18,6 +18,7 @@ class LogLevel(Enum):
     GAME = (Fore.CYAN, 'GAME')
     BOARD = (Fore.WHITE, 'BOARD')
     BOT = (Fore.LIGHTBLUE_EX, 'BOT')
+    DEBUG = (Fore.LIGHTBLACK_EX, 'DEBUG')
 
 class Logger:
     """
@@ -67,6 +68,16 @@ class Logger:
         if not cls._instance:
             cls.initialize()
         print(cls._format_message(level, component, message))
+        
+    @classmethod
+    def debug(cls, component: str, message: Any):
+        """
+        procédure : log niveau débogage (gris)
+        params :
+            component - composant source
+            message - contenu du message
+        """
+        cls._log(LogLevel.DEBUG, component, message)
 
     @classmethod
     def info(cls, component: str, message: Any):
