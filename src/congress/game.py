@@ -65,8 +65,10 @@ class Game(GameBase):
         player_who_just_moved = 1 - self.round_turn
         
         # vérifie si le joueur qui a joué en dernier a gagné
+        Logger.game("Game Congress", f"Checking victory condition for Player {player_who_just_moved + 1}")
         if self.check_connected_pieces(player_who_just_moved):
             winner = f"Player {player_who_just_moved + 1}"
+            Logger.success("Game Congress", f"Game over! {winner} wins by connecting all pieces!")
             self.render.edit_info_label(f"Game Over! {winner} wins!")
             self.render.running = False # arrête la boucle de rendu
             self.cleanup()
@@ -129,7 +131,10 @@ class Game(GameBase):
                         stack.append((new_row, new_col))
         
         # si le nombre de pièces visitées égale le nombre total de pièces, elles sont toutes connectées
-        return len(visited) == len(pieces)
+        connected = len(visited) == len(pieces)
+        if connected:
+            Logger.success("Game Congress", f"Player {player + 1} has all {len(pieces)} pieces connected!")
+        return connected
 
     def on_click(self, row, col):
         """

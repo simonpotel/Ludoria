@@ -214,13 +214,38 @@ class GameBase:
              # assure une copie profonde pour éviter les références partagées
              self.board.board = [[cell[:] for cell in row] for row in state["board"]]
              self.round_turn = state["round_turn"]
+             
              # mise à jour conditionnelle des attributs spécifiques (ex: katerenga)
              if hasattr(self, 'first_turn') and "first_turn" in state:
                  self.first_turn = state["first_turn"]
+                 
              if hasattr(self, 'locked_pieces') and "locked_pieces" in state:
-                  self.locked_pieces = list(state["locked_pieces"])
+                  old_locked = list(self.locked_pieces) if hasattr(self, 'locked_pieces') else []
                   
-             Logger.info("GameBase", "Board state updated successfully from network data.")
+                  # Normalisation des locked_pieces en listes
+                  normalized_locked = []
+                  for pos in state["locked_pieces"]:
+                      if isinstance(pos, list):
+                          normalized_locked.append(pos)
+                      elif isinstance(pos, tuple):
+                          normalized_locked.append(list(pos))
+                      else:
+                          Logger.warning("GameBase", f"Unknown locked_pieces format: {pos}")
+                          
+                  self.locked_pieces = normalized_locked
+                  
+                  if old_locked != self.locked_pieces:
+                      Logger.game("GameBase", f"Updated locked pieces from {old_locked} to {self.locked_pieces}")
+                      
+                      # Si jeu Katerenga, vérifier si cette mise à jour entraîne une victoire
+                      if hasattr(self, 'check_win') and self.__class__.__name__ == "Game" and self.__module__ == "src.katerenga.game":
+                          # Déterminer quel joueur vient de jouer (l'adversaire actuel)
+                          player_who_moved = 1 - self.round_turn
+                          Logger.game("GameBase", f"Checking victory after locked pieces update for Player {player_who_moved + 1}")
+                          if self.check_win(player_who_moved):
+                              Logger.success("GameBase", f"Victory detected during state update for Player {player_who_moved + 1}")
+                  
+             Logger.game("GameBase", f"Board state updated successfully. Turn: {self.round_turn}")
              save_game(self) # sauvegarde l'état reçu
              return True
         except Exception as e:
@@ -254,6 +279,10 @@ class GameBase:
         if self.is_network_game and self.network_client and self.is_my_turn:
             # ajoute l'état complet du jeu pour synchronisation
             action_data["board_state"] = self.get_board_state()
+            
+            # Log détaillé pour le débogage des problèmes de fin de partie
+            Logger.game("GameBase", f"Sending network action with board state: player={self.player_number}, round_turn={self.round_turn}")
+            
             self.network_client.send_game_action(action_data)
             # sauvegarde locale après avoir envoyé le coup
             save_game(self)

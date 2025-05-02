@@ -57,12 +57,17 @@ class Game(GameBase):
             Logger.error("Game", f"Received incomplete or invalid board state: {board_state}")
             return False
         
+        # vérifie que locked_pieces est présent dans le board_state
+        if "locked_pieces" not in board_state:
+            Logger.warning("Game Katerenga", "Received board state without locked_pieces information")
+            board_state["locked_pieces"] = []  # assure un état par défaut
+        
         # applique l'état reçu directement
         if not self.update_board_from_state(board_state):
              Logger.error("Game", "Failed to apply received board state in on_network_action.")
              return False # indique un échec
         
-        Logger.info("Game Katerenga", f"Applied board state. Current turn: {self.round_turn}, First turn: {self.first_turn}")
+        Logger.info("Game Katerenga", f"Applied board state. Current turn: {self.round_turn}, First turn: {self.first_turn}, Locked pieces: {self.locked_pieces}")
 
         # l'état du plateau reçu *devrait* refléter l'état *après* le coup de l'adversaire,
         # y compris les captures et les verrous. Pas besoin de réappliquer la logique de mouvement ici.
@@ -74,8 +79,10 @@ class Game(GameBase):
         player_who_just_moved = 1 - self.round_turn
         
         # vérifie si le joueur qui vient de jouer a gagné
+        Logger.game("Game Katerenga", f"Checking victory condition for Player {player_who_just_moved + 1}")
         if self.check_win(player_who_just_moved):
-            # check_win met déjà à jour le label et arrête la boucle de jeu
+            Logger.success("Game Katerenga", f"Game over! Player {player_who_just_moved + 1} wins!")
+            self.render.running = False # S'assure que la boucle de rendu s'arrête
             self.cleanup()
             return False # la partie est terminée
         
@@ -113,11 +120,21 @@ class Game(GameBase):
         opponent = 1 - player
         # définition des camps adverses en fonction du joueur
         opponent_camps = [(9, 0), (9, 9)] if player == 0 else [(0, 9), (0, 0)]
+        
+        # Normaliser les coordonnées pour la comparaison
+        normalized_locked = []
+        for pos in self.locked_pieces:
+            if isinstance(pos, list):
+                normalized_locked.append(tuple(pos))
+            else:
+                normalized_locked.append(pos)
+        
+        Logger.game("Game Katerenga", f"Checking win for player {player+1}. Opponent camps: {opponent_camps}, Locked pieces: {normalized_locked}")
 
         # condition 1: occupation des deux camps adverses
         camps_occupied = []
         for camp in opponent_camps:
-            if self.board.board[camp[0]][camp[1]][0] == player:
+            if self.board.board[camp[0]][camp[1]][0] == player or camp in normalized_locked:
                 camps_occupied.append(camp)
         
         if len(camps_occupied) == 2:
@@ -265,9 +282,18 @@ class Game(GameBase):
             # gérer le verrouillage de la pièce localement si nécessaire (devrait correspondre à la logique du serveur)
             finish_line = 0 if current_player_who_moved == 1 else 9
             if row == finish_line and self.is_camp_position(row, col):
-                 if (row, col) not in self.locked_pieces:
-                     self.locked_pieces.append((row, col))
+                 if [row, col] not in self.locked_pieces and (row, col) not in self.locked_pieces:
+                     self.locked_pieces.append([row, col])  # Utiliser le format liste de manière cohérente
                  Logger.game("Game", f"Local feedback: Piece locked at ({row}, {col}) for player {current_player_who_moved + 1}")
+                 
+                 # Vérifier immédiatement si cette action a entraîné une victoire
+                 Logger.game("Game Katerenga", f"Checking immediate victory after locking piece at ({row}, {col})")
+                 if self.check_win(current_player_who_moved):
+                     Logger.success("Game Katerenga", f"Player {current_player_who_moved + 1} wins by occupying both camps!")
+                     # La victoire sera confirmée par le serveur, mais on donne un retour visuel immédiat
+            
+            # Normaliser toutes les coordonnées au format liste pour la transmission
+            normalized_locked_pieces = [[x, y] for x, y in self.locked_pieces] if self.locked_pieces else []
 
             # envoyer l'action avec l'état mis à jour
             self.send_network_action({
@@ -275,11 +301,12 @@ class Game(GameBase):
                 "from_col": old_col,
                 "to_row": row,
                 "to_col": col,
-                "capture_made": capture_made # envoyer les informations de capture si pertinentes
+                "capture_made": capture_made, # envoyer les informations de capture si pertinentes
+                "locked_pieces": normalized_locked_pieces # s'assurer que les pièces verrouillées sont envoyées au format cohérent
             })
             # la mise à jour de round_turn et first_turn viendra du serveur via on_network_action
             self.selected_piece = None # désélection après application locale et envoi
-            self.render.needs_render = True # rafraichir pour montrer le coup local
+            self.render.needs_render = True # rafraîchir pour montrer le coup local
             return True
         
         # execution locale (solo ou bot)
@@ -293,7 +320,9 @@ class Game(GameBase):
             Logger.game("Game", f"Piece locked in camp at ({row}, {col}) for player {self.round_turn + 1}")
             move_made = True
             is_win = self.check_win(self.round_turn)
-            if is_win: self.render.running = False
+            if is_win: 
+                Logger.success("Game Katerenga", f"Game over! Player {self.round_turn + 1} wins!")
+                self.render.running = False
         else:
             # mouvement normal
             self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
@@ -301,7 +330,9 @@ class Game(GameBase):
             self.selected_piece = None
             move_made = True
             is_win = self.check_win(self.round_turn)
-            if is_win: self.render.running = False
+            if is_win: 
+                Logger.success("Game Katerenga", f"Game over! Player {self.round_turn + 1} wins!")
+                self.render.running = False
 
         # après un mouvement réussi
         if move_made and not is_win:
@@ -348,6 +379,7 @@ class Game(GameBase):
                 if not self.check_win(1): # si le bot (joueur 1) n'a pas gagné...
                     if not self.check_win(0): # ... et que le joueur 0 non plus...
                         # alors le joueur 0 gagne car le bot est bloqué
+                        Logger.success("Game Katerenga", "Game over! Player 1 wins because bot has no valid moves!")
                         self.render.edit_info_label("Player 1 wins! Bot has no more moves.")
                         self.check_win(0) # pour s'assurer que running est False
                 self.cleanup()
@@ -382,12 +414,14 @@ class Game(GameBase):
         retour:
             dict: dictionnaire contenant l'état du plateau, le tour et le flag first_turn
         """
-        return {
+        state = {
             "board": [[cell[:] for cell in row] for row in self.board.board], # copie profonde
             "round_turn": self.round_turn,
             "first_turn": self.first_turn,
             "locked_pieces": list(self.locked_pieces) # copie de la liste
         }
+        Logger.game("Game Katerenga", f"Generating game state: {state}")
+        return state
 
     def is_camp_position(self, row, col):
         """
