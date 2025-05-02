@@ -69,14 +69,21 @@ class Game(GameBase):
         
         Logger.info("Game Katerenga", f"Applied board state. Current turn: {self.round_turn}, First turn: {self.first_turn}, Locked pieces: {self.locked_pieces}")
 
+        # fin du premier tour ? (Après que J2 (index 1) ait joué et que le tour revienne à J1 (index 0))
+        if self.first_turn and self.round_turn == 0:
+            self.first_turn = False
+            Logger.info("Game Katerenga", "First turn completed.")
+
         # l'état du plateau reçu *devrait* refléter l'état *après* le coup de l'adversaire,
         # y compris les captures et les verrous. Pas besoin de réappliquer la logique de mouvement ici.
 
         save_game(self)
         self.render.needs_render = True
         
-        # détermine qui a joué en dernier en fonction du nouveau round_turn
-        player_who_just_moved = 1 - self.round_turn
+        # détermine qui a joué en dernier en fonction du nouveau round_turn et notre numéro de joueur
+        # ajuster en fonction du joueur local
+        opponent_player = 0 if self.player_number == 2 else 1
+        player_who_just_moved = opponent_player  # l'adversaire vient de jouer
         
         # vérifie si le joueur qui vient de jouer a gagné
         Logger.game("Game Katerenga", f"Checking victory condition for Player {player_who_just_moved + 1}")
@@ -91,7 +98,7 @@ class Game(GameBase):
             if self.is_my_turn: # is_my_turn doit avoir été mis à jour par les gestionnaires de GameBase
                 self.update_status_message(f"Your turn (Player {self.player_number})", "green")
             else:
-                other_player = 1 if self.round_turn == 0 else 2 # numéro de joueur en fonction du round_turn actuel
+                other_player = 1 if self.player_number == 2 else 2  # numéro de joueur opposé
                 self.update_status_message(f"Player {other_player}'s turn", "orange")
         else:
             # fallback pour le contexte non réseau, bien que cette fonction principalement gère le réseau
@@ -247,9 +254,12 @@ class Game(GameBase):
             self.render.edit_info_label("Invalid move")
             return True
 
+        # détermine l'index correct du joueur pour les vérifications
+        current_player_index = self.player_number - 1 if self.is_network_game else self.round_turn
+
         # gestion de la capture
         capture_made = False
-        if cell[0] is not None and cell[0] != self.round_turn:
+        if cell[0] is not None and cell[0] != current_player_index:
             if not self.first_turn:
                 self.capture_piece(row, col)
                 capture_made = True
@@ -258,7 +268,7 @@ class Game(GameBase):
                 self.selected_piece = None
                 self.render.edit_info_label("No capture allowed on first turn")
                 return True
-        elif cell[0] is not None and cell[0] == self.round_turn:
+        elif cell[0] is not None and cell[0] == current_player_index:
              # impossible de se déplacer sur une case alliée
              self.selected_piece = None
              self.render.edit_info_label("Cannot move to an occupied friendly cell")
@@ -432,7 +442,10 @@ class Game(GameBase):
             "first_turn": self.first_turn,
             "locked_pieces": list(self.locked_pieces) # copie de la liste
         }
-        Logger.game("Game Katerenga", f"Generating game state: {state}")
+        
+        Logger.game("Game Katerenga", f"Generating game state: round_turn={state['round_turn']}, " 
+                   f"player_number={self.player_number if hasattr(self, 'player_number') else 'N/A'}, "
+                   f"locked_pieces={state['locked_pieces']}")
         return state
 
     def is_camp_position(self, row, col):
