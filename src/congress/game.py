@@ -51,6 +51,11 @@ class Game(GameBase):
             Logger.error("Game", f"Received incomplete or invalid board state: {board_state}")
             return False
             
+        from_row = action_data.get("from_row")
+        from_col = action_data.get("from_col")
+        to_row = action_data.get("to_row")
+        to_col = action_data.get("to_col")
+        
         # applique l'état reçu directement en utilisant la méthode de la classe de base
         if not self.update_board_from_state(board_state):
             Logger.error("Game", "Failed to apply received board state in on_network_action.")
@@ -214,19 +219,18 @@ class Game(GameBase):
 
             # execution du mouvement
             if self.is_network_game:
-                # envoie l'action au serveur avant de mettre à jour localement
+                self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
+                self.board.board[old_row][old_col][0] = None
+                self.selected_piece = None
+                
+                self.render.needs_render = True
                 self.send_network_action({
                     "from_row": old_row,
                     "from_col": old_col,
                     "to_row": row,
                     "to_col": col
                 })
-                # mise à jour locale pour un retour visuel immédiat
-                self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
-                self.board.board[old_row][old_col][0] = None
-                self.selected_piece = None
-                self.render.needs_render = True 
-                # le statut du tour sera mis à jour par le serveur
+                
                 return True
 
             # execution pour jeu Solo ou contre Bot
