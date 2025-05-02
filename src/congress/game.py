@@ -41,48 +41,48 @@ class Game(GameBase):
         retour :
             bool: True si l'action a été traitée avec succès, False sinon
         """
+        Logger.info("Game Congress", f"Received network action: {action_data}")
         if not action_data:
             Logger.error("Game", "Received empty action data")
             return False
             
         board_state = action_data.get("board_state")
-        if not board_state:
-            Logger.error("Game", "Received empty board state")
+        if not board_state or "board" not in board_state or "round_turn" not in board_state:
+            Logger.error("Game", f"Received incomplete or invalid board state: {board_state}")
             return False
             
-        old_row = action_data.get("from_row")
-        old_col = action_data.get("from_col")
-        new_row = action_data.get("to_row")
-        new_col = action_data.get("to_col")
-        
-        if None in (old_row, old_col, new_row, new_col):
-            Logger.error("Game", "Missing move coordinates in action data")
-            return False
-            
-        # mise à jour de l'état local du plateau avec les données reçues
-        self.board.board = [
-            [cell[:] for cell in row] for row in board_state["board"]
-        ]
-        self.round_turn = board_state["round_turn"]
+        # applique l'état reçu directement en utilisant la méthode de la classe de base
+        if not self.update_board_from_state(board_state):
+            Logger.error("Game", "Failed to apply received board state in on_network_action.")
+            return False 
+
+        Logger.info("Game Congress", f"Applied board state. Current turn: {self.round_turn}")
         
         save_game(self)
-        self.render.render_board()
+        self.render.needs_render = True
         
-        other_player = 1 if self.player_number == 1 else 0
-        if self.check_connected_pieces(other_player):
-            winner = f"Player {3 - self.player_number}"
-            self.render.edit_info_label(f"Game Over! {winner} has won!")
+        # détermine qui a joué en dernier
+        player_who_just_moved = 1 - self.round_turn
+        
+        # vérifie si le joueur qui a joué en dernier a gagné
+        if self.check_connected_pieces(player_who_just_moved):
+            winner = f"Player {player_who_just_moved + 1}"
+            self.render.edit_info_label(f"Game Over! {winner} wins!")
+            self.render.running = False # arrête la boucle de rendu
             self.cleanup()
-            return False
+            return False # la partie est terminée
             
+        # met à jour le message de statut en fonction du tour
         if self.is_network_game:
-            if self.is_my_turn:
+            if self.is_my_turn: 
                 self.update_status_message(f"Your turn (Player {self.player_number})", "green")
             else:
-                other_player = 2 if self.player_number == 1 else 1
-                self.update_status_message(f"Player {other_player}'s turn", "orange")
+                other_player_number = 1 if self.round_turn == 0 else 2
+                self.update_status_message(f"Player {other_player_number}'s turn", "orange")
+        else:
+            self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
             
-        return True
+        return True # le jeu continue
 
     def check_connected_pieces(self, player):
         """
@@ -157,16 +157,29 @@ class Game(GameBase):
         if not hasattr(self, 'selected_piece') or self.selected_piece is None:
              # cas : sélection d'une pièce
             cell = self.board.board[row][col]
-            # détermine quel joueur doit jouer en fonction du mode de jeu
-            player_to_select = 0 if not self.is_network_game else (0 if self.player_number == 1 else 1)
             
-            if cell[0] is not None and cell[0] == player_to_select:
+            # détermine l'index correct du joueur à vérifier
+            # mode réseau : utiliser assigned player_number (0 ou 1). Solo/Bot: utiliser current round_turn (0 ou 1).
+            player_index_to_select = (self.player_number - 1) if self.is_network_game else self.round_turn
+            
+            # vérifie si la case contient une pièce appartenant au joueur correct
+            if cell[0] is not None and cell[0] == player_index_to_select:
+                # vérification supplémentaire pour le mode réseau : s'assurer que c'est bien le tour de ce joueur
+                if self.is_network_game and not self.is_my_turn:
+                    self.render.edit_info_label(f"Waiting for Player {2 if self.player_number == 1 else 1}")
+                    return True # pas notre tour, même si on a cliqué sur notre pièce
+                    
                 self.selected_piece = (row, col)
                 self.render.edit_info_label("Select destination")
-                self.render.render_board() # redessine pour montrer la sélection
+                self.render.needs_render = True # redessine pour montrer la sélection
+                return True
+            elif cell[0] is not None:
+                 # clic sur une pièce adverse ou une case vide lors de la tentative de sélection
+                self.render.edit_info_label("Select your own piece")
                 return True
             else:
-                self.render.edit_info_label("Select your own piece")
+                # clic sur une case vide lors de la tentative de sélection
+                self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn") # ou message de statut réseau
                 return True
         else:
             # cas : déplacement d'une pièce sélectionnée
@@ -177,21 +190,21 @@ class Game(GameBase):
             if (row, col) == (old_row, old_col):
                  self.selected_piece = None
                  self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
-                 self.render.render_board() # redessine pour enlever la surbrillance
+                 self.render.needs_render = True # redessine pour enlever la surbrillance
                  return True
 
             # vérifier si la case de destination est occupée
             if cell[0] is not None:
                 self.selected_piece = None
                 self.render.edit_info_label("Cannot move to an occupied cell")
-                self.render.render_board() # redessine pour enlever la surbrillance
+                self.render.needs_render = True # redessine pour enlever la surbrillance
                 return True
             
             # vérifier si le mouvement est valide selon les règles du jeu
             if not available_move(self.board.board, old_row, old_col, row, col):
                 self.selected_piece = None
                 self.render.edit_info_label("Invalid move")
-                self.render.render_board() # redessine pour enlever la surbrillance
+                self.render.needs_render = True # redessine pour enlever la surbrillance
                 return True
 
             # execution du mouvement
@@ -207,7 +220,7 @@ class Game(GameBase):
                 self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
                 self.board.board[old_row][old_col][0] = None
                 self.selected_piece = None
-                self.render.render_board()
+                self.render.needs_render = True 
                 # le statut du tour sera mis à jour par le serveur
                 return True
 
@@ -221,14 +234,14 @@ class Game(GameBase):
             if self.check_connected_pieces(player_who_moved):
                 winner = f"Player {player_who_moved + 1}"
                 self.render.edit_info_label(f"Game Over! {winner} wins!")
-                self.render.render_board()
+                self.render.needs_render = True
                 self.render.running = False
                 return False # fin de partie
 
             self.round_turn = 1 - self.round_turn # changement de tour
             save_game(self)
             self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
-            self.render.render_board()
+            self.render.needs_render = True
 
             # si c'est au tour du bot, déclenche son action après un court délai
             if self.game_mode == "Bot" and self.round_turn == 1:

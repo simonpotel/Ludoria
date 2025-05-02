@@ -40,46 +40,47 @@ class Game(GameBase):
         retour:
             bool: True si l'action a été traitée avec succès, False sinon
         """
+        Logger.info("Game Isolation", f"Received network action: {action_data}")
         if not action_data:
             Logger.error("Game", "Received empty action data")
             return False
             
         board_state = action_data.get("board_state")
-        if not board_state:
-            Logger.error("Game", "Received empty board state")
+        if not board_state or "board" not in board_state or "round_turn" not in board_state:
+            Logger.error("Game", f"Received incomplete or invalid board state: {board_state}")
             return False
             
-        row = action_data.get("row")
-        col = action_data.get("col")
+        # applique l'état reçu directement en utilisant la méthode de la classe de base
+        if not self.update_board_from_state(board_state):
+            Logger.error("Game", "Failed to apply received board state in on_network_action.")
+            return False 
         
-        if None in (row, col):
-            Logger.error("Game", "Missing move coordinates in action data")
-            return False
-            
-        # mise à jour de l'état local du plateau
-        self.board.board = [[cell[:] for cell in row] for row in board_state["board"]]
-        self.round_turn = board_state["round_turn"]
+        Logger.info("Game Isolation", f"Applied board state. Current turn: {self.round_turn}")
         
         save_game(self)
-        self.render.render_board()
+        self.render.needs_render = True
         
-        # vérification de la fin de partie pour le joueur local
-        current_player = 0 if self.player_number == 1 else 1
-        if not has_valid_move(self.board.board, current_player):
-            winner = f"Player {3 - self.player_number}" # l'autre joueur a gagné
-            self.render.edit_info_label(f"Game Over! {winner} wins!")
+        # vérifie si le joueur actuel (qui est au tour) a des coups valides
+        # dans Isolation, le joueur dont c'est le tour perd si il n'a plus de coups
+        if not has_valid_move(self.board.board, self.round_turn):
+            player_who_just_moved = 1 - self.round_turn # le joueur qui a causé cet état
+            winner = f"Player {player_who_just_moved + 1}" # le joueur qui vient de jouer gagne
+            self.render.edit_info_label(f"Game Over! {winner} wins! (No moves left for Player {self.round_turn + 1})")
+            self.render.running = False # arrête la boucle de jeu
             self.cleanup()
-            return False
+            return False # la partie est terminée
             
-        # mise à jour du message de statut en fonction du tour
+        # met à jour le message de statut en fonction du tour
         if self.is_network_game:
-            if self.is_my_turn:
-                self.update_status_message(f"Your turn (Player {self.player_number})", "green")
+            if self.is_my_turn: 
+                self.update_status_message(f"Your turn (Player {self.player_number}) - Place tower", "green")
             else:
-                other_player = 2 if self.player_number == 1 else 1
-                self.update_status_message(f"Player {other_player}'s turn", "orange")
+                other_player_number = 1 if self.round_turn == 0 else 2
+                self.update_status_message(f"Player {other_player_number}'s turn - Place tower", "orange")
+        else:
+             self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn - Place your tower")
             
-        return True
+        return True # le jeu continue
 
     def on_click(self, row, col):
         """
@@ -122,7 +123,7 @@ class Game(GameBase):
         # gestion du clic en mode réseau (envoi avant mise à jour locale)
         if self.is_network_game:
             self.board.board[row][col][0] = current_player # mise à jour locale pour feedback visuel
-            self.render.render_board()
+            self.render.needs_render = True # Trigger render immediately after local update
             
             self.send_network_action({
                 "row": row,
@@ -136,7 +137,7 @@ class Game(GameBase):
         self.round_turn = 1 - self.round_turn # changement de tour
         save_game(self) # sauvegarde après chaque coup valide
         
-        self.render.render_board()
+        self.render.needs_render = True
         
         # vérification de la fin de partie pour le joueur suivant
         if not has_valid_move(self.board.board, self.round_turn):

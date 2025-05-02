@@ -38,6 +38,7 @@ class Render:
         self.clock = pygame.time.Clock() # pour limiter le framerate
         self.info_text = "" # texte affiché dans la barre d'info
         self.font = pygame.font.SysFont('Arial', 20) # police pour les textes
+        self.needs_render = True # flag pour contrôler le rendu
         self.render_board()  # premier rendu du plateau
         Logger.success("Render", "Game renderer initialized successfully")
 
@@ -99,7 +100,7 @@ class Render:
         Logger.info("Render", f"Updating info label to: '{text}'")
         if self.info_text != text:
             self.info_text = text
-            self.render_board() # redessine pour afficher le nouveau texte
+            self.needs_render = True 
 
     def render_board(self):
         """
@@ -236,7 +237,7 @@ class Render:
         attend les actions de l'utilisateur (clic, fermeture) et les événements système (timer).
         """
         Logger.info("Render", "Starting main game loop.")
-        self.render_board() # rendu initial
+
         while self.running:
             # traite tous les événements en attente
             for event in pygame.event.get():
@@ -253,7 +254,12 @@ class Render:
                     if hasattr(self.game, 'handle_events'):
                         # passe l'événement à la logique du jeu (qui gère le timer)
                         self.game.handle_events(event)
-            
+
+            # render seulement si nécessaire, après avoir traité les événements
+            if self.needs_render:
+                self.render_board()
+                self.needs_render = False # réinitialiser le flag après le rendu
+
             # le rendu n'est pas systématiquement appelé ici
             # il est déclenché par les changements d'état via edit_info_label -> render_board()
             # revoir peut être plus tard le timing des rendus -> si des animations de frames sont ajoutées plus tard

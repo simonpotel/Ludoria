@@ -113,7 +113,7 @@ class GameBase:
             
         # redessine le plateau si nécessaire et si le rendu est disponible
         if needs_redraw and self.render:
-            self.render.render_board()
+            self.render.needs_render = True
 
     def on_player_assignment(self, data: Dict):
         """
@@ -139,7 +139,7 @@ class GameBase:
                  
             self.update_status_message(status, color)
             Logger.info("GameBase", f"Assigned as Player {self.player_number} in game {self.game_id}. My turn: {self.is_my_turn}")
-            if self.render: self.render.render_board()
+            if self.render: self.render.needs_render = True
         except KeyError as e:
             Logger.error("GameBase", f"Received invalid player assignment data: {data}. Missing key: {e}")
             self.update_status_message("Error receiving player assignment!", "red")
@@ -156,7 +156,7 @@ class GameBase:
         self.is_my_turn = True
         self.update_status_message(f"Your turn (Player {self.player_number})", "green")
         if self.render:
-            self.render.render_board() # rafraîchit pour indiquer que c'est notre tour
+            self.render.needs_render = True # rafraîchit pour indiquer que c'est notre tour
         Logger.info("GameBase", f"Turn started for Player {self.player_number}")
 
     def on_turn_ended(self, data: Optional[Dict] = None):
@@ -169,7 +169,7 @@ class GameBase:
         other_player = 2 if self.player_number == 1 else 1
         self.update_status_message(f"Player {other_player}'s turn", "orange")
         if self.render:
-            self.render.render_board() # rafraîchit pour indiquer l'attente
+            self.render.needs_render = True # rafraîchit pour indiquer l'attente
         Logger.info("GameBase", f"Turn ended for Player {self.player_number}")
 
     def on_network_action(self, action_data: Dict):
@@ -190,7 +190,7 @@ class GameBase:
             processed = self.update_board_from_state(action_data["board_state"])
             if processed:
                 Logger.info("GameBase", "Generic board update applied.")
-                if self.render: self.render.render_board()
+                if self.render: self.render.needs_render = True
             else:
                  Logger.warning("GameBase", "Received action with board_state, but generic update failed or was skipped.")
         else:
@@ -338,6 +338,6 @@ class GameBase:
                 if hasattr(self, '_bot_play'):
                     # exécute le coup du bot
                     if self._bot_play(): # si le bot a joué (et le jeu n'est pas fini)
-                         if self.render: self.render.render_board() # rafraîchit après le coup du bot
+                         if self.render: self.render.needs_render = True # rafraîchit après le coup du bot
                     return False # événement traité (timer du bot)
         return True # événement non traité par la classe de base 
