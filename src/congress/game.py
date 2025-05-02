@@ -50,12 +50,8 @@ class Game(GameBase):
         if not board_state or "board" not in board_state or "round_turn" not in board_state:
             Logger.error("Game", f"Received incomplete or invalid board state: {board_state}")
             return False
-            
-        from_row = action_data.get("from_row")
-        from_col = action_data.get("from_col")
-        to_row = action_data.get("to_row")
-        to_col = action_data.get("to_col")
         
+            
         # applique l'état reçu directement en utilisant la méthode de la classe de base
         if not self.update_board_from_state(board_state):
             Logger.error("Game", "Failed to apply received board state in on_network_action.")
@@ -64,10 +60,20 @@ class Game(GameBase):
         Logger.info("Game Congress", f"Applied board state. Current turn: {self.round_turn}")
         
         save_game(self)
+        
+        # informe le renderer qu'une mise à jour est nécessaire
         self.render.needs_render = True
         
         # détermine qui a joué en dernier
         player_who_just_moved = 1 - self.round_turn
+        
+        Logger.game("Game Congress", f"Board state after network action for player {player_who_just_moved + 1}:")
+        piece_positions = []
+        for i in range(8):
+            for j in range(8):
+                if self.board.board[i][j][0] == player_who_just_moved:
+                    piece_positions.append((i, j))
+        Logger.game("Game Congress", f"Pieces for player {player_who_just_moved + 1}: {piece_positions}")
         
         # vérifie si le joueur qui a joué en dernier a gagné
         Logger.game("Game Congress", f"Checking victory condition for Player {player_who_just_moved + 1}")
@@ -114,7 +120,13 @@ class Game(GameBase):
         
         # si le joueur n'a pas de pièces, ils ne sont pas connectés (ou jeu fini)
         if not start_pos:
+            Logger.warning("Game Congress", f"Player {player + 1} has no pieces on the board!")
             return False
+        
+        # si le joueur n'a qu'une seule pièce, elle est techniquement connectée
+        if len(pieces) == 1:
+            Logger.success("Game Congress", f"Player {player + 1} has only one piece, which is connected by default!")
+            return True
         
         visited = set()
         stack = [start_pos]
@@ -137,8 +149,14 @@ class Game(GameBase):
         
         # si le nombre de pièces visitées égale le nombre total de pièces, elles sont toutes connectées
         connected = len(visited) == len(pieces)
-        if connected:
+        
+        Logger.game("Game Congress", f"Player {player + 1} has {len(pieces)} pieces, {len(visited)} connected")
+        if not connected:
+            unconnected = [p for p in pieces if p not in visited]
+            Logger.warning("Game Congress", f"Unconnected pieces: {unconnected}")
+        else:
             Logger.success("Game Congress", f"Player {player + 1} has all {len(pieces)} pieces connected!")
+        
         return connected
 
     def on_click(self, row, col):
@@ -219,19 +237,36 @@ class Game(GameBase):
 
             # execution du mouvement
             if self.is_network_game:
-                self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
-                self.board.board[old_row][old_col][0] = None
-                self.selected_piece = None
-                
-                self.render.needs_render = True
-                self.send_network_action({
-                    "from_row": old_row,
-                    "from_col": old_col,
-                    "to_row": row,
-                    "to_col": col
-                })
-                
-                return True
+                  self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
+                  self.board.board[old_row][old_col][0] = None
+                  self.selected_piece = None
+                  
+                  # vérification de victoire immédiate après le mouvement local
+                  player_who_moved = self.player_number - 1
+                  if self.check_connected_pieces(player_who_moved):
+                      winner = f"Player {player_who_moved + 1}"
+                      Logger.success("Game Congress", f"Game Over! {winner} wins! (Detected locally)")
+                      self.render.edit_info_label(f"Game Over! {winner} wins!")
+                      self.render.running = False # arrête la boucle de rendu
+                      # envoie quand même l'action pour informer l'autre joueur de la victoire
+                      self.send_network_action({
+                          "from_row": old_row,
+                          "from_col": old_col,
+                          "to_row": row,
+                          "to_col": col
+                      })
+                      self.cleanup()
+                      return False # fin de partie
+                      
+                  # si pas de victoire, informer le renderer et envoyer l'action normalement
+                  self.render.needs_render = True
+                  self.send_network_action({
+                      "from_row": old_row,
+                      "from_col": old_col,
+                      "to_row": row,
+                      "to_col": col
+                  })
+                  return True
 
             # execution pour jeu Solo ou contre Bot
             self.board.board[row][col][0] = self.board.board[old_row][old_col][0]

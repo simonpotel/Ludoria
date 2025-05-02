@@ -273,40 +273,52 @@ class Game(GameBase):
             # appliquer le mouvement localement d'abord pour un feedback immédiat
             self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
             self.board.board[old_row][old_col][0] = None
-            current_player_who_moved = self.round_turn # stocker qui a joué avant le changement de tour potentiel dans l'état du plateau
+            current_player_who_moved = self.round_turn # stocker qui a joué
+            self.selected_piece = None 
 
-            # gérer la capture localement si nécessaire (devrait correspondre à la logique du serveur)
+            # gérer la capture localement si nécessaire
             if capture_made:
-                pass # pas nécessaire, la capture est déjà gérée visuellement
+                pass # Déjà géré ci-dessus visuellement
 
-            # gérer le verrouillage de la pièce localement si nécessaire (devrait correspondre à la logique du serveur)
+            # gérer le verrouillage de la pièce localement si nécessaire
             finish_line = 0 if current_player_who_moved == 1 else 9
+            locked_piece_added = False
             if row == finish_line and self.is_camp_position(row, col):
                  if [row, col] not in self.locked_pieces and (row, col) not in self.locked_pieces:
-                     self.locked_pieces.append([row, col])  # Utiliser le format liste de manière cohérente
-                 Logger.game("Game", f"Local feedback: Piece locked at ({row}, {col}) for player {current_player_who_moved + 1}")
-                 
-                 # Vérifier immédiatement si cette action a entraîné une victoire
-                 Logger.game("Game Katerenga", f"Checking immediate victory after locking piece at ({row}, {col})")
-                 if self.check_win(current_player_who_moved):
-                     Logger.success("Game Katerenga", f"Player {current_player_who_moved + 1} wins by occupying both camps!")
-                     # La victoire sera confirmée par le serveur, mais on donne un retour visuel immédiat
-            
-            # Normaliser toutes les coordonnées au format liste pour la transmission
-            normalized_locked_pieces = [[x, y] for x, y in self.locked_pieces] if self.locked_pieces else []
+                     self.locked_pieces.append([row, col]) 
+                     locked_piece_added = True
+                     Logger.game("Game", f"Local feedback: Piece locked at ({row}, {col}) for player {current_player_who_moved + 1}")
 
-            # envoyer l'action avec l'état mis à jour
+            # vérification de la victoire locale
+            if self.check_win(current_player_who_moved):
+                winner = f"Player {current_player_who_moved + 1}"
+                Logger.success("Game Katerenga", f"Game Over! {winner} wins! (Detected locally)")
+                self.render.edit_info_label(f"Game Over! {winner} wins!")
+                self.render.running = False
+                # normaliser et envoyer l'action finale de victoire
+                normalized_locked_pieces = [[x, y] for x, y in self.locked_pieces] if self.locked_pieces else []
+                self.send_network_action({
+                    "from_row": old_row,
+                    "from_col": old_col,
+                    "to_row": row,
+                    "to_col": col,
+                    "capture_made": capture_made,
+                    "locked_pieces": normalized_locked_pieces
+                })
+                self.cleanup()
+                return False # fin de partie
+            
+            # si pas de victoire, préparer et envoyer l'action normalement
+            self.render.needs_render = True 
+            normalized_locked_pieces = [[x, y] for x, y in self.locked_pieces] if self.locked_pieces else []
             self.send_network_action({
                 "from_row": old_row,
                 "from_col": old_col,
                 "to_row": row,
                 "to_col": col,
-                "capture_made": capture_made, # envoyer les informations de capture si pertinentes
-                "locked_pieces": normalized_locked_pieces # s'assurer que les pièces verrouillées sont envoyées au format cohérent
+                "capture_made": capture_made,
+                "locked_pieces": normalized_locked_pieces
             })
-            # la mise à jour de round_turn et first_turn viendra du serveur via on_network_action
-            self.selected_piece = None # désélection après application locale et envoi
-            self.render.needs_render = True # rafraîchir pour montrer le coup local
             return True
         
         # execution locale (solo ou bot)
