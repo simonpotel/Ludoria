@@ -69,12 +69,11 @@ class Button:
             event: événement pygame.
 
         retour:
-            bool: True si l'action a été déclenchée, False sinon.
+            bool: true si l'action a été déclenchée, false sinon.
         """
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: # clic gauche
             if self.is_hover and self.action:
-                Logger.info("Button", f"Button '{self.text}' clicked, executing action.")
-                self.action() # exécute l'action associée
+                self.action()
                 return True
         return False
 
@@ -166,14 +165,13 @@ class Dropdown:
             pos: tuple (x, y) de la position de la souris.
 
         retour:
-            bool: True si un clic a été géré par cet élément, False sinon.
+            bool: true si un clic a été géré par cet élément, false sinon.
         """
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: # clic gauche
             # clic sur la boîte principale pour ouvrir/fermer
             if self.rect.collidepoint(pos):
                 self.is_open = not self.is_open
-                Logger.debug("Dropdown", f"Dropdown toggled. Is open: {self.is_open}")
-                return True # clic géré
+                return True
             # clic sur une option si la liste est ouverte
             elif self.is_open:
                 for i, option_rect in enumerate(self.option_rects):
@@ -182,7 +180,6 @@ class Dropdown:
                         self.selected_index = i
                         self.is_open = False
                         new_selection = self.get()
-                        Logger.info("Dropdown", f"Option selected: {new_selection} (Index: {i}). Previous: {old_selection}")
                         return True # clic géré
                 # clic en dehors des options ferme la liste
                 self.is_open = False
@@ -194,11 +191,10 @@ class Dropdown:
         fonction : retourne la valeur de l'option actuellement sélectionnée.
 
         retour:
-            str | None: la chaîne de l'option sélectionnée, ou None si invalide.
+            str | none: la chaîne de l'option sélectionnée, ou none si invalide.
         """
         if 0 <= self.selected_index < len(self.options):
             return self.options[self.selected_index]
-        Logger.warning("Dropdown", f"Selected index {self.selected_index} is out of bounds for options.")
         return None
 
 
@@ -264,15 +260,14 @@ class TextInput:
             pos: tuple (x, y) de la position de la souris (pour les clics).
 
         retour:
-            bool: True si l'événement a été géré par ce champ, False sinon.
+            bool: true si l'événement a été géré par ce champ, false sinon.
         """
         # clic pour activer/désactiver
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             was_active = self.active
             self.active = self.rect.collidepoint(pos)
             if self.active != was_active:
-                 Logger.debug("TextInput", f"Text input active state changed to: {self.active}")
-            return self.active # retourne true si le clic l'a activé
+                return self.active # retourne true si le clic l'a activé
         
         # ignore les autres événements si pas actif
         if not self.active:
@@ -282,15 +277,12 @@ class TextInput:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_BACKSPACE:
                 self.text = self.text[:-1]
-                Logger.debug("TextInput", f"Backspace pressed. Text: '{self.text}'")
             elif event.key == pygame.K_RETURN:
                 self.active = False # désactive à l'appui sur entrée
-                Logger.debug("TextInput", "Enter pressed. Deactivating text input.")
             elif event.unicode.isprintable():
                 # ajoute le caractère si imprimable et si la largeur le permet (simple vérification)
                 if self.font.size(self.text + event.unicode)[0] < self.rect.width - 15:
                      self.text += event.unicode
-                     Logger.debug("TextInput", f"Character '{event.unicode}' added. Text: '{self.text}'")
             return True # événement clavier géré
             
         return False # événement non géré
@@ -329,51 +321,42 @@ class Selector:
 
     def __init__(self):
         """
-        constructeur : initialise pygame, charge les configurations et met en place l'interface.
-        lance ensuite la boucle principale.
+        constructeur : initialise pygame et l'interface.
         """
-        Logger.initialize() # s'assure que le logger est prêt
-        Logger.info("Selector", "Initializing game selector interface")
-        
         pygame.init()
-        pygame.font.init() # initialise le module font explicitement
+        pygame.freetype.init()
         
-        self.width, self.height = 800, 600 # dimensions de la fenêtre
+        self.width = 800
+        self.height = 700
         self.screen = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption("Smart Games: Selector")
-        
+        pygame.display.set_caption("Smart Games - Selector")
         self.clock = pygame.time.Clock()
-        self.running = True # contrôle la boucle principale
         
-        self.quadrants = self.load_quadrants() # charge les configurations de quadrants depuis json
-        self.selected_quadrants = [] # état actuel des 4 quadrants (avec rotations)
-        if self.quadrants: # vérifie si le chargement a réussi
-            for i in range(4):
-                # copie profonde pour permettre les rotations indépendantes
-                default_index = i % len(self.quadrants)
-                self.selected_quadrants.append([row[:] for row in self.quadrants[default_index]])
-        else:
-             # si le chargement échoue, on ne peut pas continuer
-             Logger.critical("Selector", "Failed to load quadrants. Cannot initialize UI.")
-             self.running = False
-             return
+        self.running = False
+        self.outer_running = True
+        # self.show_selector_ui = True # Ce flag n'est plus nécessaire de la même manière
+
+        self.title_font = pygame.freetype.SysFont('Arial', 24)
+        self.labels = []
+        self.quadrant_config = self.load_quadrants()
+        self.quadrant_selectors = []
+        self.quadrant_rotation_buttons = []
+        self.selected_quadrants = [None] * 4
+        self.quadrant_preview_rect = pygame.Rect(400, 300, 320, 320)
+        self.entry_game_save = None
+        self.game_selection = None
+        self.mode_selection = None
+        self.load_button = None
         
-        self.setup_ui() # crée les éléments de l'interface (boutons, dropdowns, etc.)
-        
-        if self.running:
-             Logger.info("Selector", "Initialization complete. Starting main loop.")
-             self.main_loop() # lance la boucle d'événements et de rendu
-        
-        Logger.info("Selector", "Selector shutdown.")
+        self.main_loop()
 
     def load_quadrants(self):
         """
-        fonction : charge les différentes configurations de quadrants depuis un fichier JSON.
+        fonction : charge les différentes configurations de quadrants depuis un fichier json.
         
         retour:
-            list | None: liste des configurations de quadrants (chaque quadrant est une liste de listes), ou None en cas d'erreur.
+            list | none: liste des configurations de quadrants (chaque quadrant est une liste de listes), ou none en cas d'erreur.
         """
-        Logger.info("Selector", "Loading quadrants configuration from 'configs/quadrants.json'")
         config_path = Path('configs/quadrants.json')
         if not config_path.is_file():
              self._handle_config_error(f"Quadrants configuration file not found at {config_path}")
@@ -385,7 +368,6 @@ class Selector:
                 # trie les noms pour un affichage cohérent
                 self.quadrant_names = sorted(self.quadrants_config.keys())
                 quadrants_data = [self.quadrants_config[key] for key in self.quadrant_names]
-                Logger.success("Selector", f"Successfully loaded {len(quadrants_data)} quadrant configurations.")
                 return quadrants_data
         except json.JSONDecodeError as e:
             self._handle_config_error(f"Invalid JSON format in {config_path}: {e}")
@@ -405,6 +387,7 @@ class Selector:
         Logger.critical("Selector", message)
         # idéalement, afficher une boîte de dialogue d'erreur à l'utilisateur ici
         self.running = False # arrête la boucle principale proprement
+        self.outer_running = False # assure l'arrêt complet
 
     def setup_ui(self):
         """
@@ -428,19 +411,23 @@ class Selector:
         # champ nom de la partie/sauvegarde
         self.labels.append(("Nom de la Partie:", (left_panel_margin, current_y)))
         current_y += self.title_font.get_height() + label_spacing
-        self.entry_game_save = TextInput(left_panel_margin, current_y, element_width, element_height)
+        # Conserve le texte précédent si l'UI est recréée
+        previous_save_name = self.entry_game_save.get() if self.entry_game_save else ""
+        self.entry_game_save = TextInput(left_panel_margin, current_y, element_width, element_height, initial_text=previous_save_name)
         current_y += element_height + element_spacing
         
         # sélection mode de jeu
         self.labels.append(("Mode de Jeu:", (left_panel_margin, current_y)))
         current_y += self.title_font.get_height() + label_spacing
-        self.mode_selection = Dropdown(left_panel_margin, current_y, element_width, element_height, self.GAME_MODES, 0)
+        previous_mode_idx = self.mode_selection.selected_index if self.mode_selection else 0
+        self.mode_selection = Dropdown(left_panel_margin, current_y, element_width, element_height, self.GAME_MODES, previous_mode_idx)
         current_y += element_height + element_spacing
         
         # sélection type de jeu
         self.labels.append(("Jeu:", (left_panel_margin, current_y)))
         current_y += self.title_font.get_height() + label_spacing
-        self.game_selection = Dropdown(left_panel_margin, current_y, element_width, element_height, self.GAMES, 0)
+        previous_game_idx = self.game_selection.selected_index if self.game_selection else 0
+        self.game_selection = Dropdown(left_panel_margin, current_y, element_width, element_height, self.GAMES, previous_game_idx)
         current_y += element_height + element_spacing
         
         # sélection des quadrants (4 dropdowns + boutons de rotation)
@@ -453,10 +440,12 @@ class Selector:
         selector_width = element_width - 2 * button_width - 10 # largeur pour le dropdown du quadrant
         
         for i in range(4):
+            # conserve l'index précédent si disponible
+            previous_quad_idx = self.quadrant_selectors[i].selected_index if i < len(self.quadrant_selectors) and self.quadrant_selectors[i] else (i % len(self.quadrant_names))
             # dropdown pour choisir le type de quadrant
             selector = Dropdown(left_panel_margin, current_y, 
                                 selector_width, element_height, 
-                                self.quadrant_names, i % len(self.quadrant_names)) # index par défaut pour varier
+                                self.quadrant_names, previous_quad_idx) 
             self.quadrant_selectors.append(selector)
             
             # boutons de rotation gauche/droite
@@ -488,127 +477,110 @@ class Selector:
         preview_size = self.width - left_panel_width - 40 # taille de la zone carrée
         self.canvas_rect = pygame.Rect(left_panel_width + 20, 30, preview_size, preview_size)
         self.labels.append(("Prévisualisation:", (self.canvas_rect.left, 10)))
+        
+        # initialise les quadrants sélectionnés avec les valeurs par défaut des dropdowns
+        self.update_selected_quadrants()
 
     def main_loop(self):
         """
-        procédure : boucle principale d'événements et de rendu de l'interface de sélection.
+        procédure : boucle principale d'événements et de rendu.
         """
-        while self.running:
-            dt = self.clock.tick(30) / 1000.0 # delta time en secondes
-            mouse_pos = pygame.mouse.get_pos()
-            
-            # gestion des événements
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-                    
-                # passe l'événement aux éléments ui actifs
-                # note: l'ordre peut importer si des éléments se superposent (dropdown ouvert)
-                handled = self.entry_game_save.handle_event(event, mouse_pos)
-                if not handled: handled = self.mode_selection.handle_event(event, mouse_pos)
-                if not handled: handled = self.game_selection.handle_event(event, mouse_pos)
-                
-                # gère les dropdowns des quadrants (important s'ils sont ouverts)
-                if not handled:
-                    for selector in self.quadrant_selectors:
-                         if selector.handle_event(event, mouse_pos):
-                              self.update_selected_quadrants() # met à jour l'état si sélection change
-                              handled = True
-                              break # un seul dropdown peut gérer un clic
-                              
-                # gère les boutons de rotation
-                if not handled:
-                     for left_btn, right_btn in self.quadrant_rotation_buttons:
-                          if left_btn.handle_event(event): handled = True; break
-                          if right_btn.handle_event(event): handled = True; break
-                          
-                # gère le bouton principal
-                if not handled:
-                     self.load_button.handle_event(event)
-            
-            # mise à jour du survol pour tous les boutons
-            for left_btn, right_btn in self.quadrant_rotation_buttons:
-                 left_btn.check_hover(mouse_pos)
-                 right_btn.check_hover(mouse_pos)
-            self.load_button.check_hover(mouse_pos)
-            
-            # mise à jour des éléments (curseur du textinput)
-            self.entry_game_save.update(dt * 1000) # dt attendu en ms par textinput
-            
-            # dessin de l'interface
-            self.screen.fill((230, 230, 230)) # fond général
-            
-            # dessine les labels
-            for text, pos in self.labels:
-                text_surface = self.title_font.render(text, True, (0, 0, 0))
-                self.screen.blit(text_surface, pos)
-            
-            # dessine les éléments ui (l'ordre importe pour le recouvrement)
-            self.entry_game_save.draw(self.screen)
-            # dessine les dropdowns des quadrants avant les autres pour que les options ouvertes soient visibles
-            for selector in self.quadrant_selectors:
-                selector.draw(self.screen)
-            self.mode_selection.draw(self.screen)
-            self.game_selection.draw(self.screen)
-            
-            # dessine les boutons
-            for left_btn, right_btn in self.quadrant_rotation_buttons:
-                left_btn.draw(self.screen)
-                right_btn.draw(self.screen)
-            self.load_button.draw(self.screen)
-            
-            # dessine la prévisualisation du plateau
-            self.draw_quadrants()
-            
-            pygame.display.flip() # met à jour l'affichage complet
-        
-        pygame.quit() # nettoie pygame à la sortie de la boucle
+        while self.outer_running:
+            # Phase 1: Affichage et interaction du menu sélecteur
+            self.screen = pygame.display.set_mode((self.width, self.height))
+            pygame.display.set_caption("Smart Games - Selector")
+            self.running = True
+            self.setup_ui() # initialise/réinitialise l'ui
 
-    def get_saved_games(self):
-        """
-        fonction : récupère la liste des fichiers de sauvegarde existants dans le dossier 'saves'.
-        
-        retour:
-            list: liste des noms de sauvegardes (sans l'extension .json).
-        """
-        saves_dir = Path('saves')
-        saves_dir.mkdir(exist_ok=True) # crée le dossier s'il n'existe pas
-        saved_games = [file.stem for file in saves_dir.glob('*.json')]
-        Logger.debug("Selector", f"Found saved games: {saved_games}")
-        return saved_games
+            while self.running:
+                dt = self.clock.tick(30) / 1000.0
+                mouse_pos = pygame.mouse.get_pos()
+                
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.running = False
+                        self.outer_running = False # Quitte l'application
+                        
+                    handled = self.entry_game_save.handle_event(event, mouse_pos)
+                    if not handled: handled = self.mode_selection.handle_event(event, mouse_pos)
+                    if not handled: handled = self.game_selection.handle_event(event, mouse_pos)
+                    if not handled:
+                        for selector in self.quadrant_selectors:
+                             if selector.handle_event(event, mouse_pos):
+                                  if not selector.is_open: 
+                                       self.update_selected_quadrants()
+                                  handled = True
+                                  break 
+                    if not handled:
+                         for left_btn, right_btn in self.quadrant_rotation_buttons:
+                              if left_btn.handle_event(event): handled = True; break
+                              if right_btn.handle_event(event): handled = True; break
+                    if not handled:
+                         self.load_button.handle_event(event)
+                
+                # déterminer quelle dropdown est ouverte APRES la gestion des événements
+                open_dropdown = None
+                all_dropdowns = [self.mode_selection, self.game_selection] + self.quadrant_selectors
+                for dd in all_dropdowns:
+                    if dd and dd.is_open:
+                        open_dropdown = dd
+                        break 
+
+                for left_btn, right_btn in self.quadrant_rotation_buttons:
+                     left_btn.check_hover(mouse_pos)
+                     right_btn.check_hover(mouse_pos)
+                self.load_button.check_hover(mouse_pos)
+                self.entry_game_save.update(dt * 1000)
+                
+                # dessin de l'interface
+                self.screen.fill((230, 230, 230))
+                for text, pos in self.labels:
+                    text_surface = self.title_font.render(text, True, (0, 0, 0))
+                    self.screen.blit(text_surface, pos)
+                self.entry_game_save.draw(self.screen)
+                if open_dropdown != self.mode_selection: self.mode_selection.draw(self.screen)
+                if open_dropdown != self.game_selection: self.game_selection.draw(self.screen)
+                for selector in self.quadrant_selectors:
+                     if open_dropdown != selector: selector.draw(self.screen)
+                for left_btn, right_btn in self.quadrant_rotation_buttons:
+                    left_btn.draw(self.screen)
+                    right_btn.draw(self.screen)
+                self.load_button.draw(self.screen)
+                self.draw_quadrants()
+                if open_dropdown:
+                    open_dropdown.draw(self.screen)
+                pygame.display.flip()
+            
+            # fin de la boucle interne (self.running = False)
+            # Si on n'a pas quitté l'application (outer_running est True), on revient simplement au menu
+            if self.outer_running:
+                 Logger.info("Selector", "Returning to game selection menu.")
+                 # La boucle externe va simplement recommencer, réinitialisant l'UI
+
+        # nettoyage final
+        Logger.info("Selector", "Exiting application.")
+        pygame.quit()
 
     def load_game(self):
         """
-        procédure : action déclenchée par le bouton "Démarrer / Charger".
-        valide les sélections, ferme l'interface de sélection et lance le jeu.
+        procédure : valide les sélections et prépare le lancement du jeu.
         """
-        game_save = self.entry_game_save.get().strip() # nettoie le nom
+        game_save = self.entry_game_save.get().strip()
         selected_game = self.game_selection.get()
         selected_mode = self.mode_selection.get()
         
-        # validation des paramètres
         if not self._validate_game_params(game_save, selected_mode):
-            # idéalement, afficher un message d'erreur à l'utilisateur ici
-            Logger.warning("Selector", "Game parameters validation failed.")
+            Logger.warning("Selector", "Paramètres de jeu invalides.")
             return
             
-        Logger.info("Selector", f"Attempting to start/load game: Type={selected_game}, Name={game_save}, Mode={selected_mode}")
-        
-        # vérifie si le type de jeu est valide
+        Logger.info("Selector", f"Démarrage jeu: {selected_game}, Nom: {game_save}, Mode: {selected_mode}")
         if selected_game not in self.GAMES:
-             Logger.error("Selector", f"Invalid game type selected: {selected_game}")
-             # afficher message erreur
+             Logger.error("Selector", f"Type de jeu inconnu: {selected_game}")
              return
              
-        # le nom est valide, le type est valide, le mode est valide
-        self.running = False # signale la fin de la boucle du sélecteur
-        pygame.quit() # ferme la fenêtre du sélecteur
+        self.running = False 
         
-        # démarre le jeu choisi
         self._start_game(game_save, selected_game, selected_mode)
-        
-        # après la fin du jeu, propose de rejouer (relance le sélecteur)
-        # self.ask_replay() # commenté car peut causer des problèmes si mal géré
 
     def _validate_game_params(self, game_save, selected_mode):
         """
@@ -619,7 +591,7 @@ class Selector:
             selected_mode: mode de jeu sélectionné.
 
         retour:
-            bool: True si les paramètres sont valides, False sinon.
+            bool: true si les paramètres sont valides, false sinon.
         """
         if not game_save:
             Logger.warning("Selector", "Validation failed: Game name cannot be empty.")
@@ -638,33 +610,35 @@ class Selector:
         """
         procédure : crée l'instance du jeu et lance sa boucle principale.
         gère le chargement de sauvegarde si le fichier existe.
-
-        params:
-            game_save: nom de la partie/sauvegarde.
-            selected_game: type de jeu ("katerenga", "isolation", "congress").
-            selected_mode: mode de jeu ("Solo", "Bot", "Network").
+        assure que la fenêtre du jeu est gérée correctement.
         """
+        game_instance = None
         try:
-            # crée l'instance du jeu approprié
+            # important : le jeu doit utiliser la même surface d'affichage ou créer la sienne
+            # si le jeu crée sa propre fenêtre, pygame doit être réinitialisé correctement.
+            # pour l'instant, on assume que le jeu gère sa propre initialisation pygame si nécessaire.
+            
+            Logger.info("Selector", f"Initializing game screen for {selected_game}...")
+            # il est crucial que render utilise la surface existante ou crée une nouvelle fenêtre
+            # de manière compatible avec le selector.
+            
             game_instance = self._create_game_instance(selected_game, game_save, selected_mode)
             
             # vérifie si une sauvegarde existe pour ce nom
             save_file_path = Path(f'saves/{game_save}.json')
             if save_file_path.is_file():
                 Logger.info("Selector", f"Loading saved game state from: {save_file_path}")
-                # la fonction load_game met à jour l'état de game_instance
                 success = load_game(game_instance)
                 if success:
                      Logger.success("Selector", "Game state loaded successfully.")
-                     # assure que le rendu initial reflète l'état chargé
                      if hasattr(game_instance, 'render') and game_instance.render:
-                          game_instance.render.render_board()
+                          game_instance.render.needs_render = True # force le rendu initial
                 else:
                      Logger.error("Selector", "Failed to load game state, starting new game.")
             else:
                  Logger.info("Selector", f"No save file found for '{game_save}'. Starting new game.")
             
-            # lance la boucle principale du jeu chargé ou nouveau
+            # lance la boucle principale du jeu
             if hasattr(game_instance, 'load_game'):
                 game_instance.load_game() # cette méthode contient la boucle principale du jeu
                 Logger.success("Selector", f"Game '{selected_game}' finished.")
@@ -673,9 +647,21 @@ class Selector:
 
         except Exception as e:
             Logger.critical("Selector", f"Critical error during game execution: {str(e)}", exc_info=True)
-            # assure que pygame est quitté même en cas d'erreur grave
-            pygame.quit()
-            exit(1)
+            # en cas d'erreur pendant le jeu, on tente de nettoyer proprement
+            if game_instance and hasattr(game_instance, 'cleanup'):
+                game_instance.cleanup()
+            # ne pas quitter pygame ici pour permettre à la boucle externe de continuer si possible
+            # ou de quitter proprement si self.outer_running est false.
+        finally:
+            # assurer un nettoyage minimal même après un jeu réussi ou une erreur gérée
+            # (par exemple, fermer des sockets réseau si game_instance.cleanup n'a pas été appelé)
+            if game_instance and hasattr(game_instance, 'cleanup'):
+                # appeler cleanup ici pourrait être redondant si déjà fait dans le jeu, mais assure le nettoyage
+                # game_instance.cleanup() # potentiellement redondant, à évaluer
+                pass 
+            # réinitialiser le titre de la fenêtre ou d'autres états globaux si nécessaire
+            pygame.display.set_caption("Smart Games - Selector")
+            Logger.info("Selector", "Returned control to selector after game ended.")
 
     def _create_game_instance(self, game_type, game_save, mode):
         """
@@ -687,10 +673,10 @@ class Selector:
             mode: mode de jeu ("Solo", "Bot", "Network").
 
         retour:
-            object: instance de la classe de jeu appropriée (Katerenga, Isolation, Congress).
+            object: instance de la classe de jeu appropriée (katerenga, isolation, congress).
         
         exceptions:
-            ValueError: si game_type est inconnu.
+            valueerror: si game_type est inconnu.
         """
         Logger.info("Selector", f"Creating game instance: Type={game_type}, Name={game_save}, Mode={mode}")
         # utilise les quadrants sélectionnés et potentiellement pivotés
@@ -708,15 +694,6 @@ class Selector:
                 Logger.error("Selector", f"Attempted to create unknown game type: {game_type}")
                 raise ValueError(f"Undefined game type: {game_type}")
 
-    def ask_replay(self):
-        """
-        procédure : (potentiellement problématique) tente de relancer le sélecteur.
-        note: recréer __init__ dans une méthode existante est une mauvaise pratique.
-        il faudrait une structure différente pour gérer le flux rejouer/quitter.
-        """
-        Logger.warning("Selector", "ask_replay called. Re-initializing selector - this might be unstable.")
-        pass
-
     def draw_quadrants(self):
         """
         procédure : dessine la prévisualisation des 4 quadrants configurés sur le canvas dédié.
@@ -728,6 +705,10 @@ class Selector:
         for i in range(4):
             # récupère les données du quadrant actuellement sélectionné et potentiellement pivoté
             quadrant_data = self.selected_quadrants[i]
+            if quadrant_data is None: # vérification ajoutée
+                Logger.warning("Selector", f"Quadrant data for index {i} is None. Skipping draw.")
+                continue # passe au quadrant suivant
+                
             # calcule le décalage x, y pour ce quadrant dans la grille 2x2
             x_offset = (i % 2) * quadrant_area_size + self.canvas_rect.left
             y_offset = (i // 2) * quadrant_area_size + self.canvas_rect.top
@@ -747,13 +728,22 @@ class Selector:
             x_offset, y_offset: coin supérieur gauche de la zone de dessin du quadrant.
             cell_size: taille d'une cellule dans la prévisualisation.
         """
+        if quadrant_data is None:
+             Logger.error("Selector", "_draw_quadrant called with None data.")
+             return # ne rien dessiner si les données sont nulles
+             
         for row_i, row in enumerate(quadrant_data):
             for col_i, cell_state in enumerate(row):
                 x1 = x_offset + col_i * cell_size
                 y1 = y_offset + row_i * cell_size
                 
                 # récupère la couleur rgb à partir de l'index stocké dans cell_state[1]
-                color_index = cell_state[1]
+                if isinstance(cell_state, (list, tuple)) and len(cell_state) > 1:
+                    color_index = cell_state[1]
+                else:
+                    color_index = 0 # ou une autre valeur par défaut sûre
+                    Logger.warning("Selector", f"Invalid cell state format in quadrant data: {cell_state}")
+                    
                 cell_color = Render.QUADRANTS_CELLS_COLORS.get(color_index, (128, 128, 128)) # gris par défaut
                 
                 # dessine le rectangle de la cellule
@@ -777,6 +767,11 @@ class Selector:
         """
         Logger.debug("Selector", "Updating selected quadrants based on dropdowns.")
         new_selected_quadrants = []
+        if not hasattr(self, 'quadrants_config') or not self.quadrants_config:
+             Logger.error("Selector", "Quadrants config not loaded, cannot update selections.")
+             self.selected_quadrants = [[] for _ in range(4)] # évite l'erreur NoneType
+             return
+             
         for i, selector in enumerate(self.quadrant_selectors):
             selected_name = selector.get()
             if selected_name and selected_name in self.quadrants_config:
@@ -786,10 +781,14 @@ class Selector:
                  # si la sélection est invalide, garde la configuration par défaut (ou l'ancienne?)
                  # gardons l'ancienne pour l'instant pour éviter une réinitialisation inattendue
                  Logger.warning("Selector", f"Invalid quadrant name '{selected_name}' selected for quadrant {i}. Keeping previous.")
-                 # ou utiliser une valeur par défaut:
-                 # default_index = i % len(self.quadrants)
-                 # new_selected_quadrants.append([row[:] for row in self.quadrants[default_index]])
-                 new_selected_quadrants.append(self.selected_quadrants[i]) # garde l'ancien état
+                 if i < len(self.selected_quadrants) and self.selected_quadrants[i] is not None:
+                     new_selected_quadrants.append(self.selected_quadrants[i]) # garde l'ancien état si possible
+                 else:
+                     # fallback vers une config par défaut si l'ancien état est aussi invalide
+                     default_idx = 0
+                     default_name = self.quadrant_names[default_idx]
+                     new_selected_quadrants.append([row[:] for row in self.quadrants_config[default_name]])
+                     Logger.warning("Selector", f"Falling back to default quadrant config for index {i}")
 
         self.selected_quadrants = new_selected_quadrants
 
@@ -800,8 +799,8 @@ class Selector:
         params:
             index: index (0-3) du quadrant à pivoter dans self.selected_quadrants.
         """
-        if not (0 <= index < 4):
-             Logger.error("Selector", f"Invalid index {index} for rotation.")
+        if not (0 <= index < 4) or self.selected_quadrants[index] is None:
+             Logger.error("Selector", f"Invalid index {index} or None quadrant data for rotation.")
              return
              
         Logger.debug("Selector", f"Rotating quadrant {index} right.")
@@ -820,8 +819,8 @@ class Selector:
         params:
             index: index (0-3) du quadrant à pivoter dans self.selected_quadrants.
         """
-        if not (0 <= index < 4):
-             Logger.error("Selector", f"Invalid index {index} for rotation.")
+        if not (0 <= index < 4) or self.selected_quadrants[index] is None:
+             Logger.error("Selector", f"Invalid index {index} or None quadrant data for rotation.")
              return
              
         Logger.debug("Selector", f"Rotating quadrant {index} left.")
