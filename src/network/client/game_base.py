@@ -227,14 +227,14 @@ class GameBase:
              Logger.error("GameBase", f"Error applying board state update: {e}. State: {state}")
              return False
 
-    def on_player_disconnected(self, data: Dict):
+    def on_player_disconnected(self, message: str):
         """
         procédure : gère l'annonce de la déconnexion de l'autre joueur.
 
         params:
-            data: dictionnaire contenant le message de déconnexion.
+            message: chaîne de caractères contenant le message de déconnexion.
         """
-        message = data.get("message", "Opponent disconnected.")
+        # message is now directly the string passed by the handler
         Logger.warning("GameBase", f"Disconnection event: {message}")
         self.game_started = False
         self.is_my_turn = False
