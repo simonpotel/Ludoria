@@ -60,14 +60,12 @@ class Game(GameBase):
         save_game(self)
         self.render.needs_render = True
         
-        # vérifie si le joueur actuel (qui est au tour) a des coups valides
-        # dans Isolation, le joueur dont c'est le tour perd si il n'a plus de coups
-        Logger.game("Game Isolation", f"Checking if Player {self.round_turn + 1} has valid moves")
-        if not has_valid_move(self.board.board, self.round_turn):
-            player_who_just_moved = 1 - self.round_turn # le joueur qui a causé cet état
-            winner = f"Player {player_who_just_moved + 1}" # le joueur qui vient de jouer gagne
-            Logger.success("Game Isolation", f"Game over! {winner} wins because Player {self.round_turn + 1} has no valid moves!")
-            self.render.edit_info_label(f"Game Over! {winner} wins! (No moves left for Player {self.round_turn + 1})")
+
+        # verifie si l'ancien joueur a des coups valides
+        if not has_valid_move(self.board.board, 1 - self.round_turn):
+            winner = f"Player {self.round_turn + 1}" # le joueur qui vient de jouer gagne
+            Logger.success("Game Isolation", f"Game over! {winner} wins because Player {1 - self.round_turn + 1} has no valid moves!")
+            self.render.edit_info_label(f"Game Over! {winner} wins! (No moves left for Player {1 - self.round_turn + 1})")
             self.render.running = False # arrête la boucle de jeu
             self.cleanup()
             return False # la partie est terminée
