@@ -1,4 +1,4 @@
-from tkinter import messagebox
+import pygame
 from src.board import Board
 from src.render import Render
 from src.captures import has_valid_move
@@ -12,18 +12,23 @@ class Game(GameBase):
     def __init__(self, game_save, quadrants, game_mode="Solo"):
         """
         constructeur : initialise une nouvelle partie de katarenga
+
+        params:
+            game_save: sauvegarde de jeu existante ou None
+            quadrants: configuration des quadrants initiaux
+            game_mode: mode de jeu ("Solo", "Bot", "Network")
         """
         super().__init__(game_save, quadrants, game_mode)
         self.board = Board(quadrants, 0)
         self.render = Render(game=self)
         self.round_turn = 0
-        self.first_turn = True
+        self.first_turn = True # le premier tour a des règles spéciales (pas de capture)
         self.selected_piece = None
         self.game_mode = game_mode
-        self.locked_pieces = []
+        self.locked_pieces = [] # pièces arrivées dans un camp adverse
         self.bot = None
         
-        self.camps = [(0, 0), (0, 9), (9, 0), (9, 9)]
+        self.camps = [(0, 0), (0, 9), (9, 0), (9, 9)] # positions des camps
         
         if game_mode == "Bot":
             self.bot = KaterengaBot(self)
@@ -34,100 +39,132 @@ class Game(GameBase):
 
     def on_network_action(self, action_data):
         """
-        fonction : traite une action reçue d'un autre joueur en réseau
-        paramètres : action_data - données de l'action
-        retourne : True si l'action a été traitée avec succès, False sinon
+        procédure : traite une action reçue d'un autre joueur en réseau
+
+        params:
+            action_data: dictionnaire contenant les données de l'action (mouvement)
+
+        retour:
+            bool: True si l'action a été traitée avec succès, False sinon
         """
+        Logger.info("Game Katerenga", f"Received network action: {action_data}")
         if not action_data:
             Logger.error("Game", "Received empty action data")
             return False
         
         board_state = action_data.get("board_state")
-        if not board_state:
-            Logger.error("Game", "Received empty board state")
+        if not board_state or "board" not in board_state or "round_turn" not in board_state or "first_turn" not in board_state:
+            Logger.error("Game", f"Received incomplete or invalid board state: {board_state}")
             return False
         
-        old_row = action_data.get("from_row")
-        old_col = action_data.get("from_col")
-        new_row = action_data.get("to_row")
-        new_col = action_data.get("to_col")
+        # vérifie que locked_pieces est présent dans le board_state
+        if "locked_pieces" not in board_state:
+            Logger.warning("Game Katerenga", "Received board state without locked_pieces information")
+            board_state["locked_pieces"] = []  # assure un état par défaut
         
-        if None in (old_row, old_col, new_row, new_col):
-            Logger.error("Game", "Missing move coordinates in action data")
-            return False
+        # applique l'état reçu directement
+        if not self.update_board_from_state(board_state):
+             Logger.error("Game", "Failed to apply received board state in on_network_action.")
+             return False # indique un échec
         
-        self.board.board = [[cell[:] for cell in row] for row in board_state["board"]]
-        self.round_turn = board_state["round_turn"]
-        self.first_turn = board_state["first_turn"]
-        
-        if self.board.board[new_row][new_col][0] is not None:
-            if not self.first_turn:
-                self.capture_piece(new_row, new_col)
-        
-        self.board.board[new_row][new_col][0] = self.board.board[old_row][old_col][0]
-        self.board.board[old_row][old_col][0] = None
-        
-        self.round_turn = 1 - self.round_turn
+        Logger.info("Game Katerenga", f"Applied board state. Current turn: {self.round_turn}, First turn: {self.first_turn}, Locked pieces: {self.locked_pieces}")
+
+        # fin du premier tour ? (Après que J2 (index 1) ait joué et que le tour revienne à J1 (index 0))
         if self.first_turn and self.round_turn == 0:
             self.first_turn = False
-        
+            Logger.info("Game Katerenga", "First turn completed.")
+
+        # l'état du plateau reçu *devrait* refléter l'état *après* le coup de l'adversaire,
+        # y compris les captures et les verrous. Pas besoin de réappliquer la logique de mouvement ici.
+
         save_game(self)
-        self.render.render_board()
+        self.render.needs_render = True
         
-        if self.check_win(1 - self.round_turn):
+        # détermine qui a joué en dernier en fonction du nouveau round_turn et notre numéro de joueur
+        # ajuster en fonction du joueur local
+        opponent_player = 0 if self.player_number == 2 else 1
+        player_who_just_moved = opponent_player  # l'adversaire vient de jouer
+        
+        # vérifie si le joueur qui vient de jouer a gagné
+        Logger.game("Game Katerenga", f"Checking victory condition for Player {player_who_just_moved + 1}")
+        if self.check_win(player_who_just_moved):
+            Logger.success("Game Katerenga", f"Game over! Player {player_who_just_moved + 1} wins!")
+            self.render.running = False # S'assure que la boucle de rendu s'arrête
             self.cleanup()
-            return False
+            return False # la partie est terminée
         
+        # met à jour le message de statut en fonction du tour
         if self.is_network_game:
-            if self.is_my_turn:
+            if self.is_my_turn: # is_my_turn doit avoir été mis à jour par les gestionnaires de GameBase
                 self.update_status_message(f"Your turn (Player {self.player_number})", "green")
             else:
-                other_player = 2 if self.player_number == 1 else 1
+                other_player = 1 if self.player_number == 2 else 2  # numéro de joueur opposé
                 self.update_status_message(f"Player {other_player}'s turn", "orange")
-        
-        return True
+        else:
+            # fallback pour le contexte non réseau, bien que cette fonction principalement gère le réseau
+            self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
+
+        return True # le jeu continue
 
     def load_game(self):
         """
-        procédure : lance la boucle principale du jeu
+        procédure : lance la boucle principale de rendu et d'événements du jeu
         """
-        self.render.root.mainloop()
+        self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
+        self.render.run_game_loop()
         self.cleanup()
 
     def check_win(self, player):
         """
-        fonction : vérifie les conditions de victoire pour un joueur
-        paramètres : player - indice du joueur (0 ou 1)
-        retourne : True si le joueur a gagné, False sinon
+        fonction : vérifie si un joueur a gagné la partie
+
+        params:
+            player: l'identifiant du joueur (0 ou 1) à vérifier
+
+        retour:
+            bool: True si le joueur a gagné, False sinon
         """
         opponent = 1 - player
+        # définition des camps adverses en fonction du joueur
         opponent_camps = [(9, 0), (9, 9)] if player == 0 else [(0, 9), (0, 0)]
+        
+        # Normaliser les coordonnées pour la comparaison
+        normalized_locked = []
+        for pos in self.locked_pieces:
+            if isinstance(pos, list):
+                normalized_locked.append(tuple(pos))
+            else:
+                normalized_locked.append(pos)
+        
+        Logger.game("Game Katerenga", f"Checking win for player {player+1}. Opponent camps: {opponent_camps}, Locked pieces: {normalized_locked}")
 
-        # vérifie si le joueur occupe les deux camps adverses
+        # condition 1: occupation des deux camps adverses
         camps_occupied = []
         for camp in opponent_camps:
-            if self.board.board[camp[0]][camp[1]][0] == player:
+            if self.board.board[camp[0]][camp[1]][0] == player or camp in normalized_locked:
                 camps_occupied.append(camp)
         
         if len(camps_occupied) == 2:
             Logger.success("Game", f"Player {player + 1} won by occupying both camps: {camps_occupied}")
-            messagebox.showinfo("Victory", f"Player {player + 1} wins by occupying both camps!")
+            self.render.edit_info_label(f"Player {player + 1} wins by occupying both camps!")
+            self.render.running = False # arrête la boucle de jeu
             return True
 
-        # vérifie si l'adversaire n'a plus de mouvements possibles
+        # condition 2: l'adversaire ne peut plus bouger
         opponent_has_moves = False
         for row in range(10):  
             if opponent_has_moves:
                 break
             for col in range(10):
                 if self.board.board[row][col][0] == opponent:
+                    # recherche d'au moins un mouvement valide pour l'adversaire
                     for dest_row in range(10):
                         for dest_col in range(10):
                             if (self.board.board[dest_row][dest_col][0] is None or 
-                                self.board.board[dest_row][dest_col][0] != opponent):
+                                self.board.board[dest_row][dest_col][0] != opponent): # case vide ou occupée par le joueur courant
                                 if available_move(self.board.board, row, col, dest_row, dest_col):
                                     opponent_has_moves = True
-                                    break
+                                    break # mouvement trouvé, pas besoin de chercher plus
                         if opponent_has_moves:
                             break
                 if opponent_has_moves:
@@ -135,158 +172,291 @@ class Game(GameBase):
 
         if not opponent_has_moves:
             Logger.success("Game", f"Player {player + 1} won by blocking opponent from making moves")
-            messagebox.showinfo("Victory", f"Player {player + 1} wins by blocking opponent!")
+            self.render.edit_info_label(f"Player {player + 1} wins by blocking opponent!")
+            self.render.running = False # arrête la boucle de jeu
             return True
 
-        return False
+        return False # aucune condition de victoire remplie
 
     def capture_piece(self, row, col):
         """
-        procédure : capture une pièce en la retirant du plateau
-        paramètres : row (ligne), col (colonne) - position de la pièce à capturer
+        procédure : retire une pièce capturée du plateau
+
+        params:
+            row: ligne de la pièce capturée
+            col: colonne de la pièce capturée
         """
         self.board.board[row][col][0] = None
 
     def on_click(self, row, col):
         """
-        procédure : gère les clics sur le plateau de jeu
-        paramètres : row (ligne), col (colonne) - coordonnées du clic
-        retourne : True si le jeu continue, False si la partie est terminée
+        procédure : gère les clics de souris sur le plateau de jeu
+
+        params:
+            row: ligne du clic (0-9)
+            col: colonne du clic (0-9)
+
+        retour:
+            bool: True si le jeu continue, False si la partie est terminée
         """
+        # gestion des tours en mode réseau ou bot
         if self.is_network_game:
             if not self.game_started:
                 self.render.edit_info_label("Waiting for another player...")
                 return True
             if not self.can_play():
+                self.render.edit_info_label(f"Waiting for Player {2 if self.player_number == 1 else 1}")
                 return True
                 
-        # si c'est le tour du bot et que le mode bot est activé, ignorer les clics
         if self.game_mode == "Bot" and self.round_turn == 1:
             self.render.edit_info_label("C'est le tour du bot, veuillez patienter...")
             return True
 
         cell = self.board.board[row][col]
 
-        # gestion du premier clic - sélection d'une pièce
+        # cas 1: aucune pièce sélectionnée
         if self.selected_piece is None:
-            if cell[0] is not None and cell[0] == self.round_turn:
+            # détermine l'index correct du joueur à vérifier
+            player_index_to_select = self.player_number - 1 if self.is_network_game else self.round_turn
+            
+            # sélection d'une pièce du joueur dont c'est le tour (ou du joueur local en réseau)
+            if cell[0] is not None and cell[0] == player_index_to_select:
+                # vérification supplémentaire pour le mode réseau : s'assurer que c'est bien le tour de ce joueur
+                if self.is_network_game and not self.is_my_turn:
+                    self.render.edit_info_label(f"Waiting for Player {2 if self.player_number == 1 else 1}")
+                    return True # pas notre tour, même si on a cliqué sur notre pièce
+                    
                 self.selected_piece = (row, col)
                 self.render.edit_info_label("Select destination")
-                self.render.render_board()
+                self.render.needs_render = True
                 return True
-            else:
+            elif cell[0] is not None:
+                # clic sur une pièce adverse ou une case vide
                 self.render.edit_info_label("Select your own piece")
                 return True
+            else:
+                # clic sur une case vide
+                self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn") # ou message de statut réseau
+                return True
 
+        # cas 2: une pièce est déjà sélectionnée
         old_row, old_col = self.selected_piece
 
-        # annulation de la sélection si on reclique sur la même pièce
+        # déselectionner si on clique sur la même pièce
         if (row, col) == (old_row, old_col):
             self.selected_piece = None
-            self.render.edit_info_label("Piece unselected")
-            self.render.render_board()
+            self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
             return True
 
-        # vérifie si le mouvement est valide
+        # verification de la validité du mouvement
         if not available_move(self.board.board, old_row, old_col, row, col):
             self.selected_piece = None
             self.render.edit_info_label("Invalid move")
             return True
 
-        # gestion de la capture de pièce
-        if cell[0] is not None and cell[0] != self.round_turn:
+        # détermine l'index correct du joueur pour les vérifications
+        current_player_index = self.player_number - 1 if self.is_network_game else self.round_turn
+
+        # gestion de la capture
+        capture_made = False
+        if cell[0] is not None and cell[0] != current_player_index:
             if not self.first_turn:
                 self.capture_piece(row, col)
+                capture_made = True
             else:
+                # pas de capture au premier tour
                 self.selected_piece = None
                 self.render.edit_info_label("No capture allowed on first turn")
                 return True
-
+        elif cell[0] is not None and cell[0] == current_player_index:
+             # impossible de se déplacer sur une case alliée
+             self.selected_piece = None
+             self.render.edit_info_label("Cannot move to an occupied friendly cell")
+             return True
+        
+        # execution du mouvement et vérification de victoire
+        move_made = False
+        is_win = False
+        
+        # envoi de l'action réseau si nécessaire
         if self.is_network_game:
+            # appliquer le mouvement localement d'abord pour un feedback immédiat
+            self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
+            self.board.board[old_row][old_col][0] = None
+            current_player_who_moved = self.round_turn # stocker qui a joué
+            self.selected_piece = None 
+
+            # gérer la capture localement si nécessaire
+            if capture_made:
+                pass # Déjà géré ci-dessus visuellement
+
+            # gérer le verrouillage de la pièce localement si nécessaire
+            finish_line = 0 if current_player_who_moved == 1 else 9
+            locked_piece_added = False
+            if row == finish_line and self.is_camp_position(row, col):
+                 if [row, col] not in self.locked_pieces and (row, col) not in self.locked_pieces:
+                     self.locked_pieces.append([row, col]) 
+                     locked_piece_added = True
+                     Logger.game("Game", f"Local feedback: Piece locked at ({row}, {col}) for player {current_player_who_moved + 1}")
+
+            # vérification de la victoire locale
+            if self.check_win(current_player_who_moved):
+                winner = f"Player {current_player_who_moved + 1}"
+                Logger.success("Game Katerenga", f"Game Over! {winner} wins! (Detected locally)")
+                self.render.edit_info_label(f"Game Over! {winner} wins!")
+                self.render.running = False
+                # normaliser et envoyer l'action finale de victoire
+                normalized_locked_pieces = [[x, y] for x, y in self.locked_pieces] if self.locked_pieces else []
+                self.send_network_action({
+                    "from_row": old_row,
+                    "from_col": old_col,
+                    "to_row": row,
+                    "to_col": col,
+                    "capture_made": capture_made,
+                    "locked_pieces": normalized_locked_pieces
+                })
+                self.cleanup()
+                return False # fin de partie
+            
+            # si pas de victoire, préparer et envoyer l'action normalement
+            self.render.needs_render = True 
+            normalized_locked_pieces = [[x, y] for x, y in self.locked_pieces] if self.locked_pieces else []
             self.send_network_action({
                 "from_row": old_row,
                 "from_col": old_col,
                 "to_row": row,
-                "to_col": col
+                "to_col": col,
+                "capture_made": capture_made,
+                "locked_pieces": normalized_locked_pieces
             })
-
-        # vérifie si la pièce atteint un camp adverse
-        finish_line = 0 if self.round_turn == 1 else 9
-        if row == finish_line:
-            if self.is_camp_position(row, col):
-                self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
-                self.board.board[old_row][old_col][0] = None
-                self.selected_piece = None
-                
-                # si le joueur occupe un camp, ajoute cette position à la liste des pièces verrouillées
-                self.locked_pieces.append((row, col))
-                Logger.game("Game", f"Piece locked in camp at ({row}, {col}) for player {self.round_turn + 1}")
-                
-                if self.check_win(self.round_turn):
-                    self.cleanup()
-                    self.render.root.destroy()
-                    return False
-        else:
-            # effectue le déplacement normal
+            return True
+        
+        # execution locale (solo ou bot)
+        finish_line = 0 if self.round_turn == 1 else 9 # ligne d'arrivée dépend du joueur
+        # vérifie si le mouvement atteint un camp sur la ligne d'arrivée
+        if row == finish_line and self.is_camp_position(row, col):
             self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
             self.board.board[old_row][old_col][0] = None
+            self.selected_piece = None
+            self.locked_pieces.append((row, col)) # bloque la pièce dans le camp
+            Logger.game("Game", f"Piece locked in camp at ({row}, {col}) for player {self.round_turn + 1}")
+            move_made = True
+            is_win = self.check_win(self.round_turn)
+            if is_win: 
+                Logger.success("Game Katerenga", f"Game over! Player {self.round_turn + 1} wins!")
+                self.render.running = False
+        else:
+            # mouvement normal
+            self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
+            self.board.board[old_row][old_col][0] = None
+            self.selected_piece = None
+            move_made = True
+            is_win = self.check_win(self.round_turn)
+            if is_win: 
+                Logger.success("Game Katerenga", f"Game over! Player {self.round_turn + 1} wins!")
+                self.render.running = False
 
-        self.selected_piece = None
+        # après un mouvement réussi
+        if move_made and not is_win:
+            self.round_turn = 1 - self.round_turn # changement de tour
+            if self.first_turn and self.round_turn == 0:
+                self.first_turn = False # fin du premier tour
+            self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
+            save_game(self) # sauvegarde après le coup
 
-        # passe au tour du joueur suivant
-        self.round_turn = 1 - self.round_turn
-        if self.first_turn and self.round_turn == 0:
-            self.first_turn = False
+            # déclenchement du tour du bot si nécessaire
+            if self.game_mode == "Bot" and self.round_turn == 1:
+                pygame.time.set_timer(pygame.USEREVENT, 500) # délai pour le bot
+                self._bot_timer_set = True
+                
+        elif move_made and is_win:
+            # la partie est finie, le message de victoire est déjà affiché par check_win
+            save_game(self) # sauvegarde l'état final
+            return False # arrête le jeu
+        elif capture_made:
+             # si seulement une capture a été faite (ne devrait pas arriver avec les règles actuelles)
+             # mais on rafraîchit au cas où
+             self.render.needs_render = True
 
-        self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
-        save_game(self)
-        self.render.render_board()
-        
-        # après le tour du joueur, faire jouer le bot si c'est son tour
-        if self.game_mode == "Bot" and self.round_turn == 1:
-            # petit délai avant que le bot ne joue pour une meilleure expérience utilisateur
-            self.render.root.after(500, self._bot_play)
+        if not is_win: # si le jeu n'est pas fini, on rafraîchit après toutes les opérations
+             self.render.needs_render = True 
 
-        return True
+        return True # le jeu continue (sauf si is_win est True et traité ci-dessus)
         
     def _bot_play(self):
         """
-        fonction : fait jouer le bot dans un thread séparé
+        procédure : exécute le tour du bot (appelé via timer)
+
+        retour:
+            bool: True si le bot a joué avec succès, False si erreur ou fin de partie
         """
         try:
             Logger.game("Game", "Bot starting its move")
-            if self.bot.make_move():
-                # la méthode make_move du bot s'occupe déjà de changer le tour et de mettre à jour l'interface
-                Logger.game("Game", "Bot completed its move successfully")
-            else:
-                # le bot ne peut plus jouer ou a gagné
-                Logger.game("Game", "Bot could not make a move or has won")
-                if not self.check_win(1):  # si le bot n'a pas gagné
-                    messagebox.showinfo("Game Over", "Player 1 wins! Bot has no more moves.")
+            move_successful = self.bot.make_move() # la logique du bot met à jour le plateau et vérifie la victoire
+            
+            if not move_successful:
+                # cas où le bot ne peut pas jouer (peut indiquer une victoire de l'autre joueur)
+                Logger.game("Game", "Bot move resulted in game end or no possible moves")
+                # on revérifie la victoire pour être sûr que le message est correct
+                if not self.check_win(1): # si le bot (joueur 1) n'a pas gagné...
+                    if not self.check_win(0): # ... et que le joueur 0 non plus...
+                        # alors le joueur 0 gagne car le bot est bloqué
+                        Logger.success("Game Katerenga", "Game over! Player 1 wins because bot has no valid moves!")
+                        self.render.edit_info_label("Player 1 wins! Bot has no more moves.")
+                        self.check_win(0) # pour s'assurer que running est False
                 self.cleanup()
-                self.render.root.destroy()
+                self.render.running = False
+                return False
+            else:
+                # le coup du bot a réussi, le jeu continue ou est fini par le bot
+                Logger.game("Game", "Bot completed its move successfully")
+                # le changement de tour et la sauvegarde sont gérés dans bot.make_move
+                # la vérification de victoire est aussi gérée dans bot.make_move
+                # on met à jour l'affichage
+                self.render.needs_render = True
+                if not self.render.running: # si le bot a gagné
+                     save_game(self)
+                     return False
+                else: # si le jeu continue
+                     self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
+                     save_game(self)
+                     return True
         except Exception as e:
             Logger.error("Game", f"Error during bot play: {str(e)}")
             self.render.edit_info_label(f"Error during bot play: {str(e)}")
-            self.round_turn = 0  # Switch back to player 1
+            self.round_turn = 0 # redonne la main au joueur en cas d'erreur
             self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
-            self.render.render_board()
-            
+            self.render.needs_render = True
+            return False
+
     def get_board_state(self):
         """
-        fonction : retourne l'état actuel du plateau
-        retourne : dictionnaire contenant l'état du plateau
+        fonction : retourne l'état actuel complet du jeu pour la sauvegarde ou le réseau
+
+        retour:
+            dict: dictionnaire contenant l'état du plateau, le tour et le flag first_turn
         """
-        return {
-            "board": [[cell[:] for cell in row] for row in self.board.board],
+        state = {
+            "board": [[cell[:] for cell in row] for row in self.board.board], # copie profonde
             "round_turn": self.round_turn,
-            "first_turn": self.first_turn
+            "first_turn": self.first_turn,
+            "locked_pieces": list(self.locked_pieces) # copie de la liste
         }
+        
+        Logger.game("Game Katerenga", f"Generating game state: round_turn={state['round_turn']}, " 
+                   f"player_number={self.player_number if hasattr(self, 'player_number') else 'N/A'}, "
+                   f"locked_pieces={state['locked_pieces']}")
+        return state
 
     def is_camp_position(self, row, col):
         """
-        fonction : vérifie si une position correspond à un camp
-        paramètres : row (ligne), col (colonne) - coordonnées à vérifier
-        retourne : True si la position est un camp, False sinon
+        fonction : vérifie si une position donnée correspond à l'un des quatre camps
+
+        params:
+            row: ligne de la position
+            col: colonne de la position
+
+        retour:
+            bool: True si la position est un camp, False sinon
         """
-        return (row, col) in self.camps 
+        return (row, col) in self.camps # vérifie l'appartenance à la liste des camps 
