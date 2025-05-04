@@ -23,6 +23,17 @@ class Render:
     SELECTION_WIDTH = 4         # épaisseur du cadre de sélection
     BOARD_BG_COLOR = (100, 100, 100)   # couleur de l'arrière-plan du plateau
     INFO_OVERLAY_COLOR = (0, 0, 0, 180) # couleur semi-transparente de la barre d'info
+    
+    # constantes pour le chat
+    CHAT_WIDTH = 250            # largeur du panneau de chat en pixels
+    CHAT_MARGIN = 10            # marge autour du chat en pixels
+    CHAT_INPUT_HEIGHT = 30      # hauteur de la zone de saisie du chat
+    CHAT_BG_COLOR = (30, 30, 30, 200)  # couleur semi-transparente du fond de chat
+    CHAT_INPUT_COLOR = (50, 50, 50, 255)  # couleur de la zone de saisie
+    CHAT_TEXT_COLOR = (255, 255, 255)  # couleur du texte du chat
+    CHAT_INPUT_ACTIVE_COLOR = (70, 70, 70, 255)  # couleur de la zone de saisie active
+    CHAT_MAX_VISIBLE_MESSAGES = 15     # nombre max de messages visibles
+    CHAT_SCROLL_OFFSET = 0      # offset de défilement pour les messages
 
     # mapping des types de terrain vers les noms de fichiers
     CELL_IMAGES = {
@@ -77,6 +88,11 @@ class Render:
         self.clock = pygame.time.Clock()
         self._load_font()
         
+        # chat
+        self.chat_surface = None
+        if hasattr(self.game, 'is_network_game') and self.game.is_network_game:
+            self._setup_chat_surface()
+        
         # premier rendu
         self.render_board()
         Logger.success("Render", "Moteur de rendu initialisé")
@@ -97,9 +113,30 @@ class Render:
         self.board_surface = pygame.Surface((self.board_surface_size, self.board_surface_size))
         
         # position du plateau centré dans la fenêtre
+        # ajuste la position si mode réseau pour faire de la place au chat
         self.board_x = (self.window_width - self.board_surface_size) // 2
+        if hasattr(self.game, 'is_network_game') and self.game.is_network_game:
+            # décale le plateau vers la droite pour faire place au chat
+            self.board_x = Render.CHAT_WIDTH + Render.CHAT_MARGIN * 2 + (self.window_width - Render.CHAT_WIDTH - self.board_surface_size) // 2
+        
         self.board_y = Render.INFO_BAR_HEIGHT + (self.window_height - Render.INFO_BAR_HEIGHT - 
                                                self.board_surface_size) // 2
+
+    def _setup_chat_surface(self):
+        """
+        procédure : configure la surface pour le chat.
+        """
+        # hauteur du chat = hauteur de la fenêtre moins la barre d'info
+        chat_height = self.window_height - Render.INFO_BAR_HEIGHT - Render.CHAT_MARGIN * 2
+        
+        # crée la surface avec transparence
+        self.chat_surface = pygame.Surface((Render.CHAT_WIDTH, chat_height), pygame.SRCALPHA)
+        
+        # position du chat (coin supérieur gauche)
+        self.chat_x = Render.CHAT_MARGIN
+        self.chat_y = Render.INFO_BAR_HEIGHT + Render.CHAT_MARGIN
+        
+        Logger.info("Render", "Surface de chat configurée")
 
     def _load_font(self):
         """
@@ -107,7 +144,8 @@ class Render:
         """
         font_path = "assets/fonts/BlackHanSans-Regular.ttf"
         self.main_font = pygame.font.Font(font_path, 24) 
-        self.status_font = pygame.font.Font(font_path, 18) 
+        self.status_font = pygame.font.Font(font_path, 18)
+        self.chat_font = pygame.font.Font(font_path, 14)
         Logger.info("Render", f"Police chargée: {font_path}")
 
     def load_images(self):
@@ -238,10 +276,14 @@ class Render:
         # 2. barre d'info semi-transparente
         self._render_info_bar()
         
-        # 3. plateau de jeu avec marges
+        # 3. chat si en mode réseau
+        if hasattr(self.game, 'is_network_game') and self.game.is_network_game:
+            self._render_chat()
+        
+        # 4. plateau de jeu avec marges
         self._render_game_board()
         
-        # 4. mise à jour de l'écran
+        # 5. mise à jour de l'écran
         pygame.display.flip()
         Logger.board("Render", "Rendu terminé")
 
@@ -358,6 +400,117 @@ class Render:
         # dessine le joueur par-dessus l'ombre
         self.board_surface.blit(player_image, player_rect.topleft)
 
+    def _render_chat(self):
+        """
+        procédure : dessine l'interface de chat.
+        """
+        if not self.chat_surface or not hasattr(self.game, 'chat_messages'):
+            return
+            
+        # efface la surface avec transparence
+        self.chat_surface.fill((0, 0, 0, 0))
+        
+        # dessine le fond semi-transparent
+        chat_bg_rect = pygame.Rect(0, 0, Render.CHAT_WIDTH, self.chat_surface.get_height())
+        pygame.draw.rect(self.chat_surface, Render.CHAT_BG_COLOR, chat_bg_rect, 0, 10)
+        
+        # hauteur disponible pour les messages (moins la zone input et les marges)
+        messages_height = self.chat_surface.get_height() - Render.CHAT_INPUT_HEIGHT - 20
+        
+        # dessine le titre "CHAT"
+        title = self.status_font.render("CHAT", True, Render.CHAT_TEXT_COLOR)
+        title_rect = title.get_rect(midtop=(Render.CHAT_WIDTH // 2, 5))
+        self.chat_surface.blit(title, title_rect)
+        
+        # dessine les messages (de bas en haut)
+        if hasattr(self.game, 'chat_messages') and self.game.chat_messages:
+            messages = self.game.chat_messages[-Render.CHAT_MAX_VISIBLE_MESSAGES-Render.CHAT_SCROLL_OFFSET:]
+            y_pos = messages_height - 5  # commence en bas
+            
+            for msg in reversed(messages):
+                wrapped_lines = self._wrap_text(msg, Render.CHAT_WIDTH - 20, self.chat_font)
+                
+                # dessine chaque ligne du message enveloppé
+                for line in reversed(wrapped_lines):
+                    text = self.chat_font.render(line, True, Render.CHAT_TEXT_COLOR)
+                    text_height = text.get_height()
+                    
+                    # sort de la zone visible?
+                    if y_pos - text_height < 30:  # 30 = espace pour le titre
+                        break
+                        
+                    self.chat_surface.blit(text, (10, y_pos - text_height))
+                    y_pos -= text_height + 2
+                
+                # espace entre les messages
+                y_pos -= 5
+                
+                # sort de la zone visible?
+                if y_pos < 30:
+                    break
+        
+        # dessine l'input
+        input_rect = pygame.Rect(5, self.chat_surface.get_height() - Render.CHAT_INPUT_HEIGHT - 5, 
+                                Render.CHAT_WIDTH - 10, Render.CHAT_INPUT_HEIGHT)
+        
+        # couleur différente si actif
+        input_color = Render.CHAT_INPUT_ACTIVE_COLOR if hasattr(self.game, 'chat_active') and self.game.chat_active else Render.CHAT_INPUT_COLOR
+        
+        pygame.draw.rect(self.chat_surface, input_color, input_rect, 0, 5)
+        
+        # texte d'invite ou contenu de l'input
+        input_text = self.game.chat_input if hasattr(self.game, 'chat_input') and self.game.chat_input else "Appuyez sur Entrée pour chatter..."
+        
+        # affiche le texte de l'input
+        if self.game.chat_active:
+            # avec clignotement du curseur si actif
+            cursor_visible = (pygame.time.get_ticks() // 500) % 2 == 0
+            if cursor_visible:
+                input_text += "|"
+        
+        # limite la longueur visible si nécessaire
+        if self.chat_font.size(input_text)[0] > input_rect.width - 10:
+            # simplifié: tronque avec "..." si trop long
+            visible_text = input_text[:20] + "..."
+        else:
+            visible_text = input_text
+            
+        text = self.chat_font.render(visible_text, True, Render.CHAT_TEXT_COLOR if self.game.chat_active else (180, 180, 180))
+        text_rect = text.get_rect(midleft=(input_rect.left + 5, input_rect.centery))
+        self.chat_surface.blit(text, text_rect)
+        
+        # affiche la surface complète
+        self.screen.blit(self.chat_surface, (self.chat_x, self.chat_y))
+
+    def _wrap_text(self, text, max_width, font):
+        """
+        fonction : divise un texte en lignes qui tiennent dans la largeur spécifiée.
+        
+        params:
+            text: texte à diviser
+            max_width: largeur maximale en pixels
+            font: police utilisée pour le rendu
+            
+        retour:
+            liste des lignes de texte
+        """
+        lines = []
+        words = text.split(' ')
+        current_line = words[0]
+        
+        for word in words[1:]:
+            test_line = current_line + ' ' + word
+            # si la ligne avec le nouveau mot dépasse la largeur max
+            if font.size(test_line)[0] > max_width:
+                lines.append(current_line)
+                current_line = word
+            else:
+                current_line = test_line
+                
+        # ajoute la dernière ligne
+        lines.append(current_line)
+        return lines
+
     def handle_click(self, pos):
         """
         procédure : traite un clic de souris et le transmet au jeu si pertinent.
@@ -366,6 +519,20 @@ class Render:
             pos: tuple (x, y) des coordonnées du clic dans la fenêtre
         """
         x, y = pos
+        
+        # vérifie si le clic est dans la zone de chat
+        if hasattr(self.game, 'is_network_game') and self.game.is_network_game:
+            if self.chat_x <= x < self.chat_x + Render.CHAT_WIDTH and self.chat_y <= y < self.chat_y + self.chat_surface.get_height():
+                # clic dans la zone input?
+                input_rect = pygame.Rect(self.chat_x + 5, 
+                                        self.chat_y + self.chat_surface.get_height() - Render.CHAT_INPUT_HEIGHT - 5, 
+                                        Render.CHAT_WIDTH - 10, 
+                                        Render.CHAT_INPUT_HEIGHT)
+                if input_rect.collidepoint(x, y):
+                    # active l'input du chat
+                    self.game.chat_active = True
+                    self.needs_render = True
+                return  # clic traité
         
         # vérification rapide si le clic est sur le plateau
         if not (self.board_x <= x < self.board_x + self.board_surface_size and
@@ -407,10 +574,24 @@ class Render:
                 if event.type == pygame.QUIT:
                     self.running = False
                     break
-                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    self.handle_click(event.pos)
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:  # clic gauche
+                        self.handle_click(event.pos)
+                    elif event.button == 4 and hasattr(self.game, 'is_network_game') and self.game.is_network_game:
+                        # molette vers le haut: scrolle le chat vers le haut
+                        Render.CHAT_SCROLL_OFFSET = min(Render.CHAT_SCROLL_OFFSET + 1, 
+                                                 max(0, len(self.game.chat_messages) - Render.CHAT_MAX_VISIBLE_MESSAGES))
+                        self.needs_render = True
+                    elif event.button == 5 and hasattr(self.game, 'is_network_game') and self.game.is_network_game:
+                        # molette vers le bas: scrolle le chat vers le bas
+                        Render.CHAT_SCROLL_OFFSET = max(0, Render.CHAT_SCROLL_OFFSET - 1)
+                        self.needs_render = True
                 elif event.type == pygame.USEREVENT and hasattr(self.game, 'handle_events'):
                     self.game.handle_events(event)
+                elif hasattr(self.game, 'handle_events'):
+                    # gestion des événements clavier pour le chat
+                    if not self.game.handle_events(event):
+                        self.needs_render = True
             
             # rendu si nécessaire
             if self.needs_render:

@@ -8,12 +8,14 @@ class PacketType(Enum):
     CONNECT = 0x1
     GAME_ACTION = 0x5
     DISCONNECT = 0x8
+    CHAT_SEND = 0x9
     # StC
     PLAYER_ASSIGNMENT = 0x2
     YOUR_TURN = 0x3
     WAIT_TURN = 0x4
     GAME_STATE = 0x6
     PLAYER_DISCONNECTED = 0x7
+    CHAT_RECEIVE = 0xA
 
 
 def create_connect_dict(player_name: str, game_name: str) -> Dict:
@@ -68,4 +70,26 @@ def create_game_state_dict(state: Dict[str, Any], game_id: str) -> Dict:
     return {
         "type": PacketType.GAME_STATE.value,
         "data": state
+    }
+
+def create_chat_send_dict(sender_name: str, message: str, player_number: int, game_id: str) -> Dict:
+    return {
+        "type": PacketType.CHAT_SEND.value,
+        "data": {
+            "sender_name": sender_name,
+            "message": message,
+            "player_number": player_number,
+            "game_id": game_id
+        }
+    }
+
+def create_chat_receive_dict(sender_name: str, message: str, player_number: int, game_id: str) -> Dict:
+    return {
+        "type": PacketType.CHAT_RECEIVE.value,
+        "data": {
+            "sender_name": sender_name,
+            "message": message,
+            "player_number": player_number,
+            "game_id": game_id
+        }
     }
