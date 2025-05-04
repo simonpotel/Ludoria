@@ -1,15 +1,17 @@
 # Ludoria - Manuel d'utilisation
 
-<img src="../assets/japon/joueur1.png" style="width: 100px">
-<img src="../assets/japon/joueur2.png" style="width: 100px">
-<img src="../assets/tropique/joueur1.png" style="width: 100px">
-<img src="../assets/tropique/joueur2.png" style="width: 100px">
-<img src="../assets/grec/joueur1.png" style="width: 100px">
-<img src="../assets/grec/joueur2.png" style="width: 100px">
-<img src="../assets/sahara/joueur1.png" style="width: 100px">
-<img src="../assets/sahara/joueur2.png" style="width: 100px">
-<img src="../assets/nordique/joueur1.png" style="width: 100px">
-<img src="../assets/nordique/joueur2.png" style="width: 100px">
+<div style="display: flex; flex-wrap: wrap; justify-content: center;">
+<img src="assets/japon/joueur1.png" style="width: 100px; margin: 5px;">
+<img src="assets/japon/joueur2.png" style="width: 100px; margin: 5px;">
+<img src="assets/tropique/joueur1.png" style="width: 100px; margin: 5px;">
+<img src="assets/tropique/joueur2.png" style="width: 100px; margin: 5px;">
+<img src="assets/grec/joueur1.png" style="width: 100px; margin: 5px;">
+<img src="assets/grec/joueur2.png" style="width: 100px; margin: 5px;">
+<img src="assets/sahara/joueur1.png" style="width: 100px; margin: 5px;">
+<img src="assets/sahara/joueur2.png" style="width: 100px; margin: 5px;">
+<img src="assets/nordique/joueur1.png" style="width: 100px; margin: 5px;">
+<img src="assets/nordique/joueur2.png" style="width: 100px; margin: 5px;">
+</div>
 
 > [!TIP]
 > Ce manuel explique comment installer, lancer et jouer aux différents jeux de la suite Ludoria (Katerenga / Congress / Isolation).
