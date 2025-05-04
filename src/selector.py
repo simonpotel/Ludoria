@@ -744,7 +744,7 @@ class Selector:
                     color_index = 0 # ou une autre valeur par défaut sûre
                     Logger.warning("Selector", f"Invalid cell state format in quadrant data: {cell_state}")
                     
-                cell_color = Render.QUADRANTS_CELLS_COLORS.get(color_index, (128, 128, 128)) # gris par défaut
+                cell_color = Render.QUADRANT_COLORS.get(color_index, (128, 128, 128)) # gris par défaut
                 
                 # dessine le rectangle de la cellule
                 pygame.draw.rect(
