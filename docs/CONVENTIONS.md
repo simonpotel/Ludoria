@@ -1,22 +1,6 @@
 # Conventions de Code
 
-Ce document décrit les conventions de code utilisées dans le projet Smart Games.
-
-## Structure du Projet
-
-```
-smart_games/
-├── src/
-│   ├── katerenga/     # Jeu Katarenga
-│   ├── isolation/     # Jeu Isolation
-│   ├── congress/      # Jeu Congress
-│   ├── network/       # Composants réseau
-│   └── utils/         # Utilitaires communs
-├── docs/             # Documentation
-├── tests/            # Tests unitaires
-├── configs/          # Fichiers de configuration
-└── saves/            # Sauvegardes des parties
-```
+Ce document décrit les conventions de code utilisées dans le projet Ludoria.
 
 ## Style de Code
 
