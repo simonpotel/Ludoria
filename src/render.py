@@ -75,7 +75,7 @@ class Render:
         self._setup_window()
         self.load_images()
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.SysFont('Arial', 20, bold=True)
+        self._load_font()
         
         # premier rendu
         self.render_board()
@@ -100,6 +100,15 @@ class Render:
         self.board_x = (self.window_width - self.board_surface_size) // 2
         self.board_y = Render.INFO_BAR_HEIGHT + (self.window_height - Render.INFO_BAR_HEIGHT - 
                                                self.board_surface_size) // 2
+
+    def _load_font(self):
+        """
+        procédure : charge la police de caractères personnalisée.
+        """
+        font_path = "assets/fonts/BlackHanSans-Regular.ttf"
+        self.main_font = pygame.font.Font(font_path, 24) 
+        self.status_font = pygame.font.Font(font_path, 18) 
+        Logger.info("Render", f"Police chargée: {font_path}")
 
     def load_images(self):
         """
@@ -247,7 +256,7 @@ class Render:
         pygame.draw.rect(self.info_surface, Render.INFO_OVERLAY_COLOR, self.info_surface.get_rect())
         
         # texte principal centré
-        text_surface = self.font.render(self.info_text, True, (255, 255, 255))
+        text_surface = self.main_font.render(self.info_text, True, (255, 255, 255))
         text_rect = text_surface.get_rect(center=(self.window_width // 2, Render.INFO_BAR_HEIGHT // 2))
         self.info_surface.blit(text_surface, text_rect)
         
@@ -269,8 +278,7 @@ class Render:
         color = getattr(self.game, 'status_color', (255, 255, 0))
         
         # dessine en bas à droite de la barre d'info
-        font = pygame.font.SysFont('Arial', 16)
-        text = font.render(self.game.status_message, True, color)
+        text = self.status_font.render(self.game.status_message, True, color)
         rect = text.get_rect(bottomright=(self.window_width - 15, Render.INFO_BAR_HEIGHT - 5))
         self.info_surface.blit(text, rect)
 
