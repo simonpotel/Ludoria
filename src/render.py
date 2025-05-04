@@ -10,6 +10,10 @@ class Render:
     gère le chargement des ressources, l'affichage du plateau, les animations
     et la détection des clics.
     """
+    # système temporaire de sélection de thème 
+    THEME = "grec"
+    
+    
     # constantes de configuration et de style
     INFO_BAR_HEIGHT = 50        # hauteur de la barre d'info en pixels
     BOARD_PADDING = 10          # marge autour du plateau de jeu
@@ -125,7 +129,7 @@ class Render:
         """
         try:
             # chargement et redimensionnement
-            bg = Image.open("assets/tropique/background.png")
+            bg = Image.open(f"assets/{self.THEME}/background.png")
             bg = bg.resize((self.window_width, self.window_height), Image.LANCZOS)
             
             # application du flou gaussien
@@ -174,7 +178,7 @@ class Render:
         for player in range(2):  # joueurs 0 et 1
             try:
                 # chargement de l'image du joueur
-                path = f"assets/tropique/joueur{player+1}.png"
+                path = f"assets/{self.THEME}/joueur{player+1}.png"
                 img = Image.open(path).convert("RGBA")
                 
                 # redimensionnement pour remplir la hauteur d'une cellule
