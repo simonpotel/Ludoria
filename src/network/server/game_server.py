@@ -169,7 +169,7 @@ class GameServer:
             handlers = {
                 PacketType.CONNECT: self.handle_connect, # on gère le paquet CONNECT
                 PacketType.DISCONNECT: lambda s, pt, pd: self.disconnect_client(s, pd.get("reason", "Client requested disconnect")), # on gère le paquet DISCONNECT
-                PacketType.GAME_ACTION: self.handle_game_action # on gère le paquet GAME_ACTION
+                PacketType.GAME_ACTION: self.handle_game_action, # on gère le paquet GAME_ACTION
                 PacketType.CHAT_SEND: self.handle_chat_message, # on gère le paquet CHAT_SEND
             }
             
