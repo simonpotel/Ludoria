@@ -62,7 +62,7 @@ class Game(GameBase):
         
 
         # verifie si l'ancien joueur a des coups valides
-        if not has_valid_move(self.board.board, 1 - self.round_turn):
+        if not has_valid_move(self.board.board, 1 - self.round_turn, check_all_pieces=True):
             winner = f"Player {self.round_turn + 1}" # le joueur qui vient de jouer gagne
             Logger.success("Game Isolation", f"Game over! {winner} wins because Player {1 - self.round_turn + 1} has no valid moves!")
             self.render.edit_info_label(f"Game Over! {winner} wins! (No moves left for Player {1 - self.round_turn + 1})")
@@ -116,7 +116,7 @@ class Game(GameBase):
 
         # vérification si la case est menacée
         current_player = 0 if self.player_number == 1 else 1 if self.is_network_game else self.round_turn
-        if is_threatened(self.board.board, row, col, current_player):
+        if is_threatened(self.board.board, row, col, current_player, check_all_pieces=True):
             self.render.edit_info_label("This cell is threatened by an enemy tower")
             return True
 
@@ -141,7 +141,7 @@ class Game(GameBase):
         
         # vérification de la fin de partie pour le joueur suivant
         Logger.game("Game Isolation", f"Checking if Player {self.round_turn + 1} has valid moves")
-        if not has_valid_move(self.board.board, self.round_turn):
+        if not has_valid_move(self.board.board, self.round_turn, check_all_pieces=True):
             winner = f"Player {player_who_moved + 1}" # le joueur qui vient de jouer gagne
             Logger.success("Game Isolation", f"Game over! {winner} wins because Player {self.round_turn + 1} has no valid moves!")
             self.render.edit_info_label(f"Game Over! {winner} wins!")
@@ -183,7 +183,7 @@ class Game(GameBase):
             
             # vérification de la fin de partie après le coup du bot
             Logger.game("Game Isolation", f"Checking if Player {self.round_turn + 1} has valid moves after bot's move")
-            if not has_valid_move(self.board.board, self.round_turn):
+            if not has_valid_move(self.board.board, self.round_turn, check_all_pieces=True):
                 winner = f"Player {player_who_moved + 1} (Bot)" # le bot gagne
                 Logger.success("Game Isolation", f"Game over! {winner} wins because Player {self.round_turn + 1} has no valid moves!")
                 self.render.edit_info_label(f"Game Over! {winner} wins!")

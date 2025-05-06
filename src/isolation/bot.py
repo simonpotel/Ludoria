@@ -27,7 +27,7 @@ class IsolationBot:
         valid_moves = []
         for row in range(len(board)):
             for column in range(len(board[0])):
-                if board[row][column][0] is None and not is_threatened(board, row, column, 1 - player):
+                if board[row][column][0] is None and not is_threatened(board, row, column, 1 - player, check_all_pieces=True):
                     valid_moves.append((row, column))
         return valid_moves
 
