@@ -5,7 +5,7 @@ import random
 from typing import Optional, Callable, Dict, Any
 from pathlib import Path
 from src.network.common.packets import (
-    PacketType, create_connect_dict, create_game_action_dict
+    PacketType, create_connect_dict, create_game_action_dict, create_chat_send_dict
 )
 from src.utils.logger import Logger
 
@@ -282,7 +282,8 @@ class NetworkClient:
                 PacketType.GAME_ACTION: self._handle_game_action,
                 PacketType.GAME_STATE: self._handle_game_state,
                 PacketType.PLAYER_DISCONNECTED: self._handle_player_disconnected,
-                PacketType.DISCONNECT: self._handle_disconnect # Server forcing disconnect
+                PacketType.DISCONNECT: self._handle_disconnect, # Server forcing disconnect
+                PacketType.CHAT_RECEIVE: self._handle_chat_message,
             }
             
             if packet_type_enum in handlers:
@@ -335,6 +336,23 @@ class NetworkClient:
         Logger.info("NetworkClient", f"Received disconnect command from server: {message}")
         self.disconnect(message)
 
+    def _handle_chat_message(self, packet_data: Dict):
+        """
+        procédure : gère les messages de chat reçus
+        params :
+            packet_data - données du message de chat
+        """
+        if not isinstance(packet_data, dict):
+            Logger.error("NetworkClient", f"Invalid chat message data: {packet_data}")
+            return
+            
+        sender_name = packet_data.get("sender_name", "Unknown")
+        message = packet_data.get("message", "")
+        player_number = packet_data.get("player_number", 0)
+        
+        Logger.info("NetworkClient", f"Received chat message from Player {player_number} ({sender_name}): {message}")
+        self.call_handler("chat_message", packet_data)
+
     def register_handler(self, event: str, handler: Callable):
         """
         procédure : enregistre une fonction de gestionnaire pour un événement réseau spécifique
@@ -361,4 +379,22 @@ class NetworkClient:
             except Exception as e:
                 Logger.error("NetworkClient", f"Error in handler for {event}: {str(e)}")
         else:
-            Logger.warning("NetworkClient", f"No handler registered for event: {event}") 
+            Logger.warning("NetworkClient", f"No handler registered for event: {event}")
+
+    def send_chat_message(self, message: str, sender_name: str):
+        """
+        procédure : envoie un message de chat au serveur
+        params :
+            message - contenu du message à envoyer
+            sender_name - nom de l'expéditeur
+        """
+        if not self.connected:
+            Logger.error("NetworkClient", "Cannot send chat: not connected")
+            return
+        if not self.game_id or not self.player_number:
+            Logger.error("NetworkClient", "Cannot send chat: game or player not initialized")
+            return
+            
+        chat_dict = create_chat_send_dict(sender_name, message, self.player_number, self.game_id)
+        if self._send_json(chat_dict):
+            Logger.info("NetworkClient", f"Sent chat message as Player {self.player_number}: {message}") 
