@@ -1,6 +1,6 @@
 import pygame
 from src.utils.logger import Logger
-from src.render import Render
+from src.windows.render.constants import RenderConstants
 
 class QuadrantHandler:
     """
@@ -76,7 +76,7 @@ class QuadrantHandler:
                 elif cell_state is not None: # si ce n'est pas none mais format incorrect
                     Logger.warning("QuadrantHandler", f"Invalid cell state format in quadrant data: {cell_state}")
                 
-                cell_color = Render.QUADRANT_COLORS.get(color_index, (128, 128, 128)) # gris si index couleur inconnu
+                cell_color = RenderConstants.QUADRANT_COLORS.get(color_index, (128, 128, 128)) # gris si index couleur inconnu
                 pygame.draw.rect(
                     screen, 
                     cell_color, 
