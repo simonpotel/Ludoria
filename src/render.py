@@ -468,7 +468,7 @@ class Render:
         pygame.draw.rect(self.chat_surface, input_color, input_rect, 0, 5) # dessine le rectangle
         
         # texte d'invite ou contenu de l'input
-        input_text = self.game.chat_input if hasattr(self.game, 'chat_input') and self.game.chat_input else "Appuyez sur Entrée pour chatter..."
+        input_text = self.game.chat_input if hasattr(self.game, 'chat_input') and self.game.chat_input else "..."
         
         available_width_for_text = input_rect.width - 10 # space avec padding de 5px de chaque côté
         ellipsis_chars = "..."
