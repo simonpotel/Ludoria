@@ -33,7 +33,7 @@ class Selector:
         self.width = 800
         self.height = 700
         self.screen = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption("Smart Games - Selector")
+        pygame.display.set_caption("Ludoria - Selector")
         self.clock = pygame.time.Clock()
         
         self.running = False # contrôle la boucle de l'interface de sélection
@@ -182,7 +182,7 @@ class Selector:
         """
         while self.outer_running: # boucle externe pour permettre de revenir au menu après un jeu
             self.screen = pygame.display.set_mode((self.width, self.height)) # réinitialise la surface de dessin
-            pygame.display.set_caption("Smart Games - Selector")
+            pygame.display.set_caption("Ludoria- Selector")
             self.running = True # active la boucle interne du sélecteur
             self.setup_ui() # (ré)initialise l'interface utilisateur
 
