@@ -479,26 +479,19 @@ class Render:
         if full_text_width <= available_width_for_text:
             visible_text = input_text
         else:
-            visible_text = ellipsis_chars #
-            
-            # essaie de trouver la fin du texte qui rentre dans la largeur disponible
+            visible_text = ellipsis_chars
             for num_chars_in_suffix in range(1, len(input_text) + 1): 
-                current_suffix = input_text[-num_chars_in_suffix:] # suffixe actuel à tester
-                
-                text_to_measure = ellipsis_chars + current_suffix # texte complet à mesurer
-                
+                current_suffix = input_text[-num_chars_in_suffix:] 
+                text_to_measure = ellipsis_chars + current_suffix 
                 if self.chat_font.size(text_to_measure)[0] <= available_width_for_text:
-                    # si le texte complet rentre dans la largeur disponible
                     visible_text = text_to_measure
                 else:
                     break 
-            
-            # si le texte est resté à "..." (parce que même "..." + 1 caractère ne rentrait pas)
             if visible_text == ellipsis_chars and self.chat_font.size(ellipsis_chars)[0] > available_width_for_text:
                 visible_text = ""
             
         # affiche le texte
-        text = self.chat_font.render(visible_text, True, Render.CHAT_TEXT_COLOR if self.game.chat_active else (180, 180, 180)) # texte
+        text = self.chat_font.render(visible_text, True, Render.CHAT_TEXT_COLOR if self.game.chat_active else (180, 180, 180))
         text_rect = text.get_rect(midleft=(input_rect.left + 5, input_rect.centery)) # position du texte
         self.chat_surface.blit(text, text_rect) # dessine le texte
         
