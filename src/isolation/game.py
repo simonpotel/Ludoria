@@ -24,7 +24,7 @@ class Game(GameBase):
         
         self.bot = None
         if game_mode == "Bot":
-            self.bot = IsolationBot(player_id=2, depth=4) 
+            self.bot = IsolationBot(player_id=2) 
             self.render.edit_info_label("Player 1's turn - Place your tower")
         
         if self.is_network_game:
@@ -166,7 +166,16 @@ class Game(GameBase):
             bool: True si le bot a joué avec succès, False sinon
         """
         try:
-            bot_row, bot_col = self.bot.get_move(self.board.board) # obtention du coup du bot
+            bot_move = self.bot.get_move(self.board.board)
+            if bot_move is None:
+                winner = "Player 1"
+                Logger.success("Game Isolation", f"Game over! {winner} wins because Bot has no valid moves!")
+                self.render.edit_info_label(f"Game Over! {winner} wins!")
+                self.render.running = False
+                self.cleanup()
+                return False
+                
+            bot_row, bot_col = bot_move
             self.board.board[bot_row][bot_col][0] = self.round_turn # placement de la tour du bot
             player_who_moved = self.round_turn
             self.round_turn = 1 - self.round_turn # retour au tour du joueur humain
@@ -179,6 +188,7 @@ class Game(GameBase):
                 Logger.success("Game Isolation", f"Game over! {winner} wins because Player {self.round_turn + 1} has no valid moves!")
                 self.render.edit_info_label(f"Game Over! {winner} wins!")
                 self.render.running = False
+                self.cleanup()
                 return False
             
             self.render.edit_info_label("Player 1's turn - Place your tower") # mise à jour du message
