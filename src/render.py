@@ -11,7 +11,7 @@ class Render:
     et la détection des clics.
     """
     # système temporaire de sélection de thème 
-    THEME = "grec"
+    THEME = "nordique"
     
     
     # constantes de configuration et de style
@@ -470,24 +470,45 @@ class Render:
         # texte d'invite ou contenu de l'input
         input_text = self.game.chat_input if hasattr(self.game, 'chat_input') and self.game.chat_input else "Appuyez sur Entrée pour chatter..."
         
-        # limite la longueur visible si nécessaire
-        if self.chat_font.size(input_text)[0] > input_rect.width - 10:
-            # simplifié: tronque avec "..." si trop long
-            visible_text = input_text[:20] + "..."
-        else:
+        available_width_for_text = input_rect.width - 10 # space avec padding de 5px de chaque côté
+        ellipsis_chars = "..."
+
+        full_text_width = self.chat_font.size(input_text)[0]
+
+        # si le texte est trop long, on essaie d'afficher la fin avec "..." au début.
+        if full_text_width <= available_width_for_text:
             visible_text = input_text
+        else:
+            visible_text = ellipsis_chars #
             
-        # dessine le texte
-        text = self.chat_font.render(visible_text, True, Render.CHAT_TEXT_COLOR if self.game.chat_active else (180, 180, 180))
-        text_rect = text.get_rect(midleft=(input_rect.left + 5, input_rect.centery))
-        self.chat_surface.blit(text, text_rect)
+            # essaie de trouver la fin du texte qui rentre dans la largeur disponible
+            for num_chars_in_suffix in range(1, len(input_text) + 1): 
+                current_suffix = input_text[-num_chars_in_suffix:] # suffixe actuel à tester
+                
+                text_to_measure = ellipsis_chars + current_suffix # texte complet à mesurer
+                
+                if self.chat_font.size(text_to_measure)[0] <= available_width_for_text:
+                    # si le texte complet rentre dans la largeur disponible
+                    visible_text = text_to_measure
+                else:
+                    break 
+            
+            # si le texte est resté à "..." (parce que même "..." + 1 caractère ne rentrait pas)
+            if visible_text == ellipsis_chars and self.chat_font.size(ellipsis_chars)[0] > available_width_for_text:
+                visible_text = ""
+            
+        # affiche le texte
+        text = self.chat_font.render(visible_text, True, Render.CHAT_TEXT_COLOR if self.game.chat_active else (180, 180, 180)) # texte
+        text_rect = text.get_rect(midleft=(input_rect.left + 5, input_rect.centery)) # position du texte
+        self.chat_surface.blit(text, text_rect) # dessine le texte
         
         # affiche la surface complète
-        self.screen.blit(self.chat_surface, (self.chat_x, self.chat_y))
+        self.screen.blit(self.chat_surface, (self.chat_x, self.chat_y)) # dessine la surface
 
     def _wrap_text(self, text, max_width, font):
         """
         fonction : divise un texte en lignes qui tiennent dans la largeur spécifiée.
+        gère également les mots plus longs que la largeur maximale.
         
         params:
             text: texte à diviser
@@ -498,20 +519,45 @@ class Render:
             liste des lignes de texte
         """
         lines = []
+        if not text or max_width <= 0:
+            return []
+
         words = text.split(' ')
-        current_line = words[0]
+        current_line = ""
         
-        for word in words[1:]:
-            test_line = current_line + ' ' + word
-            # si la ligne avec le nouveau mot dépasse la largeur max
-            if font.size(test_line)[0] > max_width:
-                lines.append(current_line)
+        for word in words:
+            # vérifie si le mot lui-même est trop long
+            if font.size(word)[0] > max_width:
+                if current_line:
+                    lines.append(current_line)
+                    current_line = ""
+                
+                part = ""
+                for char in word:
+                    test_part = part + char
+                    if font.size(test_part)[0] <= max_width:
+                        part = test_part
+                    else:
+                        lines.append(part)
+                        part = char
+                
+                if part:
+                    current_line = part
+                continue
+            
+            if not current_line:
                 current_line = word
             else:
-                current_line = test_line
-                
-        # ajoute la dernière ligne
-        lines.append(current_line)
+                test_line = current_line + ' ' + word
+                if font.size(test_line)[0] <= max_width:
+                    current_line = test_line
+                else:
+                    lines.append(current_line)
+                    current_line = word
+        
+        if current_line:
+            lines.append(current_line)
+            
         return lines
 
     def handle_click(self, pos):
