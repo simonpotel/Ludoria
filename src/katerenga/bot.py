@@ -204,6 +204,17 @@ class KaterengaBot:
         # itère sur toutes les cases de destination possibles
         for dest_row in range(size):
             for dest_col in range(size):
+                # vérifie si la destination est sur le contour (case grise) mais pas dans un coin
+                is_edge = (dest_row == 0 or dest_row == size-1 or dest_col == 0 or dest_col == size-1)
+                is_mycorner = (dest_row == 0 and dest_col == 0) or (dest_row == 0 and dest_col == size-1)
+                is_botcorner = (dest_row == size-1 and dest_col == 0) or (dest_row == size-1 and dest_col == size-1)
+                
+                # ignorer les cases grises (sur le bord mais pas dans les coins)
+                if is_edge and not is_mycorner:
+                    continue
+                if is_botcorner:
+                    continue
+                
                 # destination vide ou occupée par adversaire (capture possible hors 1er tour)
                 if board[dest_row][dest_col][0] is None or board[dest_row][dest_col][0] == 0:
                     if available_move(board, row, col, dest_row, dest_col):
@@ -224,5 +235,5 @@ class KaterengaBot:
             bool: True si la position est un camp du bot, False sinon
         """
         return (row, col) in camps
-        
+    
 

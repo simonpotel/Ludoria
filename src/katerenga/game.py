@@ -213,7 +213,11 @@ class Game(GameBase):
             return True
 
         cell = self.board.board[row][col]
-
+        
+        # vérifie si la destination est sur le contour (case grise)
+        size = len(self.board.board)
+        is_edge = (row == 0 or row == size-1 or col == 0 or col == size-1)
+        
         # cas 1: aucune pièce sélectionnée
         if self.selected_piece is None:
             # détermine l'index correct du joueur à vérifier
@@ -247,16 +251,24 @@ class Game(GameBase):
             self.selected_piece = None
             self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
             return True
+            
+        # déterminer les camps adverses en fonction du joueur
+        current_player_index = self.player_number - 1 if self.is_network_game else self.round_turn
+        # Pour joueur 0 (index) les camps adverses sont en bas (ligne 9), pour joueur 1 les camps sont en haut (ligne 0)
+        opponent_camps = [(9, 0), (9, 9)] if current_player_index == 0 else [(0, 0), (0, 9)]
+        
+        # empêcher le déplacement vers les cases grises (sur le bord) sauf si c'est un camp adverse
+        if is_edge and (row, col) not in opponent_camps:
+            self.selected_piece = None
+            self.render.edit_info_label("Cannot move to gray edge cells except opponent camps")
+            return True
 
         # verification de la validité du mouvement
         if not available_move(self.board.board, old_row, old_col, row, col):
             self.selected_piece = None
             self.render.edit_info_label("Invalid move")
             return True
-
-        # détermine l'index correct du joueur pour les vérifications
-        current_player_index = self.player_number - 1 if self.is_network_game else self.round_turn
-
+        
         # gestion de la capture
         capture_made = False
         if cell[0] is not None and cell[0] != current_player_index:
@@ -382,7 +394,7 @@ class Game(GameBase):
              self.render.needs_render = True 
 
         return True # le jeu continue (sauf si is_win est True et traité ci-dessus)
-        
+
     def _bot_play(self):
         """
         procédure : exécute le tour du bot (appelé via timer)
@@ -459,4 +471,4 @@ class Game(GameBase):
         retour:
             bool: True si la position est un camp, False sinon
         """
-        return (row, col) in self.camps # vérifie l'appartenance à la liste des camps 
+        return (row, col) in self.camps # vérifie l'appartenance à la liste des camps
