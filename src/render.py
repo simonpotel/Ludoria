@@ -32,8 +32,6 @@ class Render:
     CHAT_INPUT_COLOR = (50, 50, 50, 255)  # couleur de la zone de saisie
     CHAT_TEXT_COLOR = (255, 255, 255)  # couleur du texte du chat
     CHAT_INPUT_ACTIVE_COLOR = (70, 70, 70, 255)  # couleur de la zone de saisie active
-    CHAT_MAX_VISIBLE_MESSAGES = 15     # nombre max de messages visibles
-    CHAT_SCROLL_OFFSET = 0      # offset de défilement pour les messages
 
     # mapping des types de terrain vers les noms de fichiers
     CELL_IMAGES = {
@@ -407,47 +405,58 @@ class Render:
         if not self.chat_surface or not hasattr(self.game, 'chat_messages'):
             return
             
-        # efface la surface avec transparence
-        self.chat_surface.fill((0, 0, 0, 0))
+        self.chat_surface.fill((0, 0, 0, 0)) # remplit la surface avec transparence
         
-        # dessine le fond semi-transparent
-        chat_bg_rect = pygame.Rect(0, 0, Render.CHAT_WIDTH, self.chat_surface.get_height())
-        pygame.draw.rect(self.chat_surface, Render.CHAT_BG_COLOR, chat_bg_rect, 0, 10)
+        chat_bg_rect = pygame.Rect(0, 0, Render.CHAT_WIDTH, self.chat_surface.get_height()) # rectangle de la fenêtre
+        pygame.draw.rect(self.chat_surface, Render.CHAT_BG_COLOR, chat_bg_rect, 0, 10) # dessine le rectangle
         
-        # hauteur disponible pour les messages (moins la zone input et les marges)
-        messages_height = self.chat_surface.get_height() - Render.CHAT_INPUT_HEIGHT - 20
+        title = self.status_font.render("CHAT", True, Render.CHAT_TEXT_COLOR) # titre de la fenêtre
+        title_rect = title.get_rect(midtop=(Render.CHAT_WIDTH // 2, 5)) # position du titre
+        self.chat_surface.blit(title, title_rect) # dessine le titre
         
-        # dessine le titre "CHAT"
-        title = self.status_font.render("CHAT", True, Render.CHAT_TEXT_COLOR)
-        title_rect = title.get_rect(midtop=(Render.CHAT_WIDTH // 2, 5))
-        self.chat_surface.blit(title, title_rect)
-        
-        # dessine les messages (de bas en haut)
         if hasattr(self.game, 'chat_messages') and self.game.chat_messages:
-            messages = self.game.chat_messages[-Render.CHAT_MAX_VISIBLE_MESSAGES-Render.CHAT_SCROLL_OFFSET:]
-            y_pos = messages_height - 5  # commence en bas
+            # calcule la hauteur disponible pour les messages
+            chat_surface_total_height = self.chat_surface.get_height() # hauteur de la fenêtre
+            chat_input_field_height = Render.CHAT_INPUT_HEIGHT # hauteur du champ de saisie 
+            bottom_area_reserved_for_input = chat_input_field_height + 5 # espace pour le champ de saisie
+            top_area_reserved_for_title_and_padding = 30 # espace pour le titre et les marges
+            available_height_for_message_text = chat_surface_total_height - (
+                bottom_area_reserved_for_input + top_area_reserved_for_title_and_padding
+            ) # hauteur disponible pour les messages
+            single_chat_line_height = self.chat_font.get_linesize() # hauteur d'une ligne de texte 
+            if single_chat_line_height > 0 and available_height_for_message_text > 0:
+                theoretical_max_lines = available_height_for_message_text // single_chat_line_height
+                num_lines_to_try_fit = max(1, theoretical_max_lines) # nombre de lignes à essayer de fitter
+            else:
+                num_lines_to_try_fit = 0 # si pas de hauteur disponible
             
-            for msg in reversed(messages):
-                wrapped_lines = self._wrap_text(msg, Render.CHAT_WIDTH - 20, self.chat_font)
+            if num_lines_to_try_fit > 0:
+                num_recent_messages_to_fetch = num_lines_to_try_fit # nombre de messages à afficher
+                messages_to_display = self.game.chat_messages[-num_recent_messages_to_fetch:] # messages à afficher
+            else:
+                messages_to_display = [] # si pas de hauteur disponible
+
+            original_messages_height_variable = self.chat_surface.get_height() - Render.CHAT_INPUT_HEIGHT - 20 # hauteur de la fenêtre
+            y_pos = original_messages_height_variable - 5 # position initiale
+            
+            for msg in reversed(messages_to_display): # reverse pour afficher les derniers messages en premier
+                wrapped_lines = self._wrap_text(msg, Render.CHAT_WIDTH - 20, self.chat_font) # wrap le texte
                 
-                # dessine chaque ligne du message enveloppé
-                for line in reversed(wrapped_lines):
-                    text = self.chat_font.render(line, True, Render.CHAT_TEXT_COLOR)
-                    text_height = text.get_height()
+                for line in reversed(wrapped_lines): # reverse pour afficher les lignes en premier
+                    text = self.chat_font.render(line, True, Render.CHAT_TEXT_COLOR) # texte
+                    text_height = text.get_height() # hauteur du texte
                     
-                    # sort de la zone visible?
-                    if y_pos - text_height < 30:  # 30 = espace pour le titre
-                        break
+                    if y_pos - text_height < 30: # si la ligne est en dehors de la zone visible
+                        break 
                         
-                    self.chat_surface.blit(text, (10, y_pos - text_height))
-                    y_pos -= text_height + 2
-                
-                # espace entre les messages
-                y_pos -= 5
-                
-                # sort de la zone visible?
-                if y_pos < 30:
-                    break
+                    self.chat_surface.blit(text, (10, y_pos - text_height)) # dessine la ligne
+                    y_pos -= text_height + 2 # espace entre les lignes
+                else: 
+                    y_pos -= 5 
+                    if y_pos < 30: # si la ligne est en dehors de la zone visible
+                        break
+                    continue 
+                break 
         
         # dessine l'input
         input_rect = pygame.Rect(5, self.chat_surface.get_height() - Render.CHAT_INPUT_HEIGHT - 5, 
@@ -456,17 +465,10 @@ class Render:
         # couleur différente si actif
         input_color = Render.CHAT_INPUT_ACTIVE_COLOR if hasattr(self.game, 'chat_active') and self.game.chat_active else Render.CHAT_INPUT_COLOR
         
-        pygame.draw.rect(self.chat_surface, input_color, input_rect, 0, 5)
+        pygame.draw.rect(self.chat_surface, input_color, input_rect, 0, 5) # dessine le rectangle
         
         # texte d'invite ou contenu de l'input
         input_text = self.game.chat_input if hasattr(self.game, 'chat_input') and self.game.chat_input else "Appuyez sur Entrée pour chatter..."
-        
-        # affiche le texte de l'input
-        if self.game.chat_active:
-            # avec clignotement du curseur si actif
-            cursor_visible = (pygame.time.get_ticks() // 500) % 2 == 0
-            if cursor_visible:
-                input_text += "|"
         
         # limite la longueur visible si nécessaire
         if self.chat_font.size(input_text)[0] > input_rect.width - 10:
@@ -475,6 +477,7 @@ class Render:
         else:
             visible_text = input_text
             
+        # dessine le texte
         text = self.chat_font.render(visible_text, True, Render.CHAT_TEXT_COLOR if self.game.chat_active else (180, 180, 180))
         text_rect = text.get_rect(midleft=(input_rect.left + 5, input_rect.centery))
         self.chat_surface.blit(text, text_rect)
@@ -577,15 +580,6 @@ class Render:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:  # clic gauche
                         self.handle_click(event.pos)
-                    elif event.button == 4 and hasattr(self.game, 'is_network_game') and self.game.is_network_game:
-                        # molette vers le haut: scrolle le chat vers le haut
-                        Render.CHAT_SCROLL_OFFSET = min(Render.CHAT_SCROLL_OFFSET + 1, 
-                                                 max(0, len(self.game.chat_messages) - Render.CHAT_MAX_VISIBLE_MESSAGES))
-                        self.needs_render = True
-                    elif event.button == 5 and hasattr(self.game, 'is_network_game') and self.game.is_network_game:
-                        # molette vers le bas: scrolle le chat vers le bas
-                        Render.CHAT_SCROLL_OFFSET = max(0, Render.CHAT_SCROLL_OFFSET - 1)
-                        self.needs_render = True
                 elif event.type == pygame.USEREVENT and hasattr(self.game, 'handle_events'):
                     self.game.handle_events(event)
                 elif hasattr(self.game, 'handle_events'):
