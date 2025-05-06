@@ -101,7 +101,7 @@ class Render:
         """
         pygame.init()
         self.screen = pygame.display.set_mode((self.window_width, self.window_height))
-        pygame.display.set_caption(f"Smart Games: {self.game.game_save}")
+        pygame.display.set_caption(f"Ludoria: {self.game.game_save}")
         
         # surface pour la barre d'info (avec transparence)
         self.info_surface = pygame.Surface((self.window_width, Render.INFO_BAR_HEIGHT), 
