@@ -34,7 +34,7 @@ class BoardHandler:
         # gestionnaire des joueurs
         self.player_handler = PlayerHandler(player_shadows, images)
         
-        Logger.info("BoardHandler", "Gestionnaire de plateau initialisé")
+        Logger.info("BoardHandler", "Board handler initialized")
         
     def calculate_board_position(self, window_width, window_height, is_network_game=False):
         """
