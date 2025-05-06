@@ -1,6 +1,6 @@
 import pygame
 from src.board import Board
-from src.render import Render
+from src.windows.render.render import Render
 from src.captures import has_valid_move
 from src.saves import save_game
 from src.moves import available_move
