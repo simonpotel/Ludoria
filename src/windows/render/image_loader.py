@@ -25,7 +25,7 @@ class ImageLoader:
         self.player_shadows = {}
         self.background = None
         
-        Logger.info("ImageLoader", "Initialisation du chargeur d'images")
+        Logger.info("ImageLoader", "Image loader initialized")
 
     def load_all_images(self):
         """
@@ -34,7 +34,7 @@ class ImageLoader:
         retour:
             tuple (images, player_shadows, background): les images chargées
         """
-        Logger.info("ImageLoader", "Chargement des images")
+        Logger.info("ImageLoader", "Loading images")
         
         try:
             self._load_background()
@@ -44,7 +44,7 @@ class ImageLoader:
             return self.images, self.player_shadows, self.background
             
         except Exception as e:
-            Logger.error("ImageLoader", f"Erreur lors du chargement des images: {e}")
+            Logger.error("ImageLoader", f"Error loading images: {e}")
             return {}, {}, None
 
     def _load_background(self):
@@ -62,9 +62,9 @@ class ImageLoader:
             
             # conversion en surface pygame
             self.background = pygame.image.fromstring(bg_data, blurred.size, "RGBA").convert_alpha()
-            Logger.debug("ImageLoader", "fond chargé et flouté")
+            Logger.debug("ImageLoader", "Background loaded and blurred")
         except FileNotFoundError:
-            Logger.warning("ImageLoader", "image de fond non trouvée")
+            Logger.warning("ImageLoader", "Background image not found")
             self.background = None
 
     def _load_cell_images(self):
@@ -93,10 +93,9 @@ class ImageLoader:
                 surface = pygame.image.fromstring(img_data, resized.size, "RGBA").convert_alpha()
                 self.images[f"cell_{terrain_id}"] = surface
             except Exception:
-                # échec silencieux, une couleur de secours sera utilisée
                 pass
         
-        Logger.debug("ImageLoader", f"{len([k for k in self.images if k.startswith('cell_')])} images de terrain chargées")
+        Logger.debug("ImageLoader", f"{len([k for k in self.images if k.startswith('cell_')])} terrain images loaded")
 
     def _load_player_images(self):
         """
@@ -127,6 +126,6 @@ class ImageLoader:
                 shadow.fill((0, 0, 0, RenderConstants.SHADOW_ALPHA), special_flags=pygame.BLEND_RGBA_MULT)
                 self.player_shadows[key] = shadow
             except Exception:
-                raise Exception(f"Erreur lors du chargement de l'image du joueur {player+1}")
+                raise Exception(f"Error loading player image {player+1}")
         
-        Logger.debug("ImageLoader", f"{len(self.player_shadows)} images de personnages chargées") 
+        Logger.debug("ImageLoader", f"{len(self.player_shadows)} player images loaded") 

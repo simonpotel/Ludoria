@@ -23,7 +23,7 @@ class InfoBarHandler:
         self.info_surface = pygame.Surface((window_width, RenderConstants.INFO_BAR_HEIGHT), 
                                           pygame.SRCALPHA)
         
-        Logger.info("InfoBarHandler", "Gestionnaire de barre d'info initialisé")
+        Logger.info("InfoBarHandler", "Info bar handler initialized")
         
     def edit_info_label(self, text):
         """
@@ -37,7 +37,7 @@ class InfoBarHandler:
         """
         if self.info_text != text:
             self.info_text = text
-            Logger.info("InfoBarHandler", f"Mise à jour info: '{text}'")
+            Logger.info("InfoBarHandler", f"Update info: '{text}'")
             return True
         return False
             

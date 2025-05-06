@@ -25,7 +25,7 @@ class Render:
             window_width: largeur de la fenêtre en pixels
             window_height: hauteur de la fenêtre en pixels
         """
-        Logger.info("Render", "Initialisation du moteur de rendu")
+        Logger.info("Render", "Render engine initialization")
         # données de base
         self.game = game
         self.canvas_size = canvas_size
@@ -67,7 +67,7 @@ class Render:
         
         # premier rendu
         self.render_board()
-        Logger.success("Render", "Moteur de rendu initialisé")
+        Logger.success("Render", "Render engine initialized")
 
     def _load_images(self):
         """
@@ -86,7 +86,7 @@ class Render:
             'status': pygame.font.Font(font_path, 18),
             'chat': pygame.font.Font(font_path, 14)
         }
-        Logger.info("Render", f"Police chargée: {font_path}")
+        Logger.info("Render", f"Font loaded: {font_path}")
 
     def edit_info_label(self, text):
         """
@@ -120,7 +120,7 @@ class Render:
         
         # 5. mise à jour de l'écran
         pygame.display.flip()
-        Logger.board("Render", "Rendu terminé")
+        Logger.board("Render", "Rendering complete")
             
     def handle_click(self, pos):
         """
@@ -148,7 +148,7 @@ class Render:
         """
         procédure : exécute la boucle principale du jeu.
         """
-        Logger.info("Render", "Démarrage de la boucle de jeu")
+        Logger.info("Render", "Starting game loop")
         self.running = True
         
         while self.running:
@@ -175,4 +175,4 @@ class Render:
             # limite le framerate
             self.clock.tick(30)
         
-        Logger.info("Render", "Boucle de jeu terminée") 
+        Logger.info("Render", "Game loop finished") 

@@ -26,7 +26,7 @@ class ChatHandler:
         self.chat_x = RenderConstants.CHAT_MARGIN
         self.chat_y = RenderConstants.INFO_BAR_HEIGHT + RenderConstants.CHAT_MARGIN
         
-        Logger.info("ChatHandler", "Surface de chat configurée")
+        Logger.info("ChatHandler", "Chat surface configured")
     
     def render(self, screen, fonts, game):
         """
