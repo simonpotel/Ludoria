@@ -89,8 +89,7 @@ class Game(GameBase):
         Logger.game("Game Katerenga", f"Checking victory condition for Player {player_who_just_moved + 1}")
         if self.check_win(player_who_just_moved):
             Logger.success("Game Katerenga", f"Game over! Player {player_who_just_moved + 1} wins!")
-            self.render.running = False # S'assure que la boucle de rendu s'arrête
-            self.cleanup()
+            self.render.show_end_popup(f"Player {player_who_just_moved + 1} wins!")
             return False # la partie est terminée
         
         # met à jour le message de statut en fonction du tour
@@ -112,6 +111,9 @@ class Game(GameBase):
         """
         self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
         self.render.run_game_loop()
+        if getattr(self.render, "end_popup_action", None) == "play_again":
+            from src.windows.selector.selector import Selector
+            Selector()
         self.cleanup()
 
     def check_win(self, player):
@@ -145,9 +147,11 @@ class Game(GameBase):
                 camps_occupied.append(camp)
         
         if len(camps_occupied) == 2:
-            Logger.success("Game", f"Player {player + 1} won by occupying both camps: {camps_occupied}")
-            self.render.edit_info_label(f"Player {player + 1} wins by occupying both camps!")
-            self.render.running = False # arrête la boucle de jeu
+            if self.game_mode == "Bot" and player == 1:
+                winner_text = "BOT WON THE GAME !"
+            else:
+                winner_text = f"PLAYER {player + 1} WON THE GAME !"
+            self.render.show_end_popup(winner_text)
             return True
 
         # condition 2: l'adversaire ne peut plus bouger
@@ -171,9 +175,11 @@ class Game(GameBase):
                     break
 
         if not opponent_has_moves:
-            Logger.success("Game", f"Player {player + 1} won by blocking opponent from making moves")
-            self.render.edit_info_label(f"Player {player + 1} wins by blocking opponent!")
-            self.render.running = False # arrête la boucle de jeu
+            if self.game_mode == "Bot" and player == 1:
+                winner_text = "BOT WON THE GAME !"
+            else:
+                winner_text = f"PLAYER {player + 1} WON THE GAME !"
+            self.render.show_end_popup(winner_text)
             return True
 
         return False # aucune condition de victoire remplie
@@ -316,22 +322,7 @@ class Game(GameBase):
                 winner = f"Player {current_player_who_moved + 1}"
                 Logger.success("Game Katerenga", f"Game Over! {winner} wins! (Detected locally)")
                 self.render.edit_info_label(f"Game Over! {winner} wins!")
-                self.render.running = False
-                # normaliser et envoyer l'action finale de victoire
-                normalized_locked_pieces = [[x, y] for x, y in self.locked_pieces] if self.locked_pieces else []
-                self.send_network_action({
-                    "from_row": old_row,
-                    "from_col": old_col,
-                    "to_row": row,
-                    "to_col": col,
-                    "capture_made": capture_made,
-                    "locked_pieces": normalized_locked_pieces
-                })
-                self.cleanup()
-                return False # fin de partie
-            
-            # si pas de victoire, préparer et envoyer l'action normalement
-            self.render.needs_render = True 
+                self.render.needs_render = True 
             normalized_locked_pieces = [[x, y] for x, y in self.locked_pieces] if self.locked_pieces else []
             self.send_network_action({
                 "from_row": old_row,
@@ -341,7 +332,7 @@ class Game(GameBase):
                 "capture_made": capture_made,
                 "locked_pieces": normalized_locked_pieces
             })
-            return True
+            return False # fin de partie
         
         # execution locale (solo ou bot)
         finish_line = 0 if self.round_turn == 1 else 9 # ligne d'arrivée dépend du joueur
@@ -356,7 +347,7 @@ class Game(GameBase):
             is_win = self.check_win(self.round_turn)
             if is_win: 
                 Logger.success("Game Katerenga", f"Game over! Player {self.round_turn + 1} wins!")
-                self.render.running = False
+                self.render.show_end_popup(f"Player {self.round_turn + 1} wins!")
         else:
             # mouvement normal
             self.board.board[row][col][0] = self.board.board[old_row][old_col][0]
@@ -366,7 +357,7 @@ class Game(GameBase):
             is_win = self.check_win(self.round_turn)
             if is_win: 
                 Logger.success("Game Katerenga", f"Game over! Player {self.round_turn + 1} wins!")
-                self.render.running = False
+                self.render.show_end_popup(f"Player {self.round_turn + 1} wins!")
 
         # après un mouvement réussi
         if move_made and not is_win:
@@ -382,13 +373,8 @@ class Game(GameBase):
                 self._bot_timer_set = True
                 
         elif move_made and is_win:
-            # la partie est finie, le message de victoire est déjà affiché par check_win
-            save_game(self) # sauvegarde l'état final
-            return False # arrête le jeu
-        elif capture_made:
-             # si seulement une capture a été faite (ne devrait pas arriver avec les règles actuelles)
-             # mais on rafraîchit au cas où
-             self.render.needs_render = True
+            save_game(self)
+            self.render.needs_render = True
 
         if not is_win: # si le jeu n'est pas fini, on rafraîchit après toutes les opérations
              self.render.needs_render = True 
@@ -407,32 +393,22 @@ class Game(GameBase):
             move_successful = self.bot.make_move() # la logique du bot met à jour le plateau et vérifie la victoire
             
             if not move_successful:
-                # cas où le bot ne peut pas jouer (peut indiquer une victoire de l'autre joueur)
-                Logger.game("Game", "Bot move resulted in game end or no possible moves")
-                # on revérifie la victoire pour être sûr que le message est correct
-                if not self.check_win(1): # si le bot (joueur 1) n'a pas gagné...
-                    if not self.check_win(0): # ... et que le joueur 0 non plus...
-                        # alors le joueur 0 gagne car le bot est bloqué
-                        Logger.success("Game Katerenga", "Game over! Player 1 wins because bot has no valid moves!")
-                        self.render.edit_info_label("Player 1 wins! Bot has no more moves.")
-                        self.check_win(0) # pour s'assurer que running est False
+                if self.game_mode == "Bot":
+                    winner_text = "BOT WON THE GAME !"
+                else:
+                    winner_text = f"PLAYER 1 WON THE GAME !"
+                self.render.show_end_popup(winner_text)
                 self.cleanup()
-                self.render.running = False
                 return False
             else:
-                # le coup du bot a réussi, le jeu continue ou est fini par le bot
-                Logger.game("Game", "Bot completed its move successfully")
-                # le changement de tour et la sauvegarde sont gérés dans bot.make_move
-                # la vérification de victoire est aussi gérée dans bot.make_move
-                # on met à jour l'affichage
-                self.render.needs_render = True
-                if not self.render.running: # si le bot a gagné
-                     save_game(self)
-                     return False
-                else: # si le jeu continue
-                     self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
-                     save_game(self)
-                     return True
+                if not self.render.running:
+                    if self.game_mode == "Bot":
+                        winner_text = "BOT WON THE GAME !"
+                    else:
+                        winner_text = f"PLAYER 2 WON THE GAME !"
+                    self.render.show_end_popup(winner_text)
+                    save_game(self)
+                return False
         except Exception as e:
             Logger.error("Game", f"Error during bot play: {str(e)}")
             self.render.edit_info_label(f"Error during bot play: {str(e)}")

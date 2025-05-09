@@ -5,6 +5,8 @@ from src.windows.render.image_loader import ImageLoader
 from src.windows.render.board_handler import BoardHandler
 from src.windows.render.info_bar_handler import InfoBarHandler
 from src.windows.render.chat_handler import ChatHandler
+from src.windows.components.button import Button
+import sys
 
 class Render:
     """
@@ -98,6 +100,48 @@ class Render:
         if self.info_bar_handler.edit_info_label(text):
             self.needs_render = True
 
+    def show_end_popup(self, winner_text):
+        """
+        Active la pop-up de fin de partie avec le texte du gagnant.
+        """
+        self.end_popup_active = True
+        self.end_popup_text = winner_text
+        self.end_popup_buttons = []
+        popup_width, popup_height = 500, 260
+        popup_x = (self.window_width - popup_width) // 2
+        popup_y = (self.window_height - popup_height) // 2
+        button_width, button_height = 260, 50
+        button_spacing = 30
+        # Play Again
+        play_again_btn = Button(
+            popup_x + (popup_width - button_width) // 2,
+            popup_y + 90,
+            button_width,
+            button_height,
+            "PLAY AGAIN",
+            action=self._popup_play_again
+        )
+        # Quitter
+        quit_btn = Button(
+            popup_x + (popup_width - button_width) // 2,
+            popup_y + 90 + button_height + button_spacing,
+            button_width,
+            button_height,
+            "QUITTER",
+            action=self._popup_quit
+        )
+        self.end_popup_buttons = [play_again_btn, quit_btn]
+        self.needs_render = True
+
+    def _popup_play_again(self):
+        self.running = False
+        self.end_popup_action = "play_again"
+
+    def _popup_quit(self):
+        self.running = False
+        pygame.quit()
+        sys.exit()
+
     def render_board(self):
         """
         procédure : dessine l'état complet du jeu (fond, info, plateau).
@@ -121,7 +165,30 @@ class Render:
         # 5. mise à jour de l'écran
         pygame.display.flip()
         Logger.board("Render", "Rendering complete")
-            
+        # Affichage de la pop-up de fin de partie si active
+        if hasattr(self, 'end_popup_active') and self.end_popup_active:
+            self._draw_end_popup()
+
+    def _draw_end_popup(self):
+        popup_width, popup_height = 500, 260
+        popup_x = (self.window_width - popup_width) // 2
+        popup_y = (self.window_height - popup_height) // 2
+        # fond semi-transparent
+        s = pygame.Surface((popup_width, popup_height), pygame.SRCALPHA)
+        s.fill((240, 240, 240, 210))
+        self.screen.blit(s, (popup_x, popup_y))
+        # texte gagnant centré
+        font = self.fonts['main']
+        text_surface = font.render(self.end_popup_text, True, (40, 40, 40))
+        text_rect = text_surface.get_rect(center=(self.window_width//2, popup_y + 50))
+        self.screen.blit(text_surface, text_rect)
+        # boutons
+        mouse_pos = pygame.mouse.get_pos()
+        for btn in self.end_popup_buttons:
+            btn.check_hover(mouse_pos)
+            btn.draw(self.screen)
+        pygame.display.flip()
+
     def handle_click(self, pos):
         """
         procédure : traite un clic de souris et le transmet au jeu si pertinent.
@@ -129,6 +196,14 @@ class Render:
         params:
             pos: tuple (x, y) des coordonnées du clic dans la fenêtre
         """
+        if hasattr(self, 'end_popup_active') and self.end_popup_active:
+            for btn in self.end_popup_buttons:
+                btn.check_hover(pos)
+                fake_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {'pos': pos, 'button': 1})
+                if btn.handle_event(fake_event):
+                    return
+            return
+        
         # 1. vérifier si le clic est sur le chat
         if self.chat_handler and self.chat_handler.handle_click(pos, self.game):
             self.needs_render = True

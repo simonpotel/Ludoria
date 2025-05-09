@@ -66,10 +66,9 @@ class Game(GameBase):
             winner = f"Player {self.round_turn + 1}" # le joueur qui vient de jouer gagne
             Logger.success("Game Isolation", f"Game over! {winner} wins because Player {1 - self.round_turn + 1} has no valid moves!")
             self.render.edit_info_label(f"Game Over! {winner} wins! (No moves left for Player {1 - self.round_turn + 1})")
-            self.render.running = False # arrête la boucle de jeu
+            self.render.show_end_popup(f"{winner} WON THE GAME !")
             self.cleanup()
-            return False # la partie est terminée
-            
+
         # met à jour le message de statut en fonction du tour
         if self.is_network_game:
             if self.is_my_turn: 
@@ -142,11 +141,11 @@ class Game(GameBase):
         # vérification de la fin de partie pour le joueur suivant
         Logger.game("Game Isolation", f"Checking if Player {self.round_turn + 1} has valid moves")
         if not has_valid_move(self.board.board, self.round_turn, check_all_pieces=True):
-            winner = f"Player {player_who_moved + 1}" # le joueur qui vient de jouer gagne
-            Logger.success("Game Isolation", f"Game over! {winner} wins because Player {self.round_turn + 1} has no valid moves!")
-            self.render.edit_info_label(f"Game Over! {winner} wins!")
-            self.render.running = False # arrête la boucle de jeu
-            return False
+            if self.game_mode == "Bot" and player_who_moved == 1:
+                winner_text = "BOT WON THE GAME !"
+            else:
+                winner_text = f"PLAYER {player_who_moved + 1} WON THE GAME !"
+            self.render.show_end_popup(winner_text)
 
         # gestion du tour du bot
         if self.round_turn == 1 and self.game_mode == "Bot":
@@ -168,12 +167,11 @@ class Game(GameBase):
         try:
             bot_move = self.bot.get_move(self.board.board)
             if bot_move is None:
-                winner = "Player 1"
-                Logger.success("Game Isolation", f"Game over! {winner} wins because Bot has no valid moves!")
-                self.render.edit_info_label(f"Game Over! {winner} wins!")
-                self.render.running = False
-                self.cleanup()
-                return False
+                if self.game_mode == "Bot":
+                    winner_text = "BOT WON THE GAME !"
+                else:
+                    winner_text = "PLAYER 1 WON THE GAME !"
+                self.render.show_end_popup(winner_text)
                 
             bot_row, bot_col = bot_move
             self.board.board[bot_row][bot_col][0] = self.round_turn # placement de la tour du bot
@@ -181,15 +179,13 @@ class Game(GameBase):
             self.round_turn = 1 - self.round_turn # retour au tour du joueur humain
             save_game(self)
             
-            # vérification de la fin de partie après le coup du bot
             Logger.game("Game Isolation", f"Checking if Player {self.round_turn + 1} has valid moves after bot's move")
             if not has_valid_move(self.board.board, self.round_turn, check_all_pieces=True):
-                winner = f"Player {player_who_moved + 1} (Bot)" # le bot gagne
-                Logger.success("Game Isolation", f"Game over! {winner} wins because Player {self.round_turn + 1} has no valid moves!")
-                self.render.edit_info_label(f"Game Over! {winner} wins!")
-                self.render.running = False
-                self.cleanup()
-                return False
+                if self.game_mode == "Bot" and player_who_moved == 1:
+                    winner_text = "BOT WON THE GAME !"
+                else:
+                    winner_text = f"PLAYER {player_who_moved + 1} WON THE GAME !"
+                self.render.show_end_popup(winner_text)
             
             self.render.edit_info_label("Player 1's turn - Place your tower") # mise à jour du message
             return True

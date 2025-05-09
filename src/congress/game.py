@@ -78,13 +78,13 @@ class Game(GameBase):
         # vérifie si le joueur qui a joué en dernier a gagné
         Logger.game("Game Congress", f"Checking victory condition for Player {player_who_just_moved + 1}")
         if self.check_connected_pieces(player_who_just_moved):
-            winner = f"Player {player_who_just_moved + 1}"
-            Logger.success("Game Congress", f"Game over! {winner} wins by connecting all pieces!")
-            self.render.edit_info_label(f"Game Over! {winner} wins!")
-            self.render.running = False # arrête la boucle de rendu
+            if self.game_mode == "Bot" and player_who_just_moved == 1:
+                winner_text = "BOT WON THE GAME !"
+            else:
+                winner_text = f"PLAYER {player_who_just_moved + 1} WON THE GAME !"
+            self.render.show_end_popup(winner_text)
             self.cleanup()
-            return False # la partie est terminée
-            
+
         # met à jour le message de statut en fonction du tour
         if self.is_network_game:
             if self.is_my_turn: 
@@ -244,20 +244,13 @@ class Game(GameBase):
                   # vérification de victoire immédiate après le mouvement local
                   player_who_moved = self.player_number - 1
                   if self.check_connected_pieces(player_who_moved):
-                      winner = f"Player {player_who_moved + 1}"
-                      Logger.success("Game Congress", f"Game Over! {winner} wins! (Detected locally)")
-                      self.render.edit_info_label(f"Game Over! {winner} wins!")
-                      self.render.running = False # arrête la boucle de rendu
-                      # envoie quand même l'action pour informer l'autre joueur de la victoire
-                      self.send_network_action({
-                          "from_row": old_row,
-                          "from_col": old_col,
-                          "to_row": row,
-                          "to_col": col
-                      })
+                      if self.game_mode == "Bot" and player_who_moved == 1:
+                          winner_text = "BOT WON THE GAME !"
+                      else:
+                          winner_text = f"PLAYER {player_who_moved + 1} WON THE GAME !"
+                      self.render.show_end_popup(winner_text)
                       self.cleanup()
-                      return False # fin de partie
-                      
+
                   # si pas de victoire, informer le renderer et envoyer l'action normalement
                   self.render.needs_render = True
                   self.send_network_action({
@@ -276,11 +269,12 @@ class Game(GameBase):
 
             # vérifier si le joueur qui vient de jouer a gagné
             if self.check_connected_pieces(player_who_moved):
-                winner = f"Player {player_who_moved + 1}"
-                self.render.edit_info_label(f"Game Over! {winner} wins!")
+                if self.game_mode == "Bot" and player_who_moved == 1:
+                    winner_text = "BOT WON THE GAME !"
+                else:
+                    winner_text = f"PLAYER {player_who_moved + 1} WON THE GAME !"
+                self.render.show_end_popup(winner_text)
                 self.render.needs_render = True
-                self.render.running = False
-                return False # fin de partie
 
             self.round_turn = 1 - self.round_turn # changement de tour
             save_game(self)
@@ -306,21 +300,21 @@ class Game(GameBase):
                 player_who_moved = 1 # le bot est toujours le joueur 1
                 # vérifie si le bot a gagné après son mouvement
                 if self.check_connected_pieces(player_who_moved):
-                     winner = f"Player {player_who_moved + 1} (Bot)"
-                     self.render.edit_info_label(f"Game Over! {winner} wins!")
-                     self.render.running = False
-                     return False # fin de partie
+                    if self.game_mode == "Bot" and player_who_moved == 1:
+                        winner_text = "BOT WON THE GAME !"
+                    else:
+                        winner_text = f"PLAYER {player_who_moved + 1} WON THE GAME !"
+                    self.render.show_end_popup(winner_text)
+                    self.cleanup()
                 else:
                     self.round_turn = 0  # retour au tour du joueur 0
                     self.render.edit_info_label("Player 1's turn")
                     save_game(self)
                 return True # mouvement réussi
             else:
-                # cas où le bot n'a pas pu trouver de mouvement valide (victoire du joueur)
-                self.render.edit_info_label("Player 1 wins! Bot has no more moves.")
+                self.render.show_end_popup("PLAYER 1 WON THE GAME !")
                 self.cleanup()
-                self.render.running = False
-                return False # fin de partie
+            return True # mouvement réussi
         except Exception as e:
             Logger.error("Game", f"Error during bot play: {str(e)}")
             self.render.edit_info_label(f"Error during bot play: {str(e)}")
@@ -334,6 +328,9 @@ class Game(GameBase):
         """
         self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
         self.render.run_game_loop()
+        if getattr(self.render, "end_popup_action", None) == "play_again":
+            from src.windows.selector.selector import Selector
+            Selector()
         self.cleanup()
 
     def get_board_state(self):
