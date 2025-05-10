@@ -66,7 +66,8 @@ class Game(GameBase):
             winner = f"Player {self.round_turn + 1}" # le joueur qui vient de jouer gagne
             Logger.success("Game Isolation", f"Game over! {winner} wins because Player {1 - self.round_turn + 1} has no valid moves!")
             self.render.edit_info_label(f"Game Over! {winner} wins! (No moves left for Player {1 - self.round_turn + 1})")
-            self.render.show_end_popup(f"{winner} WON THE GAME !")
+            winner_text = f"{winner} WON THE GAME !"
+            self.render.show_end_popup(winner_text)
             self.cleanup()
 
         # met à jour le message de statut en fonction du tour
@@ -122,8 +123,23 @@ class Game(GameBase):
         # gestion du clic en mode réseau (envoi avant mise à jour locale)
         if self.is_network_game:
             self.board.board[row][col][0] = current_player # mise à jour locale pour feedback visuel
-            self.render.needs_render = True # Trigger render immediately after local update
+            self.render.needs_render = True # déclenche l'affichage immédiat après la mise à jour locale
             
+            # vérifie si ce coup a causé une victoire avant d'envoyer l'action
+            if not has_valid_move(self.board.board, 1 - current_player, check_all_pieces=True):
+                # c'est un coup gagnant - l'adversaire n'a plus de coups valides
+                winner_text = f"PLAYER {current_player + 1} WON THE GAME !"
+                self.render.show_end_popup(winner_text)
+                    
+                # envoyer le coup gagnant avant le nettoyage
+                self.send_network_action({
+                    "row": row,
+                    "col": col
+                })
+                self.cleanup()
+                return False
+            
+            # coup normal - pas une victoire
             self.send_network_action({
                 "row": row,
                 "col": col
@@ -146,6 +162,7 @@ class Game(GameBase):
             else:
                 winner_text = f"PLAYER {player_who_moved + 1} WON THE GAME !"
             self.render.show_end_popup(winner_text)
+            return False
 
         # gestion du tour du bot
         if self.round_turn == 1 and self.game_mode == "Bot":
@@ -172,6 +189,7 @@ class Game(GameBase):
                 else:
                     winner_text = "PLAYER 1 WON THE GAME !"
                 self.render.show_end_popup(winner_text)
+                return False
                 
             bot_row, bot_col = bot_move
             self.board.board[bot_row][bot_col][0] = self.round_turn # placement de la tour du bot
@@ -186,6 +204,7 @@ class Game(GameBase):
                 else:
                     winner_text = f"PLAYER {player_who_moved + 1} WON THE GAME !"
                 self.render.show_end_popup(winner_text)
+                return False
             
             self.render.edit_info_label("Player 1's turn - Place your tower") # mise à jour du message
             return True

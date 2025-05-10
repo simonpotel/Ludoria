@@ -318,12 +318,9 @@ class Game(GameBase):
                      Logger.game("Game", f"Local feedback: Piece locked at ({row}, {col}) for player {current_player_who_moved + 1}")
 
             # vérification de la victoire locale
-            if self.check_win(current_player_who_moved):
-                winner = f"Player {current_player_who_moved + 1}"
-                Logger.success("Game Katerenga", f"Game Over! {winner} wins! (Detected locally)")
-                self.render.edit_info_label(f"Game Over! {winner} wins!")
-                self.render.needs_render = True 
             normalized_locked_pieces = [[x, y] for x, y in self.locked_pieces] if self.locked_pieces else []
+            is_win = self.check_win(current_player_who_moved)
+            
             self.send_network_action({
                 "from_row": old_row,
                 "from_col": old_col,
@@ -332,7 +329,15 @@ class Game(GameBase):
                 "capture_made": capture_made,
                 "locked_pieces": normalized_locked_pieces
             })
-            return False # fin de partie
+            
+            if is_win:
+                winner = f"Player {current_player_who_moved + 1}"
+                Logger.success("Game Katerenga", f"Game Over! {winner} wins! (Detected locally)")
+                self.render.edit_info_label(f"Game Over! {winner} wins!")
+                self.render.show_end_popup(f"{winner} WON THE GAME !")
+                return False
+                
+            return True  # le jeu continue
         
         # execution locale (solo ou bot)
         finish_line = 0 if self.round_turn == 1 else 9 # ligne d'arrivée dépend du joueur

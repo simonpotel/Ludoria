@@ -83,7 +83,10 @@ class Game(GameBase):
             else:
                 winner_text = f"PLAYER {player_who_just_moved + 1} WON THE GAME !"
             self.render.show_end_popup(winner_text)
+            
+            # envoyer l'action réseau avant le nettoyage
             self.cleanup()
+            return False  # le jeu est terminé
 
         # met à jour le message de statut en fonction du tour
         if self.is_network_game:
@@ -249,7 +252,15 @@ class Game(GameBase):
                       else:
                           winner_text = f"PLAYER {player_who_moved + 1} WON THE GAME !"
                       self.render.show_end_popup(winner_text)
+                      
+                      self.send_network_action({
+                          "from_row": old_row,
+                          "from_col": old_col,
+                          "to_row": row,
+                          "to_col": col
+                      })
                       self.cleanup()
+                      return False
 
                   # si pas de victoire, informer le renderer et envoyer l'action normalement
                   self.render.needs_render = True
@@ -275,6 +286,7 @@ class Game(GameBase):
                     winner_text = f"PLAYER {player_who_moved + 1} WON THE GAME !"
                 self.render.show_end_popup(winner_text)
                 self.render.needs_render = True
+                return False
 
             self.round_turn = 1 - self.round_turn # changement de tour
             save_game(self)
