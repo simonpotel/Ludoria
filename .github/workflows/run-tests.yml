@@ -2,9 +2,7 @@ name: Run Tests
 
 on:
   push:
-    branches: [ main, master ]
   pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -37,7 +35,7 @@ jobs:
         
         # extraction des infos sur les tests échoués
         if [ $TEST_EXIT_CODE -ne 0 ]; then
-          echo "::group::Failed Tests"
+          echo "::group::Tests Échoués"
           grep -A 3 "FAILED" test_output.txt || true
           grep "^✗" test_output.txt || true
           echo "::endgroup::"
