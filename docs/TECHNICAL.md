@@ -27,6 +27,10 @@
     - [Architecture client-serveur](#architecture-client-serveur)
     - [Protocole de communication](#protocole-de-communication)
     - [Gestion des sessions](#gestion-des-sessions)
+  - [Tests et assurance qualité](#tests-et-assurance-qualité)
+    - [Utilisation des mocks dans les tests](#utilisation-des-mocks-dans-les-tests)
+    - [Suite complète de tests](#suite-complète-de-tests)
+    - [Détails sur les Tests](#détails-sur-les-tests)
 
 ## Choix technologiques
 
@@ -285,3 +289,63 @@ Lorsqu'un joueur effectue une action :
 > Nous avons pris la décision technique de gérer la victoire et les mouvements secondaires du côté client pour garantir une version de développement correcte pour les modes Solo/Bot/Réseau, permettant aux joueurs de jouer sans lancer de serveur. Nous ne voulons pas implémenter les règles de victoire et de mouvement du côté serveur pour des raisons de délai et d'optimisation du code.
 > Cependant, la sécurité du tour côté serveur est renforcée pour éviter les problèmes techniques/abus.
 > À chaque tour, la victoire est vérifiée sur les deux clients; si au moins un client se déconnecte (fin de partie), le serveur enverra le packet à l'autre client et fermera la session.
+
+## Tests et assurance qualité
+
+### Utilisation des mocks dans les tests
+
+Les tests utilisent largement le concept de **mocking** pour isoler les composants testés et éviter les dépendances externes. Voici les principales techniques utilisées :
+
+**Mock et MagicMock :**
+- Un **mock** est un objet simulé qui remplace un composant réel dans un test.
+- **MagicMock** est une version avancée qui permet de simuler des objets complexes avec un minimum de configuration.
+- Les mocks permettent de vérifier que certaines méthodes sont appelées avec les bons paramètres via `assert_called_with()`.
+
+**Patch :**
+- La fonction `patch` permet de remplacer temporairement un objet ou une fonction par un mock.
+- Utilisation courante : `@patch('module.Class')` ou `with patch('module.function'):`
+- Permet d'isoler le code testé des composants externes comme Pygame ou les connexions réseau.
+
+**Mocking de Render et Pygame :**
+- De nombreux tests simulent l'interface graphique pour éviter d'ouvrir des fenêtres réelles pendant les tests.
+- Exemple : `mock_render = MagicMock(spec=Render)` pour simuler le rendu du jeu.
+- Les fonctions Pygame comme `pygame.display.flip()` sont remplacées par des mocks pour éviter les erreurs d'affichage.
+
+**Simulation des comportements :**
+- Les mocks peuvent retourner des valeurs spécifiques pour simuler des comportements.
+- Exemple : `with patch('src.captures.has_valid_move', return_value=False):` pour simuler qu'un joueur n'a plus de coups valides.
+- Permet de tester des situations difficiles à reproduire comme les conditions de victoire.
+
+### Suite complète de tests
+
+Ludoria comprend une suite complète de tests qui vérifient le fonctionnement de toutes les composantes du jeu. Voici un tableau détaillé de ces tests :
+
+| Fichier de test | Catégorie | Description | Mécanismes testés |
+|----------------|-----------|-------------|-------------------|
+| `001_selector_init.py` | Interface | Vérifie l'initialisation correcte du sélecteur de jeu | <ul><li>Instanciation des composants (`quadrant_handler`, `config_loader`, etc.)</li><li>Initialisation des attributs</li><li>Configuration initiale des quadrants</li></ul> |
+| `002_game_selection.py` | Interface | Teste la sélection des jeux dans l'interface | <ul><li>Fonctionnement du composant `Dropdown`</li><li>Sélection des jeux (katerenga, isolation, congress)</li><li>Changement de sélection et récupération des valeurs</li></ul> |
+| `003_quadrant_rotation.py` | Plateau | Vérifie la rotation des quadrants du plateau | <ul><li>Rotation à droite des quadrants</li><li>Rotation à gauche des quadrants</li><li>Préservation des autres quadrants lors de la rotation</li><li>Retour à l'état initial après 4 rotations</li></ul> |
+| `004_king_moves.py` | Mouvements | Teste les déplacements sur cases bleues (comme un roi) | <ul><li>Déplacements valides dans les 8 directions</li><li>Limites de distance (une seule case)</li><li>Comportement en bord de plateau</li></ul> |
+| `005_knight_moves.py` | Mouvements | Teste les déplacements sur cases vertes (comme un cavalier) | <ul><li>Déplacements en L</li><li>Capacité à sauter par-dessus d'autres pièces</li><li>Mouvements invalides</li><li>Comportement en bord de plateau</li></ul> |
+| `006_rook_moves.py` | Mouvements | Teste les déplacements sur cases rouges (comme une tour avec contraintes) | <ul><li>Déplacements orthogonaux</li><li>Blocage par des obstacles</li><li>Contrainte spéciale : arrêt à la première case rouge rencontrée</li><li>Capture de pièces adverses</li></ul> |
+| `007_bishop_moves.py` | Mouvements | Teste les déplacements sur cases jaunes/marrons (comme un fou avec contraintes) | <ul><li>Déplacements en diagonale</li><li>Blocage par des obstacles</li><li>Contrainte spéciale : arrêt à la première case jaune/marron rencontrée</li><li>Capture de pièces adverses</li></ul> |
+| `008_katerenga_victory.py` | Victoire | Vérifie la condition de victoire dans Katerenga | <ul><li>Chargement du fichier de sauvegarde (dev_katerenga.json)</li><li>Détection de pièces pouvant se déplacer vers un camp adverse</li><li>Coup gagnant occupant deux camps adverses</li><li>Détection de la victoire via `check_win`</li></ul> |
+| `009_congress_victory.py` | Victoire | Vérifie la condition de victoire dans Congress | <ul><li>Chargement du fichier de sauvegarde (dev_congress.json)</li><li>Recherche de coups gagnants</li><li>Simulation d'un mouvement connectant toutes les pièces</li><li>Détection de la victoire via `check_connected_pieces`</li></ul> |
+| `010_isolation_victory.py` | Victoire | Vérifie la condition de victoire dans Isolation | <ul><li>Chargement du fichier de sauvegarde (dev_isolation.json)</li><li>Recherche d'un coup bloquant tous les mouvements adverses</li><li>Vérification que le coup gagnant est correctement détecté</li><li>Fin de partie lorsque l'adversaire n'a plus de mouvements valides</li></ul> |
+| `011_katerenga_network.py` | Réseau | Teste les communications réseau pour Katerenga | <ul><li>Vérification que la manipulation de la classe Game pour la connexion, les actions de jeu, le chat et la déconnexion initie correctement les communications réseau attendues.</li></ul> |
+| `012_congress_network.py` | Réseau | Teste les communications réseau pour Congress | <ul><li>Vérification que la manipulation de la classe Game pour la connexion, les actions de jeu, le chat et la déconnexion initie correctement les communications réseau attendues.</li></ul> |
+| `013_isolation_network.py` | Réseau | Teste les communications réseau pour Isolation | <ul><li>Vérification que la manipulation de la classe Game pour la connexion, le placement de tour, le chat et la déconnexion initie correctement les communications réseau attendues.</li></ul> |
+| `014_congress_network_victory.py` | Intégration réseau | Vérifie la communication réseau lors d'une victoire dans Congress | <ul><li>Chargement d'une configuration de test</li><li>Préparation d'un plateau où les pièces sont presque connectées</li><li>Simulation d'un mouvement gagnant via la méthode `on_click` de la classe Game</li><li>Vérification que la classe Game initie l'envoi des informations de victoire (coordonnées source et destination) sur le réseau</li><li>Vérification que le jeu s'arrête correctement après détection de la victoire</li></ul> |
+| `015_isolation_network_victory.py` | Intégration réseau | Vérifie la communication réseau lors d'une victoire dans Isolation | <ul><li>Configuration d'un plateau de test avec des pièces séparées</li><li>Simulation d'un placement de tour via la méthode `on_click` de la classe Game</li><li>Vérification que la classe Game initie l'envoi des informations de placement sur le réseau</li><li>Vérification que les informations de victoire (prochain joueur sans coups) sont correctement communiquées</li></ul> |
+| `016_katerenga_network_victory.py` | Intégration réseau | Vérifie la communication réseau lors d'une victoire dans Katerenga | <ul><li>Chargement du fichier de sauvegarde (dev_katerenga.json)</li><li>Recherche d'une pièce du joueur 1 pouvant se déplacer vers un camp adverse (9,9)</li><li>Exécution du coup gagnant en deux appels à `on_click` (sélection puis déplacement) sur la classe Game</li><li>Vérification que la classe Game initie l'envoi des informations de victoire (coordonnées source et destination) sur le réseau</li><li>Vérification que la fonction `check_win` détecte correctement la victoire et que cet état est communiqué</li></ul> |
+
+### Détails sur les Tests
+
+**Tests de victoire (008, 009, 010)**
+- Ces tests s'assurent que les jeux reconnaissent correctement une situation de victoire. Ils utilisent des scénarios de fin de partie sauvegardés (`dev_katerenga.json`, etc.) pour vérifier que, lorsqu'un coup gagnant est joué, le jeu identifie bien le vainqueur, que ce soit en mode solo ou contre l'ordinateur. Note que ces tests concernent uniquement les modes `Solo` et `Bot`.
+
+**Tests de communication réseau (011, 012, 013)**
+- Ces tests vérifient le bon fonctionnement des interactions réseau de base pour chaque jeu. Ils s'assurent que lorsque les joueurs effectuent des actions comme se connecter, jouer un coup, envoyer un message dans le chat, ou se déconnecter, la logique du jeu initie correctement l'envoi des informations correspondantes sur le réseau.
+
+**Tests d'intégration réseau & victoire (014, 015, 016)**
+- Ces tests importants s'assurent que la détection d'une victoire en mode réseau fonctionne comme prévu et que les informations de victoire sont correctement communiquées. Pour chaque jeu, on simule une situation où un joueur est sur le point de gagner. Ensuite, on simule le coup gagnant (comme si le joueur cliquait sur le plateau). Le test vérifie alors que la logique du jeu non seulement reconnaît la victoire, mais aussi qu'elle prépare et envoie correctement les informations de cette victoire sur le réseau, avec tous les détails nécessaires (comme les coordonnées du coup).
