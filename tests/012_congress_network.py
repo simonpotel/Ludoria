@@ -112,12 +112,12 @@ class TestCongressNetwork(TestBase):
         game.is_my_turn = True
         
         # préparation du plateau pour simuler un mouvement
-        # placer une pièce du joueur en position 2,2
-        game.board.board[2][2][0] = 0  # 0 = pièce du joueur 1
-        # case destination vide
-        game.board.board[2][5][0] = None
+        # placer une pièce du joueur en position 2,2 sur une case bleue (roi)
+        game.board.board[2][2] = [0, 2]  # 0 = pièce du joueur 1, 2 = case bleue
+        # case destination vide et adjacente (mouvement de roi)
+        game.board.board[3][3] = [None, 1]  # case verte vide
         
-        # simuler la validité du mouvement (mouvement horizontal de la tour)
+        # simuler la validité du mouvement (mouvement diagonal du roi)
         with patch('src.moves.available_move', return_value=True):
             # patch les méthodes nécessaires pour simuler un mouvement complet
             with patch.object(CongressGame, 'check_connected_pieces', return_value=False):
@@ -126,7 +126,7 @@ class TestCongressNetwork(TestBase):
                 
                 # ensuite simuler un clic sur la destination
                 # c'est on_click qui doit naturellement déclencher l'envoi du paquet réseau
-                CongressGame.on_click(game, 2, 5)
+                CongressGame.on_click(game, 3, 3)
         
         # vérifie que game_action a été appelé sur le client
         self.client_mock.send_game_action.assert_called_once()
@@ -134,8 +134,8 @@ class TestCongressNetwork(TestBase):
         call_args = self.client_mock.send_game_action.call_args[0][0]
         self.assertEqual(call_args["from_row"], 2)
         self.assertEqual(call_args["from_col"], 2)
-        self.assertEqual(call_args["to_row"], 2)
-        self.assertEqual(call_args["to_col"], 5)
+        self.assertEqual(call_args["to_row"], 3)
+        self.assertEqual(call_args["to_col"], 3)
         self.assertIn("board_state", call_args)
     
     def test_chat_send_packet(self):

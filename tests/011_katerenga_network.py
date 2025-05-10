@@ -116,10 +116,12 @@ class TestKaterengaNetwork(TestBase):
         game.is_my_turn = True
         
         # préparation du plateau pour simuler un mouvement
-        # placer une pièce du joueur en position 2,2
-        game.board.board[2][2][0] = 0  # 0 = pièce du joueur 1
-        # case destination vide
-        game.board.board[2][5][0] = None
+        # placer une pièce du joueur en position 2,2 sur une case rouge
+        game.board.board[2][2] = [0, 0]  # 0 = pièce du joueur 1, 0 = case rouge
+        # case destination vide et non-rouge
+        game.board.board[2][3] = [None, 1]  # case verte vide
+        game.board.board[2][4] = [None, 1]  # case verte vide
+        game.board.board[2][5] = [None, 1]  # case verte vide
         
         # simuler la validité du mouvement (mouvement horizontal de la tour)
         with patch('src.moves.available_move', return_value=True):
