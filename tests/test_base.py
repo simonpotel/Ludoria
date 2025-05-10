@@ -1,5 +1,6 @@
 import unittest
 import pygame
+import pygame.freetype
 import sys
 import os
 
