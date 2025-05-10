@@ -9,6 +9,11 @@ def save_game(game):
     params :
         game - instance du jeu à sauvegarder
     """
+    # skip la sauvegarde pour les fichiers de test de développement
+    if game.game_save.startswith("dev_"):
+        Logger.info("Saves", f"Skipping save for development test file: {game.game_save}")
+        return
+        
     Logger.info("Saves", f"Saving game state for {game.game_save}")
     try:
         game_state = {

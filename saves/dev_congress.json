@@ -1,0 +1,86 @@
+{
+    "board": [
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [0, 0],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [3, 3]
+        ]
+    ],
+    "game_number": 0,
+    "round_turn": 0
+} 
