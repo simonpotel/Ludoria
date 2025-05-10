@@ -21,9 +21,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        # installation des dépendances système pour pygame
-        sudo apt-get update
-        sudo apt-get install -y python3-dev libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libfreetype6-dev
+        # installation des dépendances système pour pygame (commenté car pas nécessaire)
+        # sudo apt-get update
+        # sudo apt-get install -y python3-dev libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libfreetype6-dev
         
     - name: Run tests
       id: run_tests
