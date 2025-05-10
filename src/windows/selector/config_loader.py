@@ -54,5 +54,5 @@ class ConfigLoader:
         params:
             message (str): message d'erreur descriptif à enregistrer.
         """
-        Logger.critical("ConfigLoader", message)
+        Logger.error("ConfigLoader", message)
         

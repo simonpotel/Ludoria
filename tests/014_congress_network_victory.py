@@ -30,6 +30,17 @@ class TestCongressNetworkVictory(TestBase):
         self.render_mock.running = True
         self.render_mock.needs_render = False
         
+        # mock pour simuler le comportement de l'objet Render
+        def mock_show_end_popup(winner_text):
+            self.render_mock.end_popup_active = True
+            self.render_mock.end_popup_text = winner_text
+            self.render_mock.end_popup_buttons = []
+            self.render_mock.needs_render = True
+            # simule le comportement normal du jeu lorsque la popup est affichée
+            self.render_mock.running = False
+            
+        self.render_mock.show_end_popup.side_effect = mock_show_end_popup
+        
         # patch pour éviter la connexion réelle au serveur
         self.network_client_patch = patch('src.network.client.client.NetworkClient', return_value=self.client_mock)
         self.network_client_mock = self.network_client_patch.start()
@@ -92,6 +103,13 @@ class TestCongressNetworkVictory(TestBase):
             game.game_started = True
             game.local_player_name = "TestPlayer"
             
+            # réinitialise le mock pour garantir un état propre pour les assertions
+            self.client_mock.reset_mock()
+            
+            # force le client à un état de connexion correct pour l'envoi
+            self.client_mock.is_connected = True
+            self.client_mock.connected_to_game = True
+            
             # initialise le plateau manuellement
             game.board = MagicMock()
             game.board.board = [[None for _ in range(8)] for _ in range(8)]
@@ -130,7 +148,7 @@ class TestCongressNetworkVictory(TestBase):
                     self.assertEqual(call_args["to_col"], dest_col)
                     
                     # vérifie que le jeu s'est arrêté après la victoire
-                    self.assertFalse(game.render.running, "le jeu devrait s'arrêter après la victoire")
+                    self.assertTrue(hasattr(game.render, 'end_popup_active') and game.render.end_popup_active, "Popup should be active after victory")
     
     def setup_test_board(self, game):
         """configure un plateau de test avec des pièces presque connectées"""

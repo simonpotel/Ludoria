@@ -33,6 +33,17 @@ class TestKaterengaNetworkVictory(TestBase):
         self.render_mock.running = True
         self.render_mock.needs_render = False
         
+        # mock pour simuler le comportement de l'objet Render
+        def mock_show_end_popup(winner_text):
+            self.render_mock.end_popup_active = True
+            self.render_mock.end_popup_text = winner_text
+            self.render_mock.end_popup_buttons = []
+            self.render_mock.needs_render = True
+            # simule le comportement normal du jeu lorsque la popup est affichée
+            self.render_mock.running = False
+            
+        self.render_mock.show_end_popup.side_effect = mock_show_end_popup
+        
         # patch pour éviter la connexion réelle au serveur
         self.network_client_patch = patch('src.network.client.client.NetworkClient', return_value=self.client_mock)
         self.network_client_mock = self.network_client_patch.start()
@@ -78,6 +89,13 @@ class TestKaterengaNetworkVictory(TestBase):
         game.game_started = True
         game.local_player_name = "TestPlayer"
         
+        # réinitialise le mock pour garantir un état propre pour les assertions
+        self.client_mock.reset_mock()
+        
+        # force le client à un état de connexion correct pour l'envoi
+        self.client_mock.is_connected = True
+        self.client_mock.connected_to_game = True
+        
         # charge le fichier de sauvegarde
         self.assertTrue(load_game(game), "échec du chargement du fichier de sauvegarde dev_katerenga.json")
         
@@ -121,7 +139,7 @@ class TestKaterengaNetworkVictory(TestBase):
         self.assertIn("board_state", call_args)
         
         # vérifie que le jeu a détecté la victoire localement
-        self.assertFalse(game.render.running, "le jeu devrait s'arrêter après la victoire")
+        self.assertTrue(hasattr(game.render, 'end_popup_active') and game.render.end_popup_active, "Popup should be active after victory")
         
         # vérifie que la victoire est détectée correctement
         self.assertTrue(game.check_win(0), "check_win devrait retourner True pour le joueur 1 après le coup gagnant")

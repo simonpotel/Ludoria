@@ -38,6 +38,17 @@ class TestIsolationVictory(TestBase):
         mock_render = MagicMock(spec=Render)
         mock_render.running = True  # initialise la propriété running à True
         mock_render.needs_render = False  # initialise la propriété needs_render à False
+        
+        # mock pour simuler le comportement de l'objet Render
+        def mock_show_end_popup(winner_text):
+            mock_render.end_popup_active = True
+            mock_render.end_popup_text = winner_text
+            mock_render.end_popup_buttons = []
+            mock_render.needs_render = True
+            mock_render.running = False
+            
+        mock_render.show_end_popup.side_effect = mock_show_end_popup
+        
         game.render = mock_render  # remplace le render réel par notre mock
         
         # charge le fichier de sauvegarde (initialise l'état du plateau)
@@ -87,7 +98,7 @@ class TestIsolationVictory(TestBase):
         self.assertEqual(game.board.board[row][col][0], current_player, f"La pièce du joueur {current_player + 1} devrait être à la position gagnante")
         
         # s'assure que la victoire a été détectée par le jeu lui-même
-        self.assertFalse(game.render.running, "Le jeu devrait s'arrêter après la victoire")
+        self.assertTrue(hasattr(game.render, 'end_popup_active') and game.render.end_popup_active, "Popup should be active after victory")
         
         # vérifie qu'il n'y a pas de coups valides pour l'adversaire (condition de victoire)
         # pas nécessaire car on_click a déjà vérifié que le coup gagnant est valide

@@ -113,7 +113,7 @@ class GameLauncher:
                 return False
 
         except Exception as e:
-            Logger.critical("GameLauncher", f"Critical error during game execution: {str(e)}", exc_info=True)
+            Logger.error("GameLauncher", f"error error during game execution: {str(e)}", exc_info=True)
             if game_instance and hasattr(game_instance, 'cleanup'):
                 game_instance.cleanup() # tentative de nettoyage en cas d'erreur
             return False

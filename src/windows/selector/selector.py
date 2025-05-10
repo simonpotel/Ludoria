@@ -56,7 +56,7 @@ class Selector:
             self.quadrants_config, self.quadrant_names, _ = config_result # _ quadrants_data non utilisé ici
             self.selected_quadrants = [None] * 4
         else:
-            Logger.critical("Selector", "Failed to load quadrant configurations.")
+            Logger.error("Selector", "Failed to load quadrant configurations.")
             self.outer_running = False # empêche le lancement de la boucle principale si la config échoue
             return
         

@@ -5,6 +5,8 @@ from src.windows.render.image_loader import ImageLoader
 from src.windows.render.board_handler import BoardHandler
 from src.windows.render.info_bar_handler import InfoBarHandler
 from src.windows.render.chat_handler import ChatHandler
+from src.windows.components.button import Button
+import sys
 
 class Render:
     """
@@ -39,6 +41,7 @@ class Render:
         # état interne
         self.running = True
         self.needs_render = True
+        self.end_game_waiting_input = False  
         
         # initialisation pygame
         pygame.init()
@@ -98,6 +101,54 @@ class Render:
         if self.info_bar_handler.edit_info_label(text):
             self.needs_render = True
 
+    def show_end_popup(self, winner_text):
+        """
+        Active la pop-up de fin de partie avec le texte du gagnant.
+        """
+        self.end_popup_active = True
+        self.end_popup_text = winner_text
+        self.end_popup_buttons = []
+        popup_width, popup_height = 500, 260
+        popup_x = (self.window_width - popup_width) // 2
+        popup_y = (self.window_height - popup_height) // 2
+        button_width, button_height = 260, 50
+        button_spacing = 30
+        # Play Again
+        play_again_btn = Button(
+            popup_x + (popup_width - button_width) // 2,
+            popup_y + 90,
+            button_width,
+            button_height,
+            "PLAY AGAIN",
+            action=self._popup_play_again
+        )
+        # Quitter
+        quit_btn = Button(
+            popup_x + (popup_width - button_width) // 2,
+            popup_y + 90 + button_height + button_spacing,
+            button_width,
+            button_height,
+            "QUITTER",
+            action=self._popup_quit
+        )
+        self.end_popup_buttons = [play_again_btn, quit_btn]
+        self.needs_render = True
+
+    def _popup_play_again(self):
+        Logger.info("Render", "Play again button clicked")
+        self.end_popup_active = False
+        self.end_game_waiting_input = False
+        self.running = False
+        self.end_popup_action = "play_again"
+
+    def _popup_quit(self):
+        Logger.info("Render", "Quit button clicked")
+        self.end_popup_active = False
+        self.end_game_waiting_input = False
+        self.running = False
+        pygame.quit()
+        sys.exit()
+
     def render_board(self):
         """
         procédure : dessine l'état complet du jeu (fond, info, plateau).
@@ -121,7 +172,30 @@ class Render:
         # 5. mise à jour de l'écran
         pygame.display.flip()
         Logger.board("Render", "Rendering complete")
-            
+        # Affichage de la pop-up de fin de partie si active
+        if hasattr(self, 'end_popup_active') and self.end_popup_active:
+            self._draw_end_popup()
+
+    def _draw_end_popup(self):
+        popup_width, popup_height = 500, 260
+        popup_x = (self.window_width - popup_width) // 2
+        popup_y = (self.window_height - popup_height) // 2
+        # fond semi-transparent
+        s = pygame.Surface((popup_width, popup_height), pygame.SRCALPHA)
+        s.fill((240, 240, 240, 210))
+        self.screen.blit(s, (popup_x, popup_y))
+        # texte gagnant centré
+        font = self.fonts['main']
+        text_surface = font.render(self.end_popup_text, True, (40, 40, 40))
+        text_rect = text_surface.get_rect(center=(self.window_width//2, popup_y + 50))
+        self.screen.blit(text_surface, text_rect)
+        # boutons
+        mouse_pos = pygame.mouse.get_pos()
+        for btn in self.end_popup_buttons:
+            btn.check_hover(mouse_pos)
+            btn.draw(self.screen)
+        pygame.display.flip()
+
     def handle_click(self, pos):
         """
         procédure : traite un clic de souris et le transmet au jeu si pertinent.
@@ -129,6 +203,15 @@ class Render:
         params:
             pos: tuple (x, y) des coordonnées du clic dans la fenêtre
         """
+        if hasattr(self, 'end_popup_active') and self.end_popup_active:
+            for btn in self.end_popup_buttons:
+                btn.check_hover(pos)
+                if btn.is_hover and btn.action:
+                    Logger.info("Render", f"Button clicked via handle_click: {btn.text}")
+                    btn.action()
+                    return
+            return
+        
         # 1. vérifier si le clic est sur le chat
         if self.chat_handler and self.chat_handler.handle_click(pos, self.game):
             self.needs_render = True
@@ -157,6 +240,20 @@ class Render:
                 if event.type == pygame.QUIT:
                     self.running = False
                     break
+                
+                # vérifie si le popup de fin de partie est actif
+                if hasattr(self, 'end_popup_active') and self.end_popup_active:
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        if event.button == 1:  # clic gauche
+                            for btn in self.end_popup_buttons:
+                                btn.check_hover(event.pos)
+                                if btn.is_hover and btn.action:
+                                    Logger.info("Render", f"Button clicked: {btn.text}")
+                                    btn.action()
+                                    self.needs_render = True
+                            self.needs_render = True
+                    continue
+                
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:  # clic gauche
                         self.handle_click(event.pos)
@@ -166,6 +263,14 @@ class Render:
                     # gestion des événements clavier pour le chat
                     if not self.game.handle_events(event):
                         self.needs_render = True
+            
+            # vérifier si le jeu devrait continuer à cause d'une déconnexion réseau
+            if hasattr(self.game, 'is_network_game') and self.game.is_network_game:
+                if hasattr(self, 'end_game_waiting_input') and self.end_game_waiting_input:
+                    pass
+                elif not self.game.network_client or (self.game.network_client and not self.game.network_client.connected):
+                    self.running = False
+                    break
             
             # rendu si nécessaire
             if self.needs_render:

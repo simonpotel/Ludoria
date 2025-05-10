@@ -41,6 +41,17 @@ class TestKaterengaVictory(TestBase):
         mock_render = MagicMock(spec=Render)
         mock_render.running = True 
         mock_render.needs_render = False  
+        
+        # mock pour simuler le comportement de l'objet Render
+        def mock_show_end_popup(winner_text):
+            mock_render.end_popup_active = True
+            mock_render.end_popup_text = winner_text
+            mock_render.end_popup_buttons = []
+            mock_render.needs_render = True
+            mock_render.running = False
+            
+        mock_render.show_end_popup.side_effect = mock_show_end_popup
+        
         game.render = mock_render  # remplace le render réel par notre mock
 
         # charge le fichier de sauvegarde (initialise l'état du plateau)
@@ -80,7 +91,7 @@ class TestKaterengaVictory(TestBase):
         self.assertEqual(game.board.board[9][9][0], 0, "La pièce du joueur 1 devrait maintenant être à (9,9)")
 
         # vérifie que la victoire a été détectée
-        self.assertFalse(game.render.running, "Le jeu devrait s'arrêter après la victoire")
+        self.assertTrue(hasattr(game.render, 'end_popup_active') and game.render.end_popup_active, "Popup should be active after victory")
         
         # vérifie que check_win retourne True pour le joueur 1 (index 0)
         self.assertTrue(game.check_win(0), "check_win devrait retourner True pour le joueur 1 après le coup gagnant")
