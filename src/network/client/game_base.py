@@ -268,9 +268,11 @@ class GameBase:
         self.game_started = False
         self.is_my_turn = False
         self.update_status_message(f"Game ended: {message}", "red")
-        if self.render:
-            self.render.running = False # arrête la boucle de jeu du rendu
-        # self.cleanup() # le cleanup se fait souvent à la fermeture de la fenêtre
+        
+        if self.render is not None and hasattr(self.render, 'end_game_waiting_input') and self.render.end_game_waiting_input:
+            pass
+        elif self.render is not None:
+            self.render.running = False
 
     def send_network_action(self, action_data: Dict):
         """

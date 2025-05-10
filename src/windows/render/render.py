@@ -41,6 +41,7 @@ class Render:
         # état interne
         self.running = True
         self.needs_render = True
+        self.end_game_waiting_input = False  
         
         # initialisation pygame
         pygame.init()
@@ -134,10 +135,16 @@ class Render:
         self.needs_render = True
 
     def _popup_play_again(self):
+        Logger.info("Render", "Play again button clicked")
+        self.end_popup_active = False
+        self.end_game_waiting_input = False
         self.running = False
         self.end_popup_action = "play_again"
 
     def _popup_quit(self):
+        Logger.info("Render", "Quit button clicked")
+        self.end_popup_active = False
+        self.end_game_waiting_input = False
         self.running = False
         pygame.quit()
         sys.exit()
@@ -199,8 +206,9 @@ class Render:
         if hasattr(self, 'end_popup_active') and self.end_popup_active:
             for btn in self.end_popup_buttons:
                 btn.check_hover(pos)
-                fake_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {'pos': pos, 'button': 1})
-                if btn.handle_event(fake_event):
+                if btn.is_hover and btn.action:
+                    Logger.info("Render", f"Button clicked via handle_click: {btn.text}")
+                    btn.action()
                     return
             return
         
@@ -232,6 +240,20 @@ class Render:
                 if event.type == pygame.QUIT:
                     self.running = False
                     break
+                
+                # vérifie si le popup de fin de partie est actif
+                if hasattr(self, 'end_popup_active') and self.end_popup_active:
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        if event.button == 1:  # clic gauche
+                            for btn in self.end_popup_buttons:
+                                btn.check_hover(event.pos)
+                                if btn.is_hover and btn.action:
+                                    Logger.info("Render", f"Button clicked: {btn.text}")
+                                    btn.action()
+                                    self.needs_render = True
+                            self.needs_render = True
+                    continue
+                
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:  # clic gauche
                         self.handle_click(event.pos)
@@ -241,6 +263,14 @@ class Render:
                     # gestion des événements clavier pour le chat
                     if not self.game.handle_events(event):
                         self.needs_render = True
+            
+            # vérifier si le jeu devrait continuer à cause d'une déconnexion réseau
+            if hasattr(self.game, 'is_network_game') and self.game.is_network_game:
+                if hasattr(self, 'end_game_waiting_input') and self.end_game_waiting_input:
+                    pass
+                elif not self.game.network_client or (self.game.network_client and not self.game.network_client.connected):
+                    self.running = False
+                    break
             
             # rendu si nécessaire
             if self.needs_render:

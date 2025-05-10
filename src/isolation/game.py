@@ -61,14 +61,15 @@ class Game(GameBase):
         self.render.needs_render = True
         
 
-        # verifie si l'ancien joueur a des coups valides
-        if not has_valid_move(self.board.board, 1 - self.round_turn, check_all_pieces=True):
-            winner = f"Player {self.round_turn + 1}" # le joueur qui vient de jouer gagne
-            Logger.success("Game Isolation", f"Game over! {winner} wins because Player {1 - self.round_turn + 1} has no valid moves!")
-            self.render.edit_info_label(f"Game Over! {winner} wins! (No moves left for Player {1 - self.round_turn + 1})")
-            winner_text = f"{winner} WON THE GAME !"
+        # verifie si le joueur qui a joué en dernier a gagné
+        if not has_valid_move(self.board.board, self.round_turn, check_all_pieces=True):
+            if self.round_turn == 0:
+                winner_text = "PLAYER 2 WON THE GAME !"
+            else:
+                winner_text = "PLAYER 1 WON THE GAME !"
             self.render.show_end_popup(winner_text)
-            self.cleanup()
+            self.render.end_game_waiting_input = True
+            return False
 
         # met à jour le message de statut en fonction du tour
         if self.is_network_game:
@@ -130,13 +131,15 @@ class Game(GameBase):
                 # c'est un coup gagnant - l'adversaire n'a plus de coups valides
                 winner_text = f"PLAYER {current_player + 1} WON THE GAME !"
                 self.render.show_end_popup(winner_text)
+                self.render.end_game_waiting_input = True
                     
-                # envoyer le coup gagnant avant le nettoyage
                 self.send_network_action({
                     "row": row,
-                    "col": col
+                    "col": col,
+                    "game_over": True,
+                    "winner": current_player
                 })
-                self.cleanup()
+                
                 return False
             
             # coup normal - pas une victoire
@@ -219,7 +222,10 @@ class Game(GameBase):
         """
         self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn - Place your tower")
         self.render.run_game_loop()
-        self.cleanup() # nettoyage après la fin de la boucle de jeu
+        if getattr(self.render, "end_popup_action", None) == "play_again":
+            from src.windows.selector.selector import Selector
+            Selector()
+        self.cleanup()
 
     def get_board_state(self):
         """

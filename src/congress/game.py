@@ -75,6 +75,18 @@ class Game(GameBase):
                     piece_positions.append((i, j))
         Logger.game("Game Congress", f"Pieces for player {player_who_just_moved + 1}: {piece_positions}")
         
+        # Vérifier si l'action indique explicitement la fin du jeu
+        if action_data.get("game_over", False):
+            winner = action_data.get("winner")
+            if winner is not None:
+                if self.game_mode == "Bot" and winner == 1:
+                    winner_text = "BOT WON THE GAME !"
+                else:
+                    winner_text = f"PLAYER {winner + 1} WON THE GAME !"
+                self.render.show_end_popup(winner_text)
+                self.render.end_game_waiting_input = True
+                return False
+        
         # vérifie si le joueur qui a joué en dernier a gagné
         Logger.game("Game Congress", f"Checking victory condition for Player {player_who_just_moved + 1}")
         if self.check_connected_pieces(player_who_just_moved):
@@ -83,10 +95,8 @@ class Game(GameBase):
             else:
                 winner_text = f"PLAYER {player_who_just_moved + 1} WON THE GAME !"
             self.render.show_end_popup(winner_text)
-            
-            # envoyer l'action réseau avant le nettoyage
-            self.cleanup()
-            return False  # le jeu est terminé
+            self.render.end_game_waiting_input = True
+            return False
 
         # met à jour le message de statut en fonction du tour
         if self.is_network_game:
@@ -252,14 +262,17 @@ class Game(GameBase):
                       else:
                           winner_text = f"PLAYER {player_who_moved + 1} WON THE GAME !"
                       self.render.show_end_popup(winner_text)
+                      self.render.end_game_waiting_input = True
                       
                       self.send_network_action({
                           "from_row": old_row,
                           "from_col": old_col,
                           "to_row": row,
-                          "to_col": col
+                          "to_col": col,
+                          "game_over": True,
+                          "winner": player_who_moved
                       })
-                      self.cleanup()
+                      
                       return False
 
                   # si pas de victoire, informer le renderer et envoyer l'action normalement
@@ -285,7 +298,7 @@ class Game(GameBase):
                 else:
                     winner_text = f"PLAYER {player_who_moved + 1} WON THE GAME !"
                 self.render.show_end_popup(winner_text)
-                self.render.needs_render = True
+                self.render.end_game_waiting_input = True
                 return False
 
             self.round_turn = 1 - self.round_turn # changement de tour
@@ -297,6 +310,27 @@ class Game(GameBase):
             if self.game_mode == "Bot" and self.round_turn == 1:
                 pygame.time.set_timer(pygame.USEREVENT, 500) # délai de 500ms
                 self._bot_timer_set = True
+
+            # vérifie si ce coup a causé une victoire
+            if self.check_connected_pieces(player_who_moved):
+                if self.game_mode == "Bot" and player_who_moved == 1:
+                    winner_text = "BOT WON THE GAME !"
+                else:
+                    winner_text = f"PLAYER {player_who_moved + 1} WON THE GAME !"
+                self.render.show_end_popup(winner_text)
+                self.render.end_game_waiting_input = True
+                
+                if self.game_mode == "Network":
+                    self.send_network_action({
+                        "from_row": old_row,
+                        "from_col": old_col,
+                        "to_row": row,
+                        "to_col": col,
+                        "game_over": True,
+                        "winner": player_who_moved
+                    })
+                
+                return False
 
             return True # clic géré, le jeu continue
     
