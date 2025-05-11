@@ -1,12 +1,11 @@
 import pygame
-from src.utils.logger import Logger
-from src.windows.render.constants import RenderConstants
-from src.windows.render.image_loader import ImageLoader
+import sys
 from src.windows.render.board_handler import BoardHandler
 from src.windows.render.info_bar_handler import InfoBarHandler
 from src.windows.render.chat_handler import ChatHandler
 from src.windows.components.button import Button
-import sys
+from src.utils.logger import Logger
+from src.windows.render.image_loader import ImageLoader
 
 class Render:
     """
@@ -113,6 +112,10 @@ class Render:
         popup_y = (self.window_height - popup_height) // 2
         button_width, button_height = 260, 50
         button_spacing = 30
+        
+        # détermine si le jeu est un jeu réseau pour la gestion de la déconnexion
+        self.game_to_disconnect = self.game if hasattr(self, 'game') and self.game else None
+        
         # Play Again
         play_again_btn = Button(
             popup_x + (popup_width - button_width) // 2,
@@ -136,6 +139,13 @@ class Render:
 
     def _popup_play_again(self):
         Logger.info("Render", "Play again button clicked")
+        
+        # envoie du packet de déconnexion au serveur avant de jouer à nouveau si c'est un jeu réseau
+        if self.game_to_disconnect:
+            if getattr(self.game_to_disconnect, 'is_network_game', False) and getattr(self.game_to_disconnect, 'network_client', None):
+                Logger.info("Render", "Game ended - sending disconnect to server before play again")
+                self.game_to_disconnect.network_client.disconnect("Game over")
+        
         self.end_popup_active = False
         self.end_game_waiting_input = False
         self.running = False
@@ -143,6 +153,15 @@ class Render:
 
     def _popup_quit(self):
         Logger.info("Render", "Quit button clicked")
+        
+        # envoie du packet de déconnexion au serveur avant de quitter si c'est un jeu réseau
+        # on pourrait skip cette partie car le serveur va reçevoir : Disconnection event: No reason specified (quit)
+        # quand on quitte le jeu, mais pour une déconnexion propre, on envoie un packet de déconnexion
+        if self.game_to_disconnect:
+            if getattr(self.game_to_disconnect, 'is_network_game', False) and getattr(self.game_to_disconnect, 'network_client', None):
+                Logger.info("Render", "Game ended - sending disconnect to server before quit")
+                self.game_to_disconnect.network_client.disconnect("Game over")
+        
         self.end_popup_active = False
         self.end_game_waiting_input = False
         self.running = False
