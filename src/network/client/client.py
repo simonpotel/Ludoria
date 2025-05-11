@@ -24,6 +24,7 @@ class NetworkClient:
         self.game_id: Optional[str] = None # id de la partie
         self.player_number: Optional[int] = None # numéro du joueur
         self.is_my_turn = False # indique si c'est le tour du joueur
+        self.opponent_connected = False # indique si un adversaire est connecté
         self.handlers: Dict[str, Callable] = {} # dictionnaire des gestionnaires d'événements
         self.receive_buffer = b"" # buffer de réception des messages
         Logger.initialize()
@@ -138,6 +139,7 @@ class NetworkClient:
         self.is_my_turn = False
         self.game_id = None
         self.player_number = None
+        self.opponent_connected = False
         self.receive_buffer = b"" 
         self.listen_thread = None
 
@@ -309,11 +311,13 @@ class NetworkClient:
 
     def _handle_your_turn(self, packet_data: Dict):
         self.is_my_turn = True
+        self.opponent_connected = True  # si on reçoit un signal de tour, l'adversaire est connecté
         Logger.info("NetworkClient", f"Starting turn for Player {self.player_number}")
         self.call_handler("turn_started") 
 
     def _handle_wait_turn(self, packet_data: Dict):
         self.is_my_turn = False
+        self.opponent_connected = True  # si on reçoit un signal d'attente, l'adversaire est connecté
         other_player = 2 if self.player_number == 1 else (1 if self.player_number == 2 else "?")
         Logger.info("NetworkClient", f"Player {self.player_number} waiting for Player {other_player}'s turn")
         self.call_handler("turn_ended") 
@@ -328,6 +332,7 @@ class NetworkClient:
 
     def _handle_player_disconnected(self, packet_data: Dict):
         message = packet_data.get("message", "Other player disconnected")
+        self.opponent_connected = False  # l'adversaire s'est déconnecté
         Logger.info("NetworkClient", f"Received player disconnected notification: {message}")
         self.call_handler("player_disconnected", message)
 
