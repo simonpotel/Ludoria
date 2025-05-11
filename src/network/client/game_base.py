@@ -334,6 +334,11 @@ class GameBase:
         if not self.game_started:
             self.update_status_message("Waiting for game to start...", "blue")
             return False
+            
+        if self.network_client and not self.network_client.opponent_connected:
+            self.update_status_message("Waiting for another player to join...", "blue")
+            return False
+            
         if not self.is_my_turn:
             other_player = 2 if self.player_number == 1 else 1
             self.update_status_message(f"Waiting for Player {other_player}...", "orange")
