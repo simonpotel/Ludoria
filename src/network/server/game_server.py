@@ -338,6 +338,10 @@ class GameServer:
             
             return False
 
+        if not game.is_full():
+            Logger.warning("Server", f"Action received for game {game_id} with only one player. Ignoring action.") 
+            return False
+
         if not game.is_player_turn(client_socket):
             Logger.warning("Server", f"Not player's turn ({client_socket.getpeername()}) in game {game_id}. Ignoring action.") 
             
@@ -411,10 +415,13 @@ class GameServer:
                         player_disconnected_dict = create_player_disconnected_dict(disconnect_msg, game_id) 
                         self._send_json(other_socket, player_disconnected_dict) 
                 
-                if game.is_empty() or not game.active: 
+                if game.is_empty():
                     if game_id in self.games:
                          del self.games[game_id]
-                         Logger.info("Server", f"Removed empty/inactive game session: {game_id}") 
+                         Logger.info("Server", f"Removed empty game session: {game_id}") 
+                else:
+                    del self.games[game_id]
+                    Logger.info("Server", f"Removed game session: {game_id} (inactive but not empty)") 
                     
             
             if client_socket in self.clients:
