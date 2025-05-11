@@ -26,6 +26,7 @@ class TestIsolationNetworkVictory(TestBase):
         
         # création des mocks pour isoler le test
         self.client_mock = MagicMock(spec=NetworkClient)
+        self.client_mock.opponent_connected = True
         self.render_mock = MagicMock(spec=Render)
         self.render_mock.running = True
         self.render_mock.needs_render = False
