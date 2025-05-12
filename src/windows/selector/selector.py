@@ -8,6 +8,7 @@ from src.windows.selector.config_loader import ConfigLoader
 from src.windows.selector.quadrant_handler import QuadrantHandler
 from src.windows.selector.game_launcher import GameLauncher
 from src.windows.selector.solo_config import SoloConfigScreen
+from src.windows.selector.bot_config import BotConfigScreen
 
 
 class Selector:
@@ -124,8 +125,12 @@ class Selector:
                                     show_welcome = False
                                     self.solo_config_screen()
                                     return  # Sortir de la méthode welcome_screen
+                                elif i == 1:  # Mode Bot
+                                    show_welcome = False
+                                    self.bot_config_screen()
+                                    return  # Sortir de la méthode welcome_screen
                                 else:
-                                    # Pour les autres modes (Bot, Network)
+                                    # Pour les autres modes (Network)
                                     if self.mode_selection:
                                         self.mode_selection.selected_index = i
                                     show_welcome = False
@@ -400,3 +405,23 @@ class Selector:
         
         # Après la fermeture de l'écran de configuration Solo
         Logger.info("Selector", "Configuration Solo terminée.")
+
+    def bot_config_screen(self):
+        """
+        Procédure : affiche l'écran de configuration pour le mode Bot.
+        Utilise la classe BotConfigScreen pour gérer l'interface dédiée au mode Bot.
+        """
+        # Ajout de logs pour le débogage
+        Logger.info("Selector", "Démarrage de l'écran de configuration Bot...")
+        
+        try:
+            # Création et affichage de l'écran de configuration Bot
+            bot_screen = BotConfigScreen(self)
+            Logger.info("Selector", "Instance BotConfigScreen créée avec succès")
+            bot_screen.show()
+            Logger.info("Selector", "Méthode show() de BotConfigScreen terminée")
+        except Exception as e:
+            Logger.error("Selector", f"Erreur lors de l'affichage de l'écran Bot: {str(e)}")
+        
+        # Après la fermeture de l'écran de configuration Bot
+        Logger.info("Selector", "Configuration Bot terminée.")
