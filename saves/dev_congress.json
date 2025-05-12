@@ -81,6 +81,6 @@
             [3, 3]
         ]
     ],
-    "game_number": 0,
-    "round_turn": 0
+    "round_turn": 0,
+    "game": "congress"
 } 

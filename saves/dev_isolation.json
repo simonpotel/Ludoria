@@ -273,6 +273,6 @@
             ]
         ]
     ],
-    "game_number": 1,
-    "round_turn": 0
+    "round_turn": 0,
+    "game": "isolation"
 }
