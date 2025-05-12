@@ -6,6 +6,7 @@ from src.windows.render.chat_handler import ChatHandler
 from src.windows.components.button import Button
 from src.utils.logger import Logger
 from src.windows.render.image_loader import ImageLoader
+from datetime import datetime
 
 class Render:
     """
@@ -208,6 +209,14 @@ class Render:
         text_surface = font.render(self.end_popup_text, True, (40, 40, 40))
         text_rect = text_surface.get_rect(center=(self.window_width//2, popup_y + 50))
         self.screen.blit(text_surface, text_rect)
+        
+        # Ajout de la date et l'heure en bas
+        current_time = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        date_font = self.fonts['chat']  # Utilisation d'une police plus petite
+        date_surface = date_font.render(current_time, True, (80, 80, 80))
+        date_rect = date_surface.get_rect(center=(self.window_width//2, popup_y + popup_height - 15))
+        self.screen.blit(date_surface, date_rect)
+        
         # boutons
         mouse_pos = pygame.mouse.get_pos()
         for btn in self.end_popup_buttons:
