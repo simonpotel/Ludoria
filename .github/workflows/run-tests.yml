@@ -1,0 +1,65 @@
+name: Run Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        # installation des dépendances système pour pygame (commenté car pas nécessaire)
+        # sudo apt-get update
+        # sudo apt-get install -y python3-dev libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libfreetype6-dev
+        
+    - name: Run tests
+      id: run_tests
+      run: |
+        set +e  # continue même en cas d'erreur
+        python -u tests/run_tests.py > test_output.txt 2>&1
+        TEST_EXIT_CODE=$?
+        cat test_output.txt
+        
+        # extraction des infos sur les tests échoués
+        if [ $TEST_EXIT_CODE -ne 0 ]; then
+          echo "::group::Tests Échoués"
+          grep -A 3 "FAILED" test_output.txt || true
+          grep "^✗" test_output.txt || true
+          echo "::endgroup::"
+          
+          # ajout du résumé des échecs au rapport github
+          echo "### ❌ Test Failures" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          grep "^✗" test_output.txt >> $GITHUB_STEP_SUMMARY || echo "erreur lors de l'analyse des résultats" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          
+          # sauvegarde des erreurs dans un fichier
+          echo "$(<test_output.txt)" > test_failures.log
+        else
+          echo "### ✅ All Tests Passed" >> $GITHUB_STEP_SUMMARY
+          echo "Total test files: $(grep 'Total test files:' test_output.txt | awk '{print $4}')" >> $GITHUB_STEP_SUMMARY
+          echo "Passed: $(grep 'Passed:' test_output.txt | awk '{print $2}')" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        exit $TEST_EXIT_CODE
+        
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: test_output.txt
+        retention-days: 5 

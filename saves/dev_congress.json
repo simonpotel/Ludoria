@@ -1,0 +1,86 @@
+{
+    "board": [
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [0, 0],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null]
+        ],
+        [
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [null, null],
+            [3, 3]
+        ]
+    ],
+    "round_turn": 0,
+    "game": "congress"
+} 

@@ -9,12 +9,20 @@ def save_game(game):
     params :
         game - instance du jeu à sauvegarder
     """
+    # skip la sauvegarde pour les fichiers de test de développement
+    if game.game_save.startswith("dev_"):
+        Logger.info("Saves", f"Skipping save for development test file: {game.game_save}")
+        return
+        
     Logger.info("Saves", f"Saving game state for {game.game_save}")
     try:
+        # extraction du type de jeu depuis le nom du module de la classe
+        game_type = game.__class__.__module__.split('.')[-2]  # katerenga, isolation, congress
+        
         game_state = {
             'board': [[[cell[0], cell[1]] for cell in row] for row in game.board.board],
-            'game_number': game.board.game_number,
             'round_turn': game.round_turn,
+            'game': game_type  # type de jeu (katerenga, isolation, congress)
         }
 
         os.makedirs("saves", exist_ok=True)
@@ -64,10 +72,14 @@ def _update_game_state(game, game_state):
         game_state - données de sauvegarde
     """
     Logger.board("Saves", "Updating board state from save file")
-    for i in range(len(game.board.board)):
-        for j in range(len(game.board.board[i])):
-            game.board.board[i][j][0] = game_state['board'][i][j][0]
-            game.board.board[i][j][1] = game_state['board'][i][j][1]
     
-    game.board.game_number = game_state['game_number']
+    # mise à jour du plateau avec vérification des dimensions
+    saved_board = game_state['board']
+    current_board = game.board.board
+    
+    for i in range(min(len(current_board), len(saved_board))):
+        for j in range(min(len(current_board[i]), len(saved_board[i]))):
+            current_board[i][j][0] = saved_board[i][j][0]
+            current_board[i][j][1] = saved_board[i][j][1]
+    
     game.round_turn = game_state['round_turn']

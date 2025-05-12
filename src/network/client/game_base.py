@@ -4,7 +4,7 @@ from src.utils.logger import Logger
 from src.saves import save_game
 import json
 import random
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 class GameBase:
     """
@@ -36,6 +36,9 @@ class GameBase:
         self.status_color = (0, 0, 0) # couleur du message
         self.game_id = None # id unique de la partie réseau
         self._bot_timer_set = False # flag pour le timer du bot
+        self.chat_messages = [] # historique des messages du chat
+        self.chat_input = "" # contenu actuel de l'input du chat
+        self.chat_active = False # indique si l'input du chat est actuellement actif
         
         if self.is_network_game:
             if not self.local_player_name:
@@ -83,6 +86,7 @@ class GameBase:
         self.network_client.register_handler("turn_ended", self.on_turn_ended)
         self.network_client.register_handler("game_action", self.on_network_action)
         self.network_client.register_handler("player_disconnected", self.on_player_disconnected)
+        self.network_client.register_handler("chat_message", self.on_chat_message)
         # ajouter d'autres handlers si nécessaire (ex: "game_over", "chat_message")
 
     def update_status_message(self, message: str, color=(0, 0, 0)):
@@ -264,9 +268,11 @@ class GameBase:
         self.game_started = False
         self.is_my_turn = False
         self.update_status_message(f"Game ended: {message}", "red")
-        if self.render:
-            self.render.running = False # arrête la boucle de jeu du rendu
-        # self.cleanup() # le cleanup se fait souvent à la fermeture de la fenêtre
+        
+        if self.render is not None and hasattr(self.render, 'end_game_waiting_input') and self.render.end_game_waiting_input:
+            pass
+        elif self.render is not None:
+            self.render.running = False
 
     def send_network_action(self, action_data: Dict):
         """
@@ -328,6 +334,11 @@ class GameBase:
         if not self.game_started:
             self.update_status_message("Waiting for game to start...", "blue")
             return False
+            
+        if self.network_client and not self.network_client.opponent_connected:
+            self.update_status_message("Waiting for another player to join...", "blue")
+            return False
+            
         if not self.is_my_turn:
             other_player = 2 if self.player_number == 1 else 1
             self.update_status_message(f"Waiting for Player {other_player}...", "orange")
@@ -348,6 +359,70 @@ class GameBase:
         self.game_started = False
         self.is_my_turn = False
         
+    def on_chat_message(self, data: Dict):
+        """
+        procédure : gère la réception d'un message de chat.
+        
+        params:
+            data: dictionnaire contenant les données du message (sender_name, message, player_number).
+        """
+        try:
+            sender_name = data.get("sender_name", "Inconnu")
+            message = data.get("message", "")
+            player_number = data.get("player_number", 0)
+            
+            # vérifie si le message est valide
+            if not message:
+                Logger.warning("GameBase", f"Received empty chat message from {sender_name}")
+                return
+                
+            # ajoute le message à l'historique avec horodatage
+            formatted_message = f"[Joueur {player_number}] {sender_name}: {message}"
+            self.chat_messages.append(formatted_message)
+            
+            # limite la taille de l'historique (optionnel)
+            if len(self.chat_messages) > 100:
+                self.chat_messages = self.chat_messages[-100:]
+                
+            Logger.info("GameBase", f"Chat message received: {formatted_message}")
+            
+            # rafraîchit pour afficher le nouveau message
+            if self.render:
+                self.render.needs_render = True
+                
+        except Exception as e:
+            Logger.error("GameBase", f"Error processing chat message: {e}")
+
+    def send_chat_message(self, message: str):
+        """
+        procédure : envoie un message de chat au serveur.
+        
+        params:
+            message: contenu du message à envoyer.
+        """
+        if not self.is_network_game or not self.network_client:
+            Logger.warning("GameBase", "Cannot send chat: not a network game or client not initialized")
+            return
+            
+        # vérifie si le message est valide
+        if not message or message.isspace():
+            return
+            
+        Logger.info("GameBase", f"Sending chat message: {message}")
+        self.network_client.send_chat_message(message, self.local_player_name)
+        
+        # ajoute le message à l'historique local immédiatement
+        # (il sera également reçu via le réseau comme confirmation)
+        formatted_message = f"[Joueur {self.player_number}] {self.local_player_name}: {message}"
+        self.chat_messages.append(formatted_message)
+        
+        # rafraîchit l'interface
+        if self.render:
+            self.render.needs_render = True
+            
+        # réinitialise l'input
+        self.chat_input = ""
+
     def handle_events(self, event) -> bool:
         """
         procédure : gère les événements pygame communs, notamment le timer du bot.
@@ -359,6 +434,38 @@ class GameBase:
         retour:
             bool: True si l'événement n'a pas été traité par cette méthode (doit être traité par la sous-classe), False sinon.
         """
+        # gestion du chat si en mode réseau
+        if self.is_network_game:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    if self.chat_active:
+                        # envoi du message
+                        self.send_chat_message(self.chat_input)
+                        self.chat_input = ""
+                        self.chat_active = False
+                        return False
+                    else:
+                        # active le mode chat
+                        self.chat_active = True
+                        return False
+                elif self.chat_active:
+                    if event.key == pygame.K_ESCAPE:
+                        # annule le mode chat
+                        self.chat_active = False
+                        return False
+                    elif event.key == pygame.K_BACKSPACE:
+                        # supprime le dernier caractère
+                        self.chat_input = self.chat_input[:-1]
+                        if self.render:
+                            self.render.needs_render = True
+                        return False
+                    elif event.unicode and ord(event.unicode) >= 32:
+                        # ajoute le caractère tapé
+                        self.chat_input += event.unicode
+                        if self.render:
+                            self.render.needs_render = True
+                        return False
+        
         # gestion du timer pour déclencher le coup du bot
         if hasattr(self, '_bot_timer_set') and self._bot_timer_set:
             if event.type == pygame.USEREVENT:

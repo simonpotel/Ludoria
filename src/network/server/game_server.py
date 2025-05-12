@@ -8,7 +8,7 @@ from src.network.common.packets import (
     PacketType, 
     create_player_assignment_dict, create_wait_turn_dict,
     create_your_turn_dict, create_disconnect_dict, 
-    create_player_disconnected_dict
+    create_player_disconnected_dict, create_chat_receive_dict
 )
 from src.utils.logger import Logger
 from src.network.server.game_session import GameSession
@@ -169,7 +169,8 @@ class GameServer:
             handlers = {
                 PacketType.CONNECT: self.handle_connect, # on gère le paquet CONNECT
                 PacketType.DISCONNECT: lambda s, pt, pd: self.disconnect_client(s, pd.get("reason", "Client requested disconnect")), # on gère le paquet DISCONNECT
-                PacketType.GAME_ACTION: self.handle_game_action # on gère le paquet GAME_ACTION
+                PacketType.GAME_ACTION: self.handle_game_action, # on gère le paquet GAME_ACTION
+                PacketType.CHAT_SEND: self.handle_chat_message, # on gère le paquet CHAT_SEND
             }
             
             if packet_type_enum in handlers:
@@ -337,6 +338,10 @@ class GameServer:
             
             return False
 
+        if not game.is_full():
+            Logger.warning("Server", f"Action received for game {game_id} with only one player. Ignoring action.") 
+            return False
+
         if not game.is_player_turn(client_socket):
             Logger.warning("Server", f"Not player's turn ({client_socket.getpeername()}) in game {game_id}. Ignoring action.") 
             
@@ -410,10 +415,13 @@ class GameServer:
                         player_disconnected_dict = create_player_disconnected_dict(disconnect_msg, game_id) 
                         self._send_json(other_socket, player_disconnected_dict) 
                 
-                if game.is_empty() or not game.active: 
+                if game.is_empty():
                     if game_id in self.games:
                          del self.games[game_id]
-                         Logger.info("Server", f"Removed empty/inactive game session: {game_id}") 
+                         Logger.info("Server", f"Removed empty game session: {game_id}") 
+                else:
+                    del self.games[game_id]
+                    Logger.info("Server", f"Removed game session: {game_id} (inactive but not empty)") 
                     
             
             if client_socket in self.clients:
@@ -445,3 +453,46 @@ class GameServer:
             Logger.info("Server", "Server socket closed.") 
         except Exception as e:
              Logger.error("Server", f"Error closing server socket: {e}") 
+
+    def handle_chat_message(self, client_socket: socket.socket, packet_type: PacketType, packet_data: Dict):
+        """
+        procédure : gère les messages de chat
+        """
+        try:
+            if "sender_name" not in packet_data or "message" not in packet_data or "game_id" not in packet_data:
+                Logger.error("Server", f"Missing required fields in CHAT_SEND from {client_socket.getpeername()}")
+                return
+                
+            game_id = packet_data["game_id"]
+            if game_id not in self.games:
+                Logger.error("Server", f"Game {game_id} not found for chat message from {client_socket.getpeername()}")
+                return
+                
+            sender_name = packet_data["sender_name"]
+            message = packet_data["message"]
+            player_number = packet_data.get("player_number", 0)
+            
+            game = self.games[game_id]
+            
+            # vérifie que l'expéditeur est bien dans cette partie
+            if client_socket not in [sock for sock in game.players.values()]:
+                Logger.warning("Server", f"Client {client_socket.getpeername()} tried to send chat to game {game_id} but is not a player")
+                return
+                
+            Logger.info("Server", f"Chat message from Player {player_number} in game {game_id}: {message}")
+            
+            # envoie le message à tous les joueurs de la partie (y compris l'expéditeur pour confirmation)
+            chat_packet = create_chat_receive_dict(
+                sender_name=sender_name,
+                message=message,
+                player_number=player_number,
+                game_id=game_id
+            )
+            
+            for player_socket in game.players.values():
+                if player_socket != client_socket:  # évite de renvoyer au même client
+                    Logger.info("Server", f"Forwarding chat message to {player_socket.getpeername()} in game {game_id}")
+                    self._send_json(player_socket, chat_packet)
+                    
+        except Exception as e:
+            Logger.error("Server", f"Error handling chat message from {client_socket.getpeername()}: {str(e)}")
