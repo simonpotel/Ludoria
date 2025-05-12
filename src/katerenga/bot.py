@@ -157,12 +157,12 @@ class KaterengaBot:
         # valeur élevée pour les mouvements vers un camp libre
         if self.is_camp_move(end_row, end_col, bot_camps):
              if self.game.board.board[end_row][end_col][0] is None or self.game.board.board[end_row][end_col][0] != 1:
-                 return 55
+                 return 5
              else:
                  if self.game.board.board[end_row][end_col][0] == 1:
                      return -1
                  else:
-                     return 55
+                     return 5
 
         # vérifie la validité du mouvement simulé
         if not available_move(self.game.board.board, start_row, start_col, end_row, end_col):
