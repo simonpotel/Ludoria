@@ -30,8 +30,10 @@ class Selector:
         self.config_loader = ConfigLoader()
         self.game_launcher = GameLauncher()
         
-        self.width = 800
-        self.height = 700
+        self.background = pygame.image.load("assets/tropique/background.png")
+        self.background = pygame.transform.scale(self.background, (800, 700)) # redimensionne l'image de fond
+        self.width = 1280
+        self.height = 720 
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Ludoria - Selector")
         self.clock = pygame.time.Clock()
@@ -62,6 +64,115 @@ class Selector:
         
         self.main_loop()
 
+    def welcome_screen(self):
+        """
+        Procédure : affiche un écran d'accueil avec les trois panneaux de mode de jeu.
+        Permet à l'utilisateur de choisir un mode (Solo, Bot, Network) pour continuer.
+        """
+        show_welcome = True
+        try:
+            # Chargement des images des panels
+            panel_images = [
+                pygame.image.load("assets/solo_panel.png"),
+                pygame.image.load("assets/bot_panel.png"),
+                pygame.image.load("assets/network_panel.png")
+            ]
+            panel_width = 320
+            panel_height = 130
+            for i in range(len(panel_images)):
+                panel_images[i] = pygame.transform.scale(panel_images[i], (panel_width, panel_height))
+        except pygame.error as e:
+            Logger.error("Selector", f"Failed to load panel images: {e}")
+            return  # En cas d'erreur, on passe directement à l'interface principale
+    
+        # Position des panels
+        screen_width, screen_height = self.width, self.height
+        panel_positions = [
+            ((screen_width // 4) - (panel_width // 2), (screen_height // 2) - (panel_height // 2)),
+            ((screen_width // 2) - (panel_width // 2), (screen_height // 2) - (panel_height // 2)),
+            ((3 * screen_width // 4) - (panel_width // 2), (screen_height // 2) - (panel_height // 2))
+        ]
+        
+        # Descriptions des panels
+        panel_descriptions = [
+            "Mode Solo - Jouez contre vous-même",
+            "Mode Bot - Défiez l'intelligence artificielle",
+            "Mode Réseau - Jouez en ligne avec d'autres joueurs"
+        ]
+    
+        # Texte du titre
+        title_font = pygame.font.SysFont('Arial', 48, bold=True)
+        title_text = title_font.render("Ludoria - Sélectionnez un mode de jeu", True, (255, 255, 255))
+        title_rect = title_text.get_rect(center=(screen_width // 2, 50))
+        
+        # Logo ou image d'arrière-plan supplémentaire
+        try:
+            background = pygame.image.load("assets/tropique/background.png").convert_alpha()
+            background = pygame.transform.scale(background, (screen_width, screen_height))
+        except pygame.error:
+            background = None
+        
+        # Rects pour la détection des clics
+        panel_rects = [pygame.Rect(pos[0], pos[1], panel_width, panel_height) for pos in panel_positions]
+        
+        # Effet de survol
+        hovered_panel = None
+        
+        while show_welcome and self.outer_running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    show_welcome = False
+                    self.outer_running = False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:  # Clic gauche
+                        for i, rect in enumerate(panel_rects):
+                            if rect.collidepoint(event.pos):
+                                Logger.info("Selector", f"Panel {i+1} sélectionné")
+                                # Définir le mode de jeu en fonction du panel sélectionné
+                                if self.mode_selection:
+                                    self.mode_selection.selected_index = i
+                                show_welcome = False
+            
+            # Mise à jour de l'effet de survol
+            mouse_pos = pygame.mouse.get_pos()
+            hovered_panel = None
+            for i, rect in enumerate(panel_rects):
+                if rect.collidepoint(mouse_pos):
+                    hovered_panel = i
+            
+            # Affichage
+            self.screen.fill((40, 40, 80))  # Fond bleu foncé
+            
+            # Afficher l'arrière-plan si disponible
+            if background:
+                self.screen.blit(background, (0, 0))
+            
+            # Afficher le titre
+            self.screen.blit(title_text, title_rect)
+            
+            # Afficher les panels
+            for i, (image, pos) in enumerate(zip(panel_images, panel_positions)):
+                # Effet de survol - agrandissement léger
+                if hovered_panel == i:
+                    scale_factor = 1.05
+                    scaled_width = int(panel_width * scale_factor)
+                    scaled_height = int(panel_height * scale_factor)
+                    scaled_image = pygame.transform.scale(image, (scaled_width, scaled_height))
+                    adjusted_pos = (pos[0] - (scaled_width - panel_width)//2, 
+                                    pos[1] - (scaled_height - panel_height)//2)
+                    self.screen.blit(scaled_image, adjusted_pos)
+                    
+                    # Ajouter un texte descriptif sous le panel survolé
+                    desc_font = pygame.font.SysFont('Arial', 24)
+                    desc_text = desc_font.render(panel_descriptions[i], True, (255, 255, 255))
+                    desc_rect = desc_text.get_rect(center=(pos[0] + panel_width//2, pos[1] + panel_height + 30))
+                    self.screen.blit(desc_text, desc_rect)
+                else:
+                    self.screen.blit(image, pos)
+            
+            pygame.display.flip()
+            self.clock.tick(60)
+        
     def setup_ui(self):
         """
         procédure : configuration de l'interface utilisateur.
@@ -180,6 +291,9 @@ class Selector:
         gère les événements utilisateurs, met à jour l'état de l'interface et dessine les éléments.
         cette boucle se réinitialise si un jeu est lancé puis quitté, permettant de revenir au sélecteur.
         """
+        # Afficher l'écran d'accueil avant de lancer l'interface de sélection
+        self.welcome_screen()
+        
         while self.outer_running: # boucle externe pour permettre de revenir au menu après un jeu
             self.screen = pygame.display.set_mode((self.width, self.height)) # réinitialise la surface de dessin
             pygame.display.set_caption("Ludoria- Selector")
