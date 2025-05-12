@@ -7,6 +7,7 @@ from src.windows.components import Button, Dropdown, TextInput
 from src.windows.selector.config_loader import ConfigLoader
 from src.windows.selector.quadrant_handler import QuadrantHandler
 from src.windows.selector.game_launcher import GameLauncher
+from src.windows.selector.solo_config import SoloConfigScreen
 
 
 class Selector:
@@ -31,7 +32,7 @@ class Selector:
         self.game_launcher = GameLauncher()
         
         self.background = pygame.image.load("assets/tropique/background.png")
-        self.background = pygame.transform.scale(self.background, (800, 700)) # redimensionne l'image de fond
+        self.background = pygame.transform.scale(self.background, (1280, 720)) # redimensionne l'image de fond
         self.width = 1280
         self.height = 720 
         self.screen = pygame.display.set_mode((self.width, self.height))
@@ -93,13 +94,6 @@ class Selector:
             ((3 * screen_width // 4) - (panel_width // 2), (screen_height // 2) - (panel_height // 2))
         ]
         
-        # Descriptions des panels
-        panel_descriptions = [
-            "Mode Solo - Jouez contre vous-même",
-            "Mode Bot - Défiez l'intelligence artificielle",
-            "Mode Réseau - Jouez en ligne avec d'autres joueurs"
-        ]
-    
         # Texte du titre
         title_font = pygame.font.SysFont('Arial', 48, bold=True)
         title_text = title_font.render("Ludoria - Sélectionnez un mode de jeu", True, (255, 255, 255))
@@ -115,9 +109,6 @@ class Selector:
         # Rects pour la détection des clics
         panel_rects = [pygame.Rect(pos[0], pos[1], panel_width, panel_height) for pos in panel_positions]
         
-        # Effet de survol
-        hovered_panel = None
-        
         while show_welcome and self.outer_running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -128,17 +119,16 @@ class Selector:
                         for i, rect in enumerate(panel_rects):
                             if rect.collidepoint(event.pos):
                                 Logger.info("Selector", f"Panel {i+1} sélectionné")
-                                # Définir le mode de jeu en fonction du panel sélectionné
-                                if self.mode_selection:
-                                    self.mode_selection.selected_index = i
-                                show_welcome = False
-            
-            # Mise à jour de l'effet de survol
-            mouse_pos = pygame.mouse.get_pos()
-            hovered_panel = None
-            for i, rect in enumerate(panel_rects):
-                if rect.collidepoint(mouse_pos):
-                    hovered_panel = i
+                                # Si le mode Solo est sélectionné, afficher l'écran de configuration solo
+                                if i == 0:  # Mode Solo
+                                    show_welcome = False
+                                    self.solo_config_screen()
+                                    return  # Sortir de la méthode welcome_screen
+                                else:
+                                    # Pour les autres modes (Bot, Network)
+                                    if self.mode_selection:
+                                        self.mode_selection.selected_index = i
+                                    show_welcome = False
             
             # Affichage
             self.screen.fill((40, 40, 80))  # Fond bleu foncé
@@ -152,27 +142,11 @@ class Selector:
             
             # Afficher les panels
             for i, (image, pos) in enumerate(zip(panel_images, panel_positions)):
-                # Effet de survol - agrandissement léger
-                if hovered_panel == i:
-                    scale_factor = 1.05
-                    scaled_width = int(panel_width * scale_factor)
-                    scaled_height = int(panel_height * scale_factor)
-                    scaled_image = pygame.transform.scale(image, (scaled_width, scaled_height))
-                    adjusted_pos = (pos[0] - (scaled_width - panel_width)//2, 
-                                    pos[1] - (scaled_height - panel_height)//2)
-                    self.screen.blit(scaled_image, adjusted_pos)
-                    
-                    # Ajouter un texte descriptif sous le panel survolé
-                    desc_font = pygame.font.SysFont('Arial', 24)
-                    desc_text = desc_font.render(panel_descriptions[i], True, (255, 255, 255))
-                    desc_rect = desc_text.get_rect(center=(pos[0] + panel_width//2, pos[1] + panel_height + 30))
-                    self.screen.blit(desc_text, desc_rect)
-                else:
-                    self.screen.blit(image, pos)
+                self.screen.blit(image, pos)
             
             pygame.display.flip()
             self.clock.tick(60)
-        
+
     def setup_ui(self):
         """
         procédure : configuration de l'interface utilisateur.
@@ -406,3 +380,23 @@ class Selector:
         self.running = False # arrête la boucle du sélecteur pour lancer le jeu
         
         self.game_launcher.start_game(game_save, selected_game, selected_mode, self.selected_quadrants)
+
+    def solo_config_screen(self):
+        """
+        Procédure : affiche l'écran de configuration pour le mode Solo.
+        Utilise la classe SoloConfigScreen pour gérer l'interface dédiée au mode Solo.
+        """
+        # Ajout de logs pour le débogage
+        Logger.info("Selector", "Démarrage de l'écran de configuration Solo...")
+        
+        try:
+            # Création et affichage de l'écran de configuration Solo
+            solo_screen = SoloConfigScreen(self)
+            Logger.info("Selector", "Instance SoloConfigScreen créée avec succès")
+            solo_screen.show()
+            Logger.info("Selector", "Méthode show() de SoloConfigScreen terminée")
+        except Exception as e:
+            Logger.error("Selector", f"Erreur lors de l'affichage de l'écran Solo: {str(e)}")
+        
+        # Après la fermeture de l'écran de configuration Solo
+        Logger.info("Selector", "Configuration Solo terminée.")
