@@ -101,12 +101,26 @@ class GameConfigScreen(BaseScreen):
             "Start / Load Game", self.launch_game
         )
         
+        # Calculer la taille optimale pour la prévisualisation
+        available_width = self.width - panel_width - (padding * 2)
+        available_height = self.height - self.navbar_height - 60
+        
+        # Déterminer la taille carrée qui est optimale pour la prévisualisation du plateau
+        preview_size = min(available_width, available_height)
+        
+        # Centrer le rectangle de prévisualisation dans l'espace disponible
+        preview_x = panel_width + ((available_width - preview_size) // 2) + padding
+        preview_y = self.navbar_height + ((available_height - preview_size) // 2) + 30
+        
         self.preview_rect = pygame.Rect(
-            panel_width + padding, 
-            self.navbar_height + 30, 
-            self.width - panel_width - padding * 2, 
-            self.height - self.navbar_height - 60
+            preview_x, 
+            preview_y, 
+            preview_size, 
+            preview_size
         )
+        
+        # Log pour le debug
+        Logger.info("GameConfigScreen", f"Preview rectangle: {self.preview_rect}")
         
         self._update_selected_quadrants()
     
@@ -205,4 +219,4 @@ class GameConfigScreen(BaseScreen):
                 self.screen, 
                 self.selected_quadrants, 
                 self.preview_rect
-            ) 
+            )

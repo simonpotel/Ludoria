@@ -3,7 +3,7 @@ from src.windows.components.navbar.navbar import NavBar
 from src.utils.logger import Logger
 
 class BaseScreen:
-    def __init__(self, width=800, height=700, title="Ludoria"):
+    def __init__(self, width=1280, height=720, title="Ludoria"):
         self.width = width
         self.height = height
         self.title = title
