@@ -319,7 +319,8 @@ class Game(GameBase):
 
             # vérification de la victoire locale
             normalized_locked_pieces = [[x, y] for x, y in self.locked_pieces] if self.locked_pieces else []
-            is_win = self.check_win(current_player_who_moved)
+            opponent_player_who_moved = 0 if current_player_who_moved == 1 else 1
+            is_win = (self.check_win(current_player_who_moved) or self.check_win(opponent_player_who_moved))
             
             self.send_network_action({
                 "from_row": old_row,
