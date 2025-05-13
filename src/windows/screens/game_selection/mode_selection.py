@@ -1,6 +1,6 @@
 import pygame
 from src.windows.screens.base_screen import BaseScreen
-from src.windows.components.button import Button
+from src.windows.components.image_button import ImageButton
 from src.utils.logger import Logger
 
 
@@ -11,9 +11,9 @@ class ModeSelectionScreen(BaseScreen):
         self.modes = ["Solo", "Bot", "Network"]
 
     def setup_ui(self):
-        button_width = 200
-        button_height = 60
-        button_spacing = 30
+        button_width = 220*1.5
+        button_height = 80*1.5
+        button_spacing = 50
 
         # calcul de la hauteur totale des boutons et de la position y du premier bouton en fonction de la hauteur de la fenêtre et de la navbar
         total_height = (button_height * len(self.modes)) + (button_spacing *
@@ -26,7 +26,7 @@ class ModeSelectionScreen(BaseScreen):
             # calcul de la position y du bouton
             y_pos = start_y + (button_height + button_spacing) * i
 
-            button = Button(
+            button = ImageButton(
                 (self.width - button_width) // 2,
                 y_pos,
                 button_width,
