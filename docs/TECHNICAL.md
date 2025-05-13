@@ -322,8 +322,7 @@ Ludoria comprend une suite complète de tests qui vérifient le fonctionnement d
 
 | Fichier de test | Catégorie | Description | Mécanismes testés |
 |----------------|-----------|-------------|-------------------|
-| `001_selector_init.py` | Interface | Vérifie l'initialisation correcte du sélecteur de jeu | <ul><li>Instanciation des composants (`quadrant_handler`, `config_loader`, etc.)</li><li>Initialisation des attributs</li><li>Configuration initiale des quadrants</li></ul> |
-| `002_game_selection.py` | Interface | Teste la sélection des jeux dans l'interface | <ul><li>Fonctionnement du composant `Dropdown`</li><li>Sélection des jeux (katerenga, isolation, congress)</li><li>Changement de sélection et récupération des valeurs</li></ul> |
+| `001_client_init.py` | Interface | Vérifie l'initialisation correcte du sélecteur de jeu | |
 | `003_quadrant_rotation.py` | Plateau | Vérifie la rotation des quadrants du plateau | <ul><li>Rotation à droite des quadrants</li><li>Rotation à gauche des quadrants</li><li>Préservation des autres quadrants lors de la rotation</li><li>Retour à l'état initial après 4 rotations</li></ul> |
 | `004_king_moves.py` | Mouvements | Teste les déplacements sur cases bleues (comme un roi) | <ul><li>Déplacements valides dans les 8 directions</li><li>Limites de distance (une seule case)</li><li>Comportement en bord de plateau</li></ul> |
 | `005_knight_moves.py` | Mouvements | Teste les déplacements sur cases vertes (comme un cavalier) | <ul><li>Déplacements en L</li><li>Capacité à sauter par-dessus d'autres pièces</li><li>Mouvements invalides</li><li>Comportement en bord de plateau</li></ul> |
