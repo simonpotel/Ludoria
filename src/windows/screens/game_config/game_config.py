@@ -8,6 +8,7 @@ from src.windows.selector.quadrant_handler import QuadrantHandler
 from src.windows.selector.config_loader import ConfigLoader
 from src.windows.selector.game_launcher import GameLauncher
 from functools import partial
+import os
 
 class GameConfigScreen(BaseScreen):
     GAMES = ["katerenga", "isolation", "congress"]
@@ -27,6 +28,18 @@ class GameConfigScreen(BaseScreen):
         self.quadrants_config = None
         self.quadrant_names = None
         self.selected_quadrants = [None] * 4
+        
+        # Chargement de l'image de fond
+        self.background_image = None
+        try:
+            # Chemin vers l'image de fond
+            bg_path = os.path.join("assets", "tropique", "background.png")
+            self.background_image = pygame.image.load(bg_path)
+            # Redimensionner l'image à la taille de la fenêtre
+            self.background_image = pygame.transform.scale(self.background_image, (self.width, self.height))
+            Logger.info("GameConfigScreen", f"Background image loaded: {bg_path}")
+        except Exception as e:
+            Logger.error("GameConfigScreen", f"Failed to load background image: {e}")
         
         config_result = self.config_loader.load_quadrants()
         if config_result:
@@ -166,6 +179,18 @@ class GameConfigScreen(BaseScreen):
         self.start_button.check_hover(mouse_pos)
     
     def draw_screen(self):
+        # Dessine l'image de fond si elle existe
+        if self.background_image:
+            self.screen.blit(self.background_image, (0, 0))
+        else:
+            # Couleur de fond par défaut si l'image n'est pas disponible
+            self.screen.fill((240, 240, 240))
+        
+        # Dessine un panneau semi-transparent pour le contenu
+        panel_surface = pygame.Surface((350, self.height), pygame.SRCALPHA)
+        panel_surface.fill((240, 240, 240, 200))  # RGBA, 200 pour l'alpha (semi-transparent)
+        self.screen.blit(panel_surface, (0, 0))
+        
         for text, pos in self.labels:
             text_surface = self.font.render(text, True, (0, 0, 0))
             self.screen.blit(text_surface, pos)
@@ -180,7 +205,12 @@ class GameConfigScreen(BaseScreen):
         preview_label = self.font.render("Preview:", True, (0, 0, 0))
         self.screen.blit(preview_label, (self.preview_rect.left, self.preview_rect.top - 25))
         
-        pygame.draw.rect(self.screen, (200, 200, 200), self.preview_rect, 2)
+        # Dessine un fond semi-transparent pour la prévisualisation
+        preview_bg = pygame.Surface((self.preview_rect.width, self.preview_rect.height), pygame.SRCALPHA)
+        preview_bg.fill((255, 255, 255, 150))  # Fond blanc semi-transparent
+        self.screen.blit(preview_bg, self.preview_rect)
+        
+        pygame.draw.rect(self.screen, (100, 100, 100), self.preview_rect, 2)
         
         if all(self.selected_quadrants):
             self.quadrant_handler.draw_quadrants(

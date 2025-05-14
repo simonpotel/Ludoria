@@ -5,6 +5,7 @@ from src.windows.components.dropdown import Dropdown
 from src.utils.logger import Logger
 from src.windows.selector.quadrant_handler import QuadrantHandler
 from src.windows.selector.config_loader import ConfigLoader
+import os
 
 class QuadrantConfigScreen(BaseScreen):
     """
@@ -35,6 +36,18 @@ class QuadrantConfigScreen(BaseScreen):
             else:
                 Logger.error("QuadrantConfigScreen", "Failed to load quadrant configurations.")
         
+        # Chargement de l'image de fond
+        self.background_image = None
+        try:
+            # Chemin vers l'image de fond
+            bg_path = os.path.join("assets", "tropique", "background.png")
+            self.background_image = pygame.image.load(bg_path)
+            # Redimensionner l'image à la taille de la fenêtre
+            self.background_image = pygame.transform.scale(self.background_image, (self.width, self.height))
+            Logger.info("QuadrantConfigScreen", f"Background image loaded: {bg_path}")
+        except Exception as e:
+            Logger.error("QuadrantConfigScreen", f"Failed to load background image: {e}")
+        
         # Interface elements
         self.quadrant_selectors = []
         self.quadrant_rotation_buttons = []
@@ -57,12 +70,7 @@ class QuadrantConfigScreen(BaseScreen):
         spacing = 20
         small_button_width = 40
         
-        # Police et titre
-        title_font = pygame.font.SysFont('Arial', 28, bold=True)
-        self.title_text = title_font.render("Configuration des Quadrants", True, (0, 0, 0))
-        self.title_rect = self.title_text.get_rect(midtop=(self.width // 2, self.navbar_height + 20))
-        
-        # Configurer le titre de la section
+        # Police pour les textes
         self.font = pygame.font.SysFont('Arial', 20)
         
         # Créer les rectangles de prévisualisation des quadrants
@@ -125,43 +133,56 @@ class QuadrantConfigScreen(BaseScreen):
         """Configure les rectangles pour l'affichage des quadrants."""
         # Zone centrale de l'écran pour le plateau
         left_panel_width = 300
-        content_width = self.width - left_panel_width - 80
-        content_height = self.height - self.navbar_height - 200
+        padding = 20
         
-        # Taille d'un quadrant (carré)
-        quadrant_size = min(content_width // 2, content_height // 2) - 20
+        available_width = self.width - left_panel_width - (padding * 2)
+        available_height = self.height - self.navbar_height - 60
         
-        # Position centrale 
-        center_x = (self.width + left_panel_width) // 2
-        center_y = self.navbar_height + 80 + content_height // 2
+        # Déterminer la taille carrée qui est optimale pour la prévisualisation du plateau
+        preview_size = min(available_width, available_height)
+        
+        # Position centrale du plateau complet
+        preview_x = left_panel_width + ((available_width - preview_size) // 2) + padding
+        preview_y = self.navbar_height + ((available_height - preview_size) // 2) + 30
+        
+        # Taille d'un quadrant (le quart de la taille totale)
+        quadrant_size = preview_size // 2
         
         # Liste des rectangles pour chaque quadrant
         self.quadrant_display_rects = [
             # Quadrant supérieur gauche (0)
             pygame.Rect(
-                center_x - quadrant_size - 10, 
-                center_y - quadrant_size - 10,
+                preview_x, 
+                preview_y,
                 quadrant_size, quadrant_size
             ),
             # Quadrant supérieur droit (1)
             pygame.Rect(
-                center_x + 10, 
-                center_y - quadrant_size - 10,
+                preview_x + quadrant_size, 
+                preview_y,
                 quadrant_size, quadrant_size
             ),
             # Quadrant inférieur gauche (2)
             pygame.Rect(
-                center_x - quadrant_size - 10, 
-                center_y + 10,
+                preview_x, 
+                preview_y + quadrant_size,
                 quadrant_size, quadrant_size
             ),
             # Quadrant inférieur droit (3)
             pygame.Rect(
-                center_x + 10, 
-                center_y + 10,
+                preview_x + quadrant_size, 
+                preview_y + quadrant_size,
                 quadrant_size, quadrant_size
             )
         ]
+        
+        # Rectangle complet pour la prévisualisation
+        self.preview_rect = pygame.Rect(
+            preview_x, 
+            preview_y, 
+            preview_size, 
+            preview_size
+        )
     
     def _get_quadrant_index(self, quadrant_position):
         """Retrouve l'index du quadrant dans la liste des noms de quadrants."""
@@ -256,30 +277,40 @@ class QuadrantConfigScreen(BaseScreen):
     
     def draw_screen(self):
         """Dessine les éléments de l'écran."""
-        # Dessine le titre
-        self.screen.blit(self.title_text, self.title_rect)
+        # Dessine l'image de fond si elle existe
+        if self.background_image:
+            self.screen.blit(self.background_image, (0, 0))
+        else:
+            # Couleur de fond par défaut si l'image n'est pas disponible
+            self.screen.fill((240, 240, 240))
+        
+        # Dessine un panneau semi-transparent pour le panneau de contrôle à gauche
+        left_panel_width = 300
+        panel_surface = pygame.Surface((left_panel_width, self.height), pygame.SRCALPHA)
+        panel_surface.fill((240, 240, 240, 200))  # RGBA, 200 pour l'alpha (semi-transparent)
+        self.screen.blit(panel_surface, (0, 0))
         
         # Dessine les labels pour les quadrants
         for text, pos in self.labels:
             text_surface = self.font.render(text, True, (0, 0, 0))
             self.screen.blit(text_surface, pos)
         
+        # Dessine un fond semi-transparent pour la zone des quadrants
+        preview_bg = pygame.Surface((self.preview_rect.width, self.preview_rect.height), pygame.SRCALPHA)
+        preview_bg.fill((255, 255, 255, 150))  # Fond blanc semi-transparent
+        self.screen.blit(preview_bg, self.preview_rect)
+        
+        # Ajoute un label pour la prévisualisation
+        preview_label = self.font.render("Preview:", True, (0, 0, 0))
+        self.screen.blit(preview_label, (self.preview_rect.left, self.preview_rect.top - 25))
+        
         # Dessine les prévisualisations des quadrants
         if all(self.selected_quadrants):
             self.quadrant_handler.draw_quadrants(
                 self.screen, 
                 self.selected_quadrants, 
-                pygame.Rect(
-                    self.quadrant_display_rects[0].left,
-                    self.quadrant_display_rects[0].top,
-                    self.quadrant_display_rects[1].right - self.quadrant_display_rects[0].left,
-                    self.quadrant_display_rects[3].bottom - self.quadrant_display_rects[0].top
-                )
+                self.preview_rect
             )
-        else:
-            # Dessine des cadres vides si aucun quadrant n'est sélectionné
-            for rect in self.quadrant_display_rects:
-                pygame.draw.rect(self.screen, (200, 200, 200), rect, 2)
         
         # Dessine les sélecteurs
         for selector in self.quadrant_selectors:
