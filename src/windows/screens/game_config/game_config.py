@@ -14,6 +14,12 @@ class GameConfigScreen(BaseScreen):
     GAMES = ["katerenga", "isolation", "congress"]
     
     def __init__(self, mode):
+        """
+        constructeur : initialise l'écran de configuration du jeu.
+        
+        params:
+            mode - mode de jeu (solo, multijoueur, etc.).
+        """
         super().__init__(title=f"Ludoria - {mode} Game Configuration")
         self.mode = mode
         self.quadrant_handler = QuadrantHandler()
@@ -29,13 +35,11 @@ class GameConfigScreen(BaseScreen):
         self.quadrant_names = None
         self.selected_quadrants = [None] * 4
         
-        # Chargement de l'image de fond
         self.background_image = None
         try:
-            # Chemin vers l'image de fond
+            # chargement de l'image de fond
             bg_path = os.path.join("assets", "tropique", "background.png")
             self.background_image = pygame.image.load(bg_path)
-            # Redimensionner l'image à la taille de la fenêtre
             self.background_image = pygame.transform.scale(self.background_image, (self.width, self.height))
             Logger.info("GameConfigScreen", f"Background image loaded: {bg_path}")
         except Exception as e:
@@ -44,7 +48,7 @@ class GameConfigScreen(BaseScreen):
         config_result = self.config_loader.load_quadrants()
         if config_result:
             self.quadrants_config, self.quadrant_names, _ = config_result
-            # Sélectionne par défaut les 4 premiers quadrants
+            # initialisation des quadrants par défaut
             for i in range(4):
                 if i < len(self.quadrant_names):
                     self.selected_quadrants[i] = self.quadrants_config.get(self.quadrant_names[i % len(self.quadrant_names)])
@@ -52,6 +56,9 @@ class GameConfigScreen(BaseScreen):
             Logger.error("GameConfigScreen", "Failed to load quadrant configurations.")
     
     def setup_ui(self):
+        """
+        procédure : configure l'interface utilisateur de l'écran.
+        """
         panel_width = 300
         padding = 20
         element_height = 30
@@ -95,14 +102,12 @@ class GameConfigScreen(BaseScreen):
             "Start / Load Game", self.launch_game
         )
         
-        # Calculer la taille optimale pour la prévisualisation
+        # préparation de la zone de prévisualisation
         available_width = self.width - panel_width - (padding * 2)
         available_height = self.height - self.navbar_height - 60
         
-        # Déterminer la taille carrée qui est optimale pour la prévisualisation du plateau
         preview_size = min(available_width, available_height)
         
-        # Centrer le rectangle de prévisualisation dans l'espace disponible
         preview_x = panel_width + ((available_width - preview_size) // 2) + padding
         preview_y = self.navbar_height + ((available_height - preview_size) // 2) + 30
         
@@ -113,12 +118,14 @@ class GameConfigScreen(BaseScreen):
             preview_size
         )
         
-        # Log pour le debug
         Logger.info("GameConfigScreen", f"Preview rectangle: {self.preview_rect}")
         
         self._update_selected_quadrants()
     
     def _update_selected_quadrants(self):
+        """
+        procédure : met à jour les quadrants sélectionnés selon la configuration.
+        """
         if self.quadrants_config and self.quadrant_names:
             for i in range(4):
                 if i < len(self.quadrant_names) and not self.selected_quadrants[i]:
@@ -126,14 +133,19 @@ class GameConfigScreen(BaseScreen):
                     self.selected_quadrants[i] = self.quadrants_config.get(quadrant_name)
     
     def _open_quadrant_config(self):
-        """Ouvre l'écran de configuration des quadrants."""
+        """
+        procédure : ouvre l'écran de configuration des quadrants.
+        """
         from src.windows.screens.game_config.quadrant_config import QuadrantConfigScreen
-        # Passe l'instance actuelle comme parent pour pouvoir récupérer les quadrants configurés
+        # passage de l'instance actuelle comme écran parent
         self.next_screen = lambda: QuadrantConfigScreen(self)
         self.running = False
         Logger.info("GameConfigScreen", "Opening quadrant configuration screen")
     
     def launch_game(self):
+        """
+        procédure : lance le jeu avec les paramètres configurés.
+        """
         game_save = self.save_name_input.get()
         selected_game = self.GAMES[self.game_dropdown.selected_index]
         
@@ -148,14 +160,13 @@ class GameConfigScreen(BaseScreen):
         if valid_params:
             Logger.info("GameConfigScreen", f"Launching {selected_game} in {self.mode} mode with save '{game_save}'")
             
-            # configure l'écran suivant avant de lancer le jeu
+            # navigation vers l'écran de sélection du mode
             from src.windows.screens.game_selection.mode_selection import ModeSelectionScreen
             self.next_screen = ModeSelectionScreen
             
-            # arrête l'écran courant pour retourner au launcher
             self.running = False
             
-            # démarre le jeu - bloque jusqu'à la fin du jeu
+            # démarrage du jeu (bloquant)
             game_success = self.game_launcher.start_game(game_save, selected_game, self.mode, self.selected_quadrants)
             
             if game_success:
@@ -164,6 +175,12 @@ class GameConfigScreen(BaseScreen):
                 Logger.warning("GameConfigScreen", f"Game exited with errors, returning to mode selection")
     
     def handle_screen_events(self, event):
+        """
+        procédure : gère les événements pour cet écran.
+        
+        params:
+            event - événement pygame à traiter.
+        """
         self.save_name_input.handle_event(event, pygame.mouse.get_pos())
         self.game_dropdown.handle_event(event, pygame.mouse.get_pos())
         
@@ -172,6 +189,12 @@ class GameConfigScreen(BaseScreen):
         self.start_button.handle_event(event)
     
     def update_screen(self, mouse_pos):
+        """
+        procédure : met à jour l'état des éléments de l'écran.
+        
+        params:
+            mouse_pos - position actuelle de la souris.
+        """
         self.save_name_input.update(16)
         
         self.quadrant_config_button.check_hover(mouse_pos)
@@ -179,16 +202,17 @@ class GameConfigScreen(BaseScreen):
         self.start_button.check_hover(mouse_pos)
     
     def draw_screen(self):
-        # Dessine l'image de fond si elle existe
+        """
+        procédure : dessine les éléments de l'écran.
+        """
         if self.background_image:
             self.screen.blit(self.background_image, (0, 0))
         else:
-            # Couleur de fond par défaut si l'image n'est pas disponible
             self.screen.fill((240, 240, 240))
         
-        # Dessine un panneau semi-transparent pour le contenu
+        # création du panneau semi-transparent
         panel_surface = pygame.Surface((350, self.height), pygame.SRCALPHA)
-        panel_surface.fill((240, 240, 240, 200))  # RGBA, 200 pour l'alpha (semi-transparent)
+        panel_surface.fill((240, 240, 240, 200))
         self.screen.blit(panel_surface, (0, 0))
         
         for text, pos in self.labels:
@@ -205,9 +229,9 @@ class GameConfigScreen(BaseScreen):
         preview_label = self.font.render("Preview:", True, (0, 0, 0))
         self.screen.blit(preview_label, (self.preview_rect.left, self.preview_rect.top - 25))
         
-        # Dessine un fond semi-transparent pour la prévisualisation
+        # arrière-plan de la prévisualisation
         preview_bg = pygame.Surface((self.preview_rect.width, self.preview_rect.height), pygame.SRCALPHA)
-        preview_bg.fill((255, 255, 255, 150))  # Fond blanc semi-transparent
+        preview_bg.fill((255, 255, 255, 150))
         self.screen.blit(preview_bg, self.preview_rect)
         
         pygame.draw.rect(self.screen, (100, 100, 100), self.preview_rect, 2)
