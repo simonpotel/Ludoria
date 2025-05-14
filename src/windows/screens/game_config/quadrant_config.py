@@ -5,6 +5,7 @@ from src.windows.components.dropdown import Dropdown
 from src.utils.logger import Logger
 from src.windows.selector.quadrant_handler import QuadrantHandler
 from src.windows.selector.config_loader import ConfigLoader
+from src.utils.theme_manager import ThemeManager
 import os
 
 class QuadrantConfigScreen(BaseScreen):
@@ -24,6 +25,7 @@ class QuadrantConfigScreen(BaseScreen):
         self.parent_screen = parent_screen
         self.quadrant_handler = QuadrantHandler()
         self.config_loader = ConfigLoader()
+        self.theme_manager = ThemeManager()
         
         # récupération des configurations depuis l'écran parent
         if parent_screen:
@@ -44,9 +46,17 @@ class QuadrantConfigScreen(BaseScreen):
         
         self.background_image = None
         try:
-            bg_path = os.path.join("assets", "tropique", "background.png")
+            # Utiliser le thème actuel pour charger l'image de fond
+            current_theme = self.theme_manager.current_theme
+            bg_path = os.path.join("assets", current_theme, "background.png")
             self.background_image = pygame.image.load(bg_path)
             self.background_image = pygame.transform.scale(self.background_image, (self.width, self.height))
+            
+            # Ajouter un effet semi-transparent pour améliorer la lisibilité
+            overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 120))  # Overlay noir semi-transparent
+            self.background_image.blit(overlay, (0, 0))
+            
             Logger.info("QuadrantConfigScreen", f"Background image loaded: {bg_path}")
         except Exception as e:
             Logger.error("QuadrantConfigScreen", f"Failed to load background image: {e}")
