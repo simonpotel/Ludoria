@@ -1,6 +1,7 @@
 import pygame
 from src.board import Board
 from src.windows.render.render import Render
+from src.utils.theme_manager import ThemeManager
 from src.captures import has_valid_move
 from src.saves import save_game
 from src.moves import available_move
@@ -27,6 +28,7 @@ class Game(GameBase):
         self.game_mode = game_mode
         self.locked_pieces = [] # pièces arrivées dans un camp adverse
         self.bot = None
+        self.theme_manager = ThemeManager()
         
         self.camps = [(0, 0), (0, 9), (9, 0), (9, 9)] # positions des camps
         

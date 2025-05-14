@@ -6,6 +6,7 @@ from src.windows.render.chat_handler import ChatHandler
 from src.windows.components.button import Button
 from src.utils.logger import Logger
 from src.windows.render.image_loader import ImageLoader
+from src.utils.theme_manager import ThemeManager
 from datetime import datetime
 
 class Render:
@@ -308,4 +309,4 @@ class Render:
             # limite le framerate
             self.clock.tick(30)
         
-        Logger.info("Render", "Game loop finished") 
+        Logger.info("Render", "Game loop finished")

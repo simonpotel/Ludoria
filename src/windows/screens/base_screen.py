@@ -1,6 +1,7 @@
 import pygame
 from src.windows.components.navbar.navbar import NavBar
 from src.utils.logger import Logger
+from src.utils.theme_manager import ThemeManager
 
 class BaseScreen:
     def __init__(self, width=1280, height=720, title="Ludoria"):
@@ -12,6 +13,7 @@ class BaseScreen:
         self.clock = pygame.time.Clock()
         self.fps = 30
         
+        self.theme_manager = ThemeManager()
         self.navbar = NavBar(self.width)
         self.navbar_height = 50
         self.content_rect = pygame.Rect(0, self.navbar_height, self.width, self.height - self.navbar_height)
@@ -27,6 +29,9 @@ class BaseScreen:
         self.setup_ui()
     
     def setup_navbar(self):
+        theme = self.theme_manager.current_theme
+        Logger.info("BaseScreen", f"Initializing navbar with theme: {theme}")
+        
         self.navbar.set_callbacks(
             home_callback=self.home_action,
             settings_callback=self.settings_action
@@ -41,7 +46,9 @@ class BaseScreen:
         self.running = False
     
     def settings_action(self):
-        Logger.info("BaseScreen", "Settings button pressed - not implemented yet")
+        from src.windows.screens.theme_selection import ThemeSelectionScreen
+        self.next_screen = ThemeSelectionScreen
+        self.running = False
     
     def handle_events(self):
         for event in pygame.event.get():
@@ -67,7 +74,20 @@ class BaseScreen:
         pass
     
     def draw(self):
-        self.screen.fill((240, 240, 240))
+        theme_colors = {
+            "tropique": (0, 150, 136),
+            "grec": (156, 136, 255),
+            "japon": (255, 138, 174),
+            "nordique": (100, 181, 246),
+            "sahara": (255, 183, 77)
+        }
+        
+        theme = self.theme_manager.current_theme
+        bg_color = theme_colors.get(theme, (240, 240, 240))
+        
+        bg_color = tuple(min(c + 80, 255) for c in bg_color)
+        
+        self.screen.fill(bg_color)
         self.draw_screen()
         self.navbar.draw(self.screen)
         pygame.display.flip()

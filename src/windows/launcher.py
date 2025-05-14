@@ -1,6 +1,6 @@
 import pygame
 from src.utils.logger import Logger
-from src.windows.screens.game_selection.mode_selection import ModeSelectionScreen
+from src.windows.screens.theme_selection import ThemeSelectionScreen
 
 class Launcher:
     def __init__(self):
@@ -12,7 +12,7 @@ class Launcher:
     
     def start(self):
         try:
-            current_screen = ModeSelectionScreen()
+            current_screen = ThemeSelectionScreen()
             
             while self.running:
                 Logger.info("Launcher", "Running screen: " + current_screen.__class__.__name__)

@@ -7,6 +7,7 @@ from src.utils.logger import Logger
 from src.windows.selector.quadrant_handler import QuadrantHandler
 from src.windows.selector.config_loader import ConfigLoader
 from src.windows.selector.game_launcher import GameLauncher
+from src.utils.theme_manager import ThemeManager
 from functools import partial
 import os
 
@@ -25,6 +26,7 @@ class GameConfigScreen(BaseScreen):
         self.quadrant_handler = QuadrantHandler()
         self.config_loader = ConfigLoader()
         self.game_launcher = GameLauncher()
+        self.theme_manager = ThemeManager()
         
         self.save_name_input = None
         self.game_dropdown = None
@@ -37,10 +39,17 @@ class GameConfigScreen(BaseScreen):
         
         self.background_image = None
         try:
-            # chargement de l'image de fond
-            bg_path = os.path.join("assets", "tropique", "background.png")
+            # chargement de l'image de fond en fonction du thème
+            current_theme = self.theme_manager.current_theme
+            bg_path = os.path.join("assets", current_theme, "background.png")
             self.background_image = pygame.image.load(bg_path)
             self.background_image = pygame.transform.scale(self.background_image, (self.width, self.height))
+            
+            # ajouter un effet semi-transparent pour améliorer la lisibilité
+            overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 120))  # overlay noir semi-transparent
+            self.background_image.blit(overlay, (0, 0))
+            
             Logger.info("GameConfigScreen", f"Background image loaded: {bg_path}")
         except Exception as e:
             Logger.error("GameConfigScreen", f"Failed to load background image: {e}")

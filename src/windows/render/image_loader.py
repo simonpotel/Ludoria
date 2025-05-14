@@ -2,6 +2,7 @@ import pygame
 from PIL import Image, ImageFilter
 from src.utils.logger import Logger
 from src.windows.render.constants import RenderConstants
+from src.utils.theme_manager import ThemeManager
 
 class ImageLoader:
     """
@@ -52,8 +53,12 @@ class ImageLoader:
         procédure : charge l'image de fond et applique un flou.
         """
         try:
+            # utilise le thème choisi par l'utilisateur via ThemeManager
+            theme_manager = ThemeManager()
+            current_theme = theme_manager.current_theme
+            
             # chargement et redimensionnement
-            bg = Image.open(f"assets/{RenderConstants.THEME}/background.png")
+            bg = Image.open(f"assets/{current_theme}/background.png")
             bg = bg.resize((self.window_width, self.window_height), Image.LANCZOS)
             
             # application du flou gaussien
@@ -62,9 +67,12 @@ class ImageLoader:
             
             # conversion en surface pygame
             self.background = pygame.image.fromstring(bg_data, blurred.size, "RGBA").convert_alpha()
-            Logger.debug("ImageLoader", "Background loaded and blurred")
+            Logger.debug("ImageLoader", f"Background loaded and blurred (theme: {current_theme})")
         except FileNotFoundError:
-            Logger.warning("ImageLoader", "Background image not found")
+            Logger.warning("ImageLoader", f"Background image not found for current theme")
+            self.background = None
+        except Exception as e:
+            Logger.error("ImageLoader", f"Error loading background: {e}")
             self.background = None
 
     def _load_cell_images(self):
@@ -101,10 +109,14 @@ class ImageLoader:
         """
         procédure : charge les images des personnages et génère leurs ombres.
         """
+        # utilise le thème choisi par l'utilisateur
+        theme_manager = ThemeManager()
+        current_theme = theme_manager.current_theme
+        
         for player in range(2):  # joueurs 0 et 1
             try:
-                # chargement de l'image du joueur
-                path = f"assets/{RenderConstants.THEME}/joueur{player+1}.png"
+                # chargement de l'image du joueur avec le thème sélectionné
+                path = f"assets/{current_theme}/joueur{player+1}.png"
                 img = Image.open(path).convert("RGBA")
                 
                 # redimensionnement pour remplir la hauteur d'une cellule
@@ -125,7 +137,8 @@ class ImageLoader:
                 shadow = surface.copy()
                 shadow.fill((0, 0, 0, RenderConstants.SHADOW_ALPHA), special_flags=pygame.BLEND_RGBA_MULT)
                 self.player_shadows[key] = shadow
-            except Exception:
-                raise Exception(f"Error loading player image {player+1}")
+            except Exception as e:
+                Logger.error("ImageLoader", f"Error loading player image {player+1} for theme {current_theme}: {e}")
+                raise Exception(f"Error loading player image {player+1} for theme {current_theme}")
         
-        Logger.debug("ImageLoader", f"{len(self.player_shadows)} player images loaded") 
+        Logger.debug("ImageLoader", f"{len(self.player_shadows)} player images loaded for theme {current_theme}")
