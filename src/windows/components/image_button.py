@@ -1,7 +1,20 @@
 import pygame
 
 class ImageButton:
+    """
+    classe : représente un bouton avec une image de fond.
+    """
     def __init__(self, x, y, width, height, text, action=None, bg_image_path="assets/cta_background.png"):
+        """
+        constructeur : initialise un bouton avec image.
+
+        params:
+            x, y - coordonnées du coin supérieur gauche.
+            width, height - dimensions du bouton.
+            text - texte affiché sur le bouton.
+            action - fonction à appeler lors du clic.
+            bg_image_path - chemin vers l'image de fond.
+        """
         self.rect = pygame.Rect(x, y, width, height)
         self.text = text.upper()
         self.action = action
@@ -13,6 +26,9 @@ class ImageButton:
         self.load_image()
         
     def load_image(self):
+        """
+        procédure : charge l'image de fond du bouton.
+        """
         try:
             self.original_image = pygame.image.load(self.bg_image_path).convert_alpha()
             self.bg_image = self.scale_image_preserve_ratio(self.original_image, self.rect.width, self.rect.height)
@@ -21,6 +37,16 @@ class ImageButton:
             self.bg_image.fill((60, 60, 60, 230))
     
     def scale_image_preserve_ratio(self, image, target_width, target_height):
+        """
+        fonction : redimensionne l'image en préservant son ratio.
+
+        params:
+            image - image à redimensionner.
+            target_width - largeur cible.
+            target_height - hauteur cible.
+
+        retour : l'image redimensionnée.
+        """
         img_width, img_height = image.get_size()
         scale_ratio = max(target_width / img_width, target_height / img_height)
         new_width = int(img_width * scale_ratio)
@@ -35,6 +61,12 @@ class ImageButton:
         return final_image
     
     def draw(self, surface):
+        """
+        procédure : dessine le bouton sur la surface donnée.
+
+        params:
+            surface - surface pygame sur laquelle dessiner.
+        """
         hover_effect = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
         hover_effect.fill((255, 255, 255, 30 if self.is_hover else 0))
         
@@ -49,9 +81,23 @@ class ImageButton:
         surface.blit(button_surface, self.rect.topleft)
     
     def check_hover(self, pos):
+        """
+        procédure : vérifie si la position donnée est sur le bouton.
+
+        params:
+            pos - tuple (x, y) de la position de la souris.
+        """
         self.is_hover = self.rect.collidepoint(pos)
         
     def handle_event(self, event):
+        """
+        fonction : gère les événements pygame pour ce bouton.
+
+        params:
+            event - événement pygame.
+
+        retour : True si l'action a été déclenchée, False sinon.
+        """
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.is_hover and self.action:
                 self.action()
