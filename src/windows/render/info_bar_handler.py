@@ -1,6 +1,7 @@
 import pygame
 from src.utils.logger import Logger
 from src.windows.render.constants import RenderConstants
+from src.windows.components.button import Button
 
 class InfoBarHandler:
     """
@@ -22,6 +23,10 @@ class InfoBarHandler:
         # surface pour la barre d'info (avec transparence)
         self.info_surface = pygame.Surface((window_width, RenderConstants.INFO_BAR_HEIGHT), 
                                           pygame.SRCALPHA)
+        
+        self.pause_button = Button(
+            self.window_width - 120, 10, 100, 30, "Pause", None
+        )
         
         Logger.info("InfoBarHandler", "Info bar handler initialized")
         
@@ -64,7 +69,13 @@ class InfoBarHandler:
         # statut réseau (si applicable)
         if hasattr(game, 'is_network_game') and game.is_network_game:
             self._render_network_status(fonts, game)
-            
+        
+        # Mise à jour du survol du bouton pause
+        mouse_pos = pygame.mouse.get_pos()
+        self.pause_button.check_hover(mouse_pos)
+        
+        self.pause_button.draw(self.info_surface)
+        
         # affichage sur l'écran principal
         screen.blit(self.info_surface, (0, 0))
         
@@ -86,3 +97,11 @@ class InfoBarHandler:
         text = fonts['status'].render(game.status_message, True, color)
         rect = text.get_rect(bottomright=(self.window_width - 15, RenderConstants.INFO_BAR_HEIGHT - 5))
         self.info_surface.blit(text, rect) 
+
+    def set_pause_callback(self, callback):
+        self.pause_button.action = callback
+
+    def handle_event(self, event):
+        mouse_pos = pygame.mouse.get_pos()
+        self.pause_button.check_hover(mouse_pos)
+        self.pause_button.handle_event(event) 
