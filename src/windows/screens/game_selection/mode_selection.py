@@ -18,16 +18,16 @@ class ModeSelectionScreen(BaseScreen):
         button_height = 80*1.5
         button_spacing = 50
 
-        # Essayer de charger l'image de fond du thème actuel
+        # essaye de charger l'image de fond en fonction du thème
         try:
             theme = self.theme_manager.current_theme
             bg_path = f"assets/{theme}/background.png"
             original_bg = pygame.image.load(bg_path).convert_alpha()
             self.background = pygame.transform.scale(original_bg, (self.width, self.height))
             
-            # Ajouter un léger flou/assombrissement pour la lisibilité
+            # ajouter un léger flou/assombrissement pour la lisibilité
             blur_effect = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            blur_effect.fill((0, 0, 0, 120))  # Moins sombre que l'écran de sélection de thème
+            blur_effect.fill((0, 0, 0, 120))  # moins sombre que l'écran de sélection de thème
             self.background.blit(blur_effect, (0, 0))
         except Exception as e:
             Logger.error("ModeSelectionScreen", f"Erreur lors du chargement de l'image de fond: {e}")
@@ -75,11 +75,11 @@ class ModeSelectionScreen(BaseScreen):
             button.check_hover(mouse_pos)
 
     def draw_screen(self):
-        # Dessiner l'arrière-plan thématique si disponible
+        # dessiner l'arrière-plan thématique si disponible
         if self.background:
             self.screen.blit(self.background, (0, 0))
         
-        # Titre avec style adapté au thème
+        # titre avec style adapté au thème
         title_font = pygame.font.SysFont('Arial', 32, bold=True)
         title_text = "Select Game Mode"
         title_surface = title_font.render(title_text, True, (255, 255, 255))

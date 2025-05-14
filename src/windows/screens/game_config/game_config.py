@@ -39,15 +39,15 @@ class GameConfigScreen(BaseScreen):
         
         self.background_image = None
         try:
-            # Charger l'image de fond selon le thème sélectionné
+            # chargement de l'image de fond en fonction du thème
             current_theme = self.theme_manager.current_theme
             bg_path = os.path.join("assets", current_theme, "background.png")
             self.background_image = pygame.image.load(bg_path)
             self.background_image = pygame.transform.scale(self.background_image, (self.width, self.height))
             
-            # Ajouter un effet semi-transparent pour améliorer la lisibilité
+            # ajouter un effet semi-transparent pour améliorer la lisibilité
             overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 120))  # Overlay noir semi-transparent
+            overlay.fill((0, 0, 0, 120))  # overlay noir semi-transparent
             self.background_image.blit(overlay, (0, 0))
             
             Logger.info("GameConfigScreen", f"Background image loaded: {bg_path}")

@@ -46,15 +46,15 @@ class QuadrantConfigScreen(BaseScreen):
         
         self.background_image = None
         try:
-            # Utiliser le thème actuel pour charger l'image de fond
+            # utiliser le thème actuel pour charger l'image de fond
             current_theme = self.theme_manager.current_theme
             bg_path = os.path.join("assets", current_theme, "background.png")
             self.background_image = pygame.image.load(bg_path)
             self.background_image = pygame.transform.scale(self.background_image, (self.width, self.height))
             
-            # Ajouter un effet semi-transparent pour améliorer la lisibilité
+            # ajouter un effet semi-transparent pour améliorer la lisibilité
             overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 120))  # Overlay noir semi-transparent
+            overlay.fill((0, 0, 0, 120))  # overlay noir semi-transparent
             self.background_image.blit(overlay, (0, 0))
             
             Logger.info("QuadrantConfigScreen", f"Background image loaded: {bg_path}")
