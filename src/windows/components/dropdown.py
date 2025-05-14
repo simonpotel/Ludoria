@@ -18,11 +18,12 @@ class Dropdown:
         self.options = options
         self.selected_index = default_index
         self.font = pygame.font.SysFont('Arial', 16)
-        self.color = (240, 240, 240) # couleur de fond
-        self.text_color = (0, 0, 0)
+        self.color = (0, 0, 0) # couleur de fond
+        self.text_color = (240, 240, 240)
         self.is_open = False # true si la liste des options est visible
         self.option_height = 30 # hauteur de chaque option dans la liste
         self.option_rects = [] # rectangles pour chaque option (pour la détection de clic)
+        self.transparency = 171  # 67%
         self.update_option_rects()
         
     def update_option_rects(self):
@@ -45,37 +46,56 @@ class Dropdown:
         params:
             surface: surface pygame sur laquelle dessiner.
         """
-        # dessine la boîte principale
-        pygame.draw.rect(surface, self.color, self.rect)
-        pygame.draw.rect(surface, (0, 0, 0), self.rect, 1) # bordure
+        # Rayon des coins arrondis
+        radius = min(int(self.rect.height * 0.2), 10)
+        
+        # Crée une surface transparente pour la boîte principale
+        dropdown_surface = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
+        
+        # Dessine le rectangle avec des coins arrondis et transparence
+        pygame.draw.rect(dropdown_surface, self.color + (self.transparency,), dropdown_surface.get_rect(), 0, radius)
+        
+        # Dessine la bordure avec des coins arrondis (bordure non transparente)
+        pygame.draw.rect(dropdown_surface, (240, 240, 240, 255), dropdown_surface.get_rect(), 1, radius)
         
         # dessine l'option actuellement sélectionnée
         if 0 <= self.selected_index < len(self.options):
             text = self.options[self.selected_index]
             text_surface = self.font.render(text, True, self.text_color)
             # aligne le texte à gauche avec une petite marge
-            text_rect = text_surface.get_rect(midleft=(self.rect.left + 5, self.rect.centery))
-            surface.blit(text_surface, text_rect)
+            text_rect = text_surface.get_rect(midleft=(5, self.rect.height // 2))
+            dropdown_surface.blit(text_surface, text_rect)
         
         # dessine la flèche déroulante
         arrow_points = [
-            (self.rect.right - 15, self.rect.centery - 5), # haut gauche
-            (self.rect.right - 5, self.rect.centery - 5),  # haut droit
-            (self.rect.right - 10, self.rect.centery + 5) # bas milieu
+            (self.rect.width - 15, self.rect.height // 2 - 5), # haut gauche
+            (self.rect.width - 5, self.rect.height // 2 - 5),  # haut droit
+            (self.rect.width - 10, self.rect.height // 2 + 5) # bas milieu
         ]
-        pygame.draw.polygon(surface, (0, 0, 0), arrow_points)
+        pygame.draw.polygon(dropdown_surface, (240, 240, 240, 255), arrow_points)
+        
+        # Affiche la surface du dropdown sur la surface principale
+        surface.blit(dropdown_surface, self.rect)
         
         # dessine les options si la liste est ouverte
         if self.is_open:
             for i, option_rect in enumerate(self.option_rects):
-                # couleur de fond légèrement différente pour les options
-                pygame.draw.rect(surface, (230, 230, 230), option_rect)
-                pygame.draw.rect(surface, (0, 0, 0), option_rect, 1) # bordure
+                # Crée une surface transparente pour chaque option
+                option_surface = pygame.Surface((option_rect.width, option_rect.height), pygame.SRCALPHA)
+                
+                # Dessine le rectangle avec des coins arrondis et transparence
+                pygame.draw.rect(option_surface, self.color + (self.transparency,), option_surface.get_rect(), 0, radius)
+                
+                # Dessine la bordure avec des coins arrondis (bordure non transparente)
+                pygame.draw.rect(option_surface, (240, 240, 240, 255), option_surface.get_rect(), 1, radius)
                 
                 text = self.options[i]
                 text_surface = self.font.render(text, True, self.text_color)
-                text_rect = text_surface.get_rect(midleft=(option_rect.left + 5, option_rect.centery))
-                surface.blit(text_surface, text_rect)
+                text_rect = text_surface.get_rect(midleft=(5, option_rect.height // 2))
+                option_surface.blit(text_surface, text_rect)
+                
+                # Affiche la surface de l'option sur la surface principale
+                surface.blit(option_surface, option_rect)
     
     def handle_event(self, event, pos):
         """

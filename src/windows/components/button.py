@@ -18,11 +18,12 @@ class Button:
         self.text = text
         self.action = action
         # couleurs pour les états normal et survolé
-        self.color = (200, 200, 200)
+        self.color = (0, 0, 0)
         self.hover_color = (160, 160, 160)
-        self.text_color = (0, 0, 0)
-        self.font = pygame.font.SysFont('Arial', 16)
+        self.text_color = (255, 255, 255)
+        self.font = pygame.font.SysFont('Arial', 24)
         self.is_hover = False # true si la souris est sur le bouton
+        self.transparency = 171  # 67% de 255 (255 * 0.67 ≈ 171)
     
     def draw(self, surface):
         """
@@ -33,13 +34,26 @@ class Button:
             surface: surface pygame sur laquelle dessiner.
         """
         color = self.hover_color if self.is_hover else self.color
-        pygame.draw.rect(surface, color, self.rect) # fond
-        pygame.draw.rect(surface, (0, 0, 0), self.rect, 1) # bordure
+        
+        # Rayon des coins arrondis (20% de la hauteur, mais pas plus de 10px)
+        radius = min(int(self.rect.height * 0.2), 10)
+        
+        # Crée une surface transparente pour le bouton
+        button_surface = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
+        
+        # Dessine le rectangle avec des coins arrondis et transparence
+        pygame.draw.rect(button_surface, color + (self.transparency,), button_surface.get_rect(), 0, radius)
+        
+        # Dessine la bordure (également avec coins arrondis)
+        pygame.draw.rect(button_surface, (0, 0, 0, self.transparency), button_surface.get_rect(), 1, radius)
         
         # dessine le texte centré
         text_surface = self.font.render(self.text, True, self.text_color)
-        text_rect = text_surface.get_rect(center=self.rect.center)
-        surface.blit(text_surface, text_rect)
+        text_rect = text_surface.get_rect(center=(self.rect.width // 2, self.rect.height // 2))
+        button_surface.blit(text_surface, text_rect)
+        
+        # Affiche la surface du bouton sur la surface principale
+        surface.blit(button_surface, self.rect)
     
     def check_hover(self, pos):
         """
@@ -65,4 +79,4 @@ class Button:
             if self.is_hover and self.action:
                 self.action()
                 return True
-        return False 
+        return False

@@ -21,8 +21,7 @@ class GameConfigScreen(BaseScreen):
         
         self.save_name_input = None
         self.game_dropdown = None
-        self.quadrant_selectors = []
-        self.quadrant_rotation_buttons = []
+        self.quadrant_config_button = None
         self.start_button = None
         
         self.quadrants_config = None
@@ -32,6 +31,10 @@ class GameConfigScreen(BaseScreen):
         config_result = self.config_loader.load_quadrants()
         if config_result:
             self.quadrants_config, self.quadrant_names, _ = config_result
+            # Sélectionne par défaut les 4 premiers quadrants
+            for i in range(4):
+                if i < len(self.quadrant_names):
+                    self.selected_quadrants[i] = self.quadrants_config.get(self.quadrant_names[i % len(self.quadrant_names)])
         else:
             Logger.error("GameConfigScreen", "Failed to load quadrant configurations.")
     
@@ -45,59 +48,37 @@ class GameConfigScreen(BaseScreen):
         element_width = panel_width - 2 * padding
         
         title_font = pygame.font.SysFont('Arial', 24, bold=True)
-        self.font = pygame.font.SysFont('Arial', 16)
+        self.font = pygame.font.SysFont('Arial', 24)
         
         self.labels = []
         
-        self.labels.append(("Game Save Name:", (padding, current_y)))
-        current_y += self.font.get_height() + label_spacing
         
         self.save_name_input = TextInput(
-            padding, current_y, element_width, element_height
+            padding, current_y + 20, element_width, 80, "Game Name"
         )
         current_y += element_height + element_spacing
         
-        self.labels.append(("Game:", (padding, current_y)))
+        self.labels.append(("Game:", (padding, current_y + 100)))
         current_y += self.font.get_height() + label_spacing
         
         self.game_dropdown = Dropdown(
-            padding, current_y, element_width, element_height, self.GAMES, 0
+            padding, current_y + 100, element_width, element_height, self.GAMES, 0
         )
         current_y += element_height + element_spacing
         
-        self.labels.append(("Quadrant Configuration:", (padding, current_y)))
+        self.labels.append(("Quadrant Configuration:", (padding, current_y + 100)))
         current_y += self.font.get_height() + label_spacing
         
-        self.quadrant_selectors = []
-        self.quadrant_rotation_buttons = []
-        button_width = 30
-        selector_width = element_width - 2 * button_width - 10
-        
-        for i in range(4):
-            selector = Dropdown(
-                padding, current_y, selector_width, element_height, 
-                self.quadrant_names, i % len(self.quadrant_names)
-            )
-            self.quadrant_selectors.append(selector)
-            
-            left_button = Button(
-                padding + selector_width + 5, current_y, 
-                button_width, element_height, "< -", 
-                partial(self._rotate_left_handler, i)
-            )
-            right_button = Button(
-                padding + selector_width + 10 + button_width, current_y, 
-                button_width, element_height, "->", 
-                partial(self._rotate_right_handler, i)
-            )
-            self.quadrant_rotation_buttons.append((left_button, right_button))
-            
-            current_y += element_height + 5
+        self.quadrant_config_button = Button(
+            padding, current_y + 100, element_width, 100, 
+            "Change Quadrant", self._open_quadrant_config
+        )
+        current_y += element_height + element_spacing
         
         current_y += element_spacing
         
         self.start_button = Button(
-            padding, current_y, element_width, 40, 
+            padding, current_y + 160, element_width, 100, 
             "Start / Load Game", self.launch_game
         )
         
@@ -125,18 +106,19 @@ class GameConfigScreen(BaseScreen):
         self._update_selected_quadrants()
     
     def _update_selected_quadrants(self):
-        self.selected_quadrants = self.quadrant_handler.update_selected_quadrants(
-            self.quadrant_selectors, 
-            self.selected_quadrants, 
-            self.quadrants_config, 
-            self.quadrant_names
-        )
+        if self.quadrants_config and self.quadrant_names:
+            for i in range(4):
+                if i < len(self.quadrant_names) and not self.selected_quadrants[i]:
+                    quadrant_name = self.quadrant_names[i % len(self.quadrant_names)]
+                    self.selected_quadrants[i] = self.quadrants_config.get(quadrant_name)
     
-    def _rotate_left_handler(self, index):
-        self.selected_quadrants = self.quadrant_handler.rotate_left(self.selected_quadrants, index)
-    
-    def _rotate_right_handler(self, index):
-        self.selected_quadrants = self.quadrant_handler.rotate_right(self.selected_quadrants, index)
+    def _open_quadrant_config(self):
+        """Ouvre l'écran de configuration des quadrants."""
+        from src.windows.screens.game_config.quadrant_config import QuadrantConfigScreen
+        # Passe l'instance actuelle comme parent pour pouvoir récupérer les quadrants configurés
+        self.next_screen = lambda: QuadrantConfigScreen(self)
+        self.running = False
+        Logger.info("GameConfigScreen", "Opening quadrant configuration screen")
     
     def launch_game(self):
         game_save = self.save_name_input.get()
@@ -172,23 +154,14 @@ class GameConfigScreen(BaseScreen):
         self.save_name_input.handle_event(event, pygame.mouse.get_pos())
         self.game_dropdown.handle_event(event, pygame.mouse.get_pos())
         
-        for selector in self.quadrant_selectors:
-            if selector.handle_event(event, pygame.mouse.get_pos()):
-                if not selector.is_open:
-                    self._update_selected_quadrants()
-        
-        for left_btn, right_btn in self.quadrant_rotation_buttons:
-            left_btn.handle_event(event)
-            right_btn.handle_event(event)
+        self.quadrant_config_button.handle_event(event)
         
         self.start_button.handle_event(event)
     
     def update_screen(self, mouse_pos):
         self.save_name_input.update(16)
         
-        for left_btn, right_btn in self.quadrant_rotation_buttons:
-            left_btn.check_hover(mouse_pos)
-            right_btn.check_hover(mouse_pos)
+        self.quadrant_config_button.check_hover(mouse_pos)
         
         self.start_button.check_hover(mouse_pos)
     
@@ -200,12 +173,7 @@ class GameConfigScreen(BaseScreen):
         self.save_name_input.draw(self.screen)
         self.game_dropdown.draw(self.screen)
         
-        for selector in self.quadrant_selectors:
-            selector.draw(self.screen)
-        
-        for left_btn, right_btn in self.quadrant_rotation_buttons:
-            left_btn.draw(self.screen)
-            right_btn.draw(self.screen)
+        self.quadrant_config_button.draw(self.screen)
         
         self.start_button.draw(self.screen)
         
