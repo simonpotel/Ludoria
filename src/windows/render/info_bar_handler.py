@@ -70,7 +70,7 @@ class InfoBarHandler:
         if hasattr(game, 'is_network_game') and game.is_network_game:
             self._render_network_status(fonts, game)
         
-        # Mise à jour du survol du bouton pause
+        # met à jour le survol du bouton pause
         mouse_pos = pygame.mouse.get_pos()
         self.pause_button.check_hover(mouse_pos)
         
