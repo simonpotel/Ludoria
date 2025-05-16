@@ -28,6 +28,14 @@ class ThemeSelectionScreen(BaseScreen):
         self.right_arrow_btn = None
         self.theme_manager = ThemeManager()
         
+        # variables pour l'animation de transition
+        self.is_transitioning = False
+        self.transition_start_time = 0
+        self.transition_duration = 300
+        self.transition_direction = 0
+        self.transition_progress = 0.0
+        self.previous_theme_index = 0
+        
     def setup_ui(self):
         """
         procédure : configure les éléments d'interface utilisateur.
@@ -159,8 +167,12 @@ class ThemeSelectionScreen(BaseScreen):
         params:
             direction - direction de navigation (-1 pour gauche, 1 pour droite)
         """
-        self.current_theme_index = (self.current_theme_index + direction) % len(self.themes)
-        self.create_theme_buttons()
+        if not self.is_transitioning:
+            self.previous_theme_index = self.current_theme_index
+            self.current_theme_index = (self.current_theme_index + direction) % len(self.themes)
+            self.transition_direction = direction
+            self.transition_start_time = pygame.time.get_ticks()
+            self.is_transitioning = True
 
     def handle_screen_events(self, event):
         """
@@ -218,6 +230,17 @@ class ThemeSelectionScreen(BaseScreen):
             
         self.left_arrow_btn.check_hover(mouse_pos)
         self.right_arrow_btn.check_hover(mouse_pos)
+        
+        # mettre à jour l'animation de transition si elle est active
+        if self.is_transitioning:
+            # force un nouveau rendu à chaque frame pendant la transition
+            self.needs_render = True
+            
+            # si la transition est terminée
+            current_time = pygame.time.get_ticks()
+            if current_time - self.transition_start_time >= self.transition_duration:
+                self.is_transitioning = False
+                self.create_theme_buttons()  # recréer les boutons avec les nouvelles positions
 
     def draw_screen(self):
         """
@@ -278,7 +301,101 @@ class ThemeSelectionScreen(BaseScreen):
         # flèches de navigation
         self.left_arrow_btn.draw(self.screen)
         self.right_arrow_btn.draw(self.screen)
+        
+        if self.is_transitioning:
+            self.animate_theme_transition()
 
+    def animate_theme_transition(self):
+        """
+        procédure : gère l'animation de transition entre les thèmes.
+        """
+        current_time = pygame.time.get_ticks()
+        elapsed_time = current_time - self.transition_start_time
+        
+        if elapsed_time < self.transition_duration:
+            # calcul de la progression de l'animation
+            progress = elapsed_time / self.transition_duration
+            # fonction d'accélération pour un mouvement plus naturel
+            eased_progress = progress * progress * (3 - 2 * progress)
+            
+            # transition du fond d'écran
+            prev_theme = self.themes[self.previous_theme_index]
+            current_theme = self.themes[self.current_theme_index]
+            
+            # afficher l'ancien fond avec une opacité décroissante
+            self.screen.blit(self.blurred_backgrounds[prev_theme], (0, 0))
+            
+            # créer une surface semi-transparente pour le nouveau fond
+            new_bg = self.blurred_backgrounds[current_theme].copy()
+            new_bg.set_alpha(int(255 * eased_progress))
+            self.screen.blit(new_bg, (0, 0))
+            
+            # afficher le titre LUDORIA
+            title_text = "LUDORIA"
+            title_surface = self.title_font.render(title_text, True, (255, 255, 255))
+            title_x = (self.width - title_surface.get_width()) // 2
+            title_y = self.navbar_height + 50
+            self.screen.blit(title_surface, (title_x, title_y))
+            
+            # afficher le sous-titre
+            subtitle_text = "CHOISISSEZ VOTRE THÈME :"
+            subtitle_surface = self.subtitle_font.render(subtitle_text, True, (255, 255, 255))
+            subtitle_x = (self.width - subtitle_surface.get_width()) // 2
+            subtitle_y = title_y + title_surface.get_height() + 30
+            self.screen.blit(subtitle_surface, (subtitle_x, subtitle_y))
+            
+            # animation des boutons de thème
+            button_width = 550
+            button_height = 350
+            spacing = 100
+            center_x = self.width // 2
+            center_y = self.height - 230
+            
+            # calculer le décalage pour l'animation de glissement
+            slide_offset = int(spacing * self.transition_direction * (1 - eased_progress))
+            
+            for button in self.theme_buttons:
+                # calculer la position animée
+                animated_offset = button.offset - self.transition_direction * eased_progress
+                x_pos = center_x + (animated_offset * (button_width + spacing)) - button_width // 2
+                
+                # définir la nouvelle position du bouton pour l'animation
+                button.rect.x = int(x_pos + slide_offset)
+                
+                # ajuster l'opacité du bouton en fonction de sa distance au centre
+                distance = abs(animated_offset)
+                if distance < 0.1:  # presque au centre
+                    alpha = 255
+                else:
+                    alpha = max(100, int(255 - (distance * 100)))
+                
+                button.bg_image.set_alpha(alpha)
+                
+                # afficher le bouton à sa position temporaire
+                button.draw(self.screen)
+                
+                # afficher le nom du thème sous le bouton
+                theme_name = button.theme_name.capitalize()
+                name_font = pygame.font.SysFont('Arial', 30, bold=True)
+                name_surface = name_font.render(theme_name, True, (255, 255, 255))
+                name_x = button.rect.centerx - name_surface.get_width() // 2
+                name_y = button.rect.bottom + 10
+                
+                # transparence du texte similaire au bouton
+                alpha_surface = pygame.Surface((name_surface.get_width(), name_surface.get_height()), pygame.SRCALPHA)
+                alpha_surface.fill((255, 255, 255, alpha))
+                name_surface.blit(alpha_surface, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                
+                self.screen.blit(name_surface, (name_x, name_y))
+            
+            # toujours afficher les flèches de navigation
+            self.left_arrow_btn.draw(self.screen)
+            self.right_arrow_btn.draw(self.screen)
+        else:
+            # fin de la transition
+            self.is_transitioning = False
+            self.transition_progress = 0.0
+            self.create_theme_buttons()  # recréer les boutons avec leurs positions finales
 
 class CustomImageButton(ImageButton):
     """
