@@ -231,16 +231,16 @@ class ThemeSelectionScreen(BaseScreen):
         self.left_arrow_btn.check_hover(mouse_pos)
         self.right_arrow_btn.check_hover(mouse_pos)
         
-        # Mettre à jour l'animation de transition si elle est active
+        # mettre à jour l'animation de transition si elle est active
         if self.is_transitioning:
-            # Force un nouveau rendu à chaque frame pendant la transition
+            # force un nouveau rendu à chaque frame pendant la transition
             self.needs_render = True
             
-            # Si la transition est terminée
+            # si la transition est terminée
             current_time = pygame.time.get_ticks()
             if current_time - self.transition_start_time >= self.transition_duration:
                 self.is_transitioning = False
-                self.create_theme_buttons()  # Recréer les boutons avec les nouvelles positions
+                self.create_theme_buttons()  # recréer les boutons avec les nouvelles positions
 
     def draw_screen(self):
         """
@@ -302,7 +302,6 @@ class ThemeSelectionScreen(BaseScreen):
         self.left_arrow_btn.draw(self.screen)
         self.right_arrow_btn.draw(self.screen)
         
-        # Animation de transition entre les thèmes
         if self.is_transitioning:
             self.animate_theme_transition()
 
