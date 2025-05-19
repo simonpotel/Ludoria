@@ -2,7 +2,7 @@ import pygame
 from src.windows.components.navbar.navbar import NavBar
 from src.utils.logger import Logger
 from src.utils.theme_manager import ThemeManager
-
+from src.windows.components.dropdown import Dropdown
 class BaseScreen:
     def __init__(self, width=1280, height=720, title="Ludoria"):
         self.width = width
@@ -57,7 +57,17 @@ class BaseScreen:
                 pygame.quit()
                 return False
             
+            # vérifier les événements dropdown en premier
+            mouse_pos = pygame.mouse.get_pos()
+            
+            # si un dropdown est actif, il a la priorité pour gérer les clics
+            if Dropdown.handle_global_event(event, mouse_pos):
+                continue
+            
+            # gérer les événements de la barre de navigation
             self.navbar.handle_events(event)
+            
+            # gérer les événements de la fenêtre
             self.handle_screen_events(event)
         
         return True
@@ -90,6 +100,10 @@ class BaseScreen:
         self.screen.fill(bg_color)
         self.draw_screen()
         self.navbar.draw(self.screen)
+        
+        # render le dropdown actif comme un overlay (après tout le reste)
+        Dropdown.render_active_dropdown(self.screen)
+        
         pygame.display.flip()
     
     def draw_screen(self):
