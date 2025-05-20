@@ -42,34 +42,37 @@ class GameLauncher:
         
         return True
 
-    def create_game_instance(self, game_type, game_save, mode, selected_quadrants):
+    def create_game_instance(self, selected_game, game_save, mode, selected_quadrants):
         """
         fonction : création d'une instance de jeu.
-        crée et retourne une instance du jeu spécifié par `game_type` avec les paramètres fournis.
+        crée et retourne une instance du jeu spécifié par `selected_game` avec les paramètres fournis.
 
         params:
-            game_type (str): type de jeu à créer (ex: "katerenga", "isolation").
+            selected_game (str): type de jeu à créer (ex: "katerenga", "isolation").
             game_save (str): nom de la partie/sauvegarde.
             mode (str): mode de jeu (ex: "Solo", "Bot").
             selected_quadrants (list): configuration des quadrants sélectionnée pour le jeu.
 
         retour:
-            object | none: instance du jeu créé, ou `none` si `game_type` est inconnu.
+            object | none: instance du jeu créé, ou `none` si `selected_game` est inconnu.
         
         exceptions:
-            valueerror: levée si `game_type` n'est pas un type de jeu géré.
+            valueerror: levée si `selected_game` n'est pas un type de jeu géré.
         """
-        Logger.info("GameLauncher", f"Game instance creation: type={game_type}, name={game_save}, mode={mode}")
+        Logger.info("GameLauncher", f"Game instance creation: type={selected_game}, name={game_save}, mode={mode}")
         
-        if game_type == "katerenga":
-            return Katerenga(game_save, selected_quadrants, mode)
-        elif game_type == "isolation":
-            return Isolation(game_save, selected_quadrants, mode)
-        elif game_type == "congress":
-            return Congress(game_save, selected_quadrants, mode)
+        if selected_game == "katerenga":
+            instance = Katerenga(game_save, selected_quadrants, mode)
+        elif selected_game == "isolation":
+            instance = Isolation(game_save, selected_quadrants, mode)
+        elif selected_game == "congress":
+            instance = Congress(game_save, selected_quadrants, mode)
         else:
-            Logger.error("GameLauncher", f"Attempt to create an unknown game type: {game_type}")
-            raise ValueError(f"Game type not defined: {game_type}")
+            Logger.error("GameLauncher", f"Attempt to create an unknown game type: {selected_game}")
+            raise ValueError(f"Game type not defined: {selected_game}")
+            
+        instance.game_type = selected_game
+        return instance
 
     def start_game(self, game_save, selected_game, selected_mode, selected_quadrants):
         """

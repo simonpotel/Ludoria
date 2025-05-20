@@ -50,12 +50,13 @@ class NetworkClient:
             self.port = 5000    
             Logger.warning("NetworkClient", f"Using default config: host={self.host}, port={self.port}")
 
-    def connect(self, player_name: str, game_name: str) -> bool:
+    def connect(self, player_name: str, game_name: str, game_type: str) -> bool:
         """
         fonction : connecte le client au serveur
         params :
             player_name - nom du joueur
             game_name - nom de la partie à rejoindre
+            game_type - type de jeu (katerenga, isolation, congress)
         retour : bool indiquant si la connexion a réussi
         """
         if self.connected:
@@ -72,13 +73,13 @@ class NetworkClient:
             self.listen_thread = threading.Thread(target=self._listen_for_messages, daemon=True)
             self.listen_thread.start()
             # envoi du paquet initial CONNECT
-            connect_dict = create_connect_dict(player_name, game_name)
+            connect_dict = create_connect_dict(player_name, game_name, game_type)
             if not self._send_json(connect_dict):
                 # si l'envoi échoue, déconnexion immédiate
                 self.disconnect("Failed to send initial connect packet")
                 return False
             
-            Logger.info("NetworkClient", f"Successfully connected and sent CONNECT for game '{game_name}' as player '{player_name}'")
+            Logger.info("NetworkClient", f"Successfully connected and sent CONNECT for game '{game_name}' as player '{player_name}' (type: {game_type})")
             return True
             
         except socket.gaierror as e:

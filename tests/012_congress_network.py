@@ -76,6 +76,7 @@ class TestCongressNetwork(TestBase):
         game.player_number = 1
         game.is_my_turn = True
         game.game_started = True
+        game.game_type = "congress"
         
         # autres attributs nécessaires
         game.board = self.board_mock
@@ -103,7 +104,7 @@ class TestCongressNetwork(TestBase):
             GameBase.setup_network(game)
             
             # vérifier que connect a été appelé avec les bons arguments
-            connect_mock.assert_called_once_with(game.local_player_name, game.game_save)
+            connect_mock.assert_called_once_with(game.local_player_name, game.game_save, game.game_type)
     
     @patch('src.saves.save_game')
     def test_game_action_packet(self, mock_save_game):

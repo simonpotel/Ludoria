@@ -5,8 +5,9 @@ class GameSession:
     """
     classe : session de jeu qui gère les joueurs et les tours de jeu 
     """
-    def __init__(self, game_id: str):
+    def __init__(self, game_id: str, game_type: str):
         self.game_id = game_id  # on initialise l'identifiant de la partie
+        self.game_type = game_type  # on initialise le type de jeu
         self.players: Dict[int, socket.socket] = {}  # on initialise les joueurs
         self.current_turn = 1  # on initialise le tour
         self.active = True  # on initialise l'activité de la partie

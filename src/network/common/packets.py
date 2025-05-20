@@ -20,10 +20,14 @@ class PacketType(Enum):
     GAME_LIST = 0xC  
 
 
-def create_connect_dict(player_name: str, game_name: str) -> Dict:
+def create_connect_dict(player_name: str, game_name: str, game_type: str) -> Dict:
     return {
         "type": PacketType.CONNECT.value,
-        "data": {"player_name": player_name, "game_name": game_name}
+        "data": {
+            "player_name": player_name,
+            "game_name": game_name,
+            "game_type": game_type
+        }
     }
 
 def create_game_action_dict(action: Dict[str, Any], game_id: Optional[str] = None) -> Dict:
@@ -35,10 +39,14 @@ def create_game_action_dict(action: Dict[str, Any], game_id: Optional[str] = Non
         "data": data
     }
 
-def create_player_assignment_dict(player_number: int, game_id: str) -> Dict:
+def create_player_assignment_dict(player_number: int, game_id: str, game_type: str) -> Dict:
     return {
         "type": PacketType.PLAYER_ASSIGNMENT.value,
-        "data": {"player_number": player_number, "game_id": game_id}
+        "data": {
+            "player_number": player_number,
+            "game_id": game_id,
+            "game_type": game_type
+        }
     }
 
 def create_wait_turn_dict(game_id: str) -> Dict:
