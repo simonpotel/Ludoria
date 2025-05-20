@@ -2,10 +2,11 @@ import socket
 import json
 import threading
 import random
-from typing import Optional, Callable, Dict, Any
+from typing import Optional, Callable, Dict, Any, List
 from pathlib import Path
 from src.network.common.packets import (
-    PacketType, create_connect_dict, create_game_action_dict, create_chat_send_dict
+    PacketType, create_connect_dict, create_game_action_dict, create_chat_send_dict,
+    create_get_game_list_dict
 )
 from src.utils.logger import Logger
 
@@ -286,6 +287,7 @@ class NetworkClient:
                 PacketType.PLAYER_DISCONNECTED: self._handle_player_disconnected,
                 PacketType.DISCONNECT: self._handle_disconnect, # Server forcing disconnect
                 PacketType.CHAT_RECEIVE: self._handle_chat_message,
+                PacketType.GAME_LIST: self._handle_game_list,
             }
             
             if packet_type_enum in handlers:
@@ -358,6 +360,14 @@ class NetworkClient:
         Logger.info("NetworkClient", f"Received chat message from Player {player_number} ({sender_name}): {message}")
         self.call_handler("chat_message", packet_data)
 
+    def _handle_game_list(self, packet_data: Dict):
+        """
+        procédure : traite la réception de la liste des parties
+        """
+        games = packet_data.get("games", [])
+        Logger.info("NetworkClient", f"Received game list with {len(games)} games")
+        self.call_handler("game_list_received", games)
+
     def register_handler(self, event: str, handler: Callable):
         """
         procédure : enregistre une fonction de gestionnaire pour un événement réseau spécifique
@@ -402,4 +412,56 @@ class NetworkClient:
             
         chat_dict = create_chat_send_dict(sender_name, message, self.player_number, self.game_id)
         if self._send_json(chat_dict):
-            Logger.info("NetworkClient", f"Sent chat message as Player {self.player_number}: {message}") 
+            Logger.info("NetworkClient", f"Sent chat message as Player {self.player_number}: {message}")
+
+    def connect_to_lobby(self) -> bool:
+        """
+        fonction : connecte le client au serveur uniquement pour accéder au lobby
+        retour : bool indiquant si la connexion a réussi
+        """
+        if self.connected:
+            Logger.warning("NetworkClient", "Already connected.")
+            return True
+            
+        try:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.connect((self.host, self.port))
+            self.connected = True
+            Logger.info("NetworkClient", f"Connected to lobby at {self.host}:{self.port}")
+            
+            self.listen_thread = threading.Thread(target=self._listen_for_messages, daemon=True)
+            self.listen_thread.start()
+            
+            return True
+            
+        except socket.gaierror as e:
+             Logger.error("NetworkClient", f"Lobby connection failed: Address-related error for {self.host}:{self.port} - {e}")
+             self._reset_state()
+             return False
+        except ConnectionRefusedError as e:
+             Logger.error("NetworkClient", f"Lobby connection failed: Connection refused by server at {self.host}:{self.port} - {e}")
+             self._reset_state()
+             return False
+        except Exception as e:
+            Logger.error("NetworkClient", f"Lobby connection failed: {str(e)}")
+            self._reset_state()
+            if self.socket:
+                try:
+                    self.socket.close()
+                except: pass
+                self.socket = None
+            return False
+    
+    def request_game_list(self):
+        """
+        procédure : demande la liste des parties disponibles au serveur
+        """
+        if not self.connected or not self.socket:
+            Logger.error("NetworkClient", "Cannot request game list: not connected to lobby.")
+            return False
+            
+        packet = create_get_game_list_dict()
+        if self._send_json(packet):
+            Logger.info("NetworkClient", "Requested game list from server")
+            return True
+        return False 
