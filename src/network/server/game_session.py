@@ -81,3 +81,21 @@ class GameSession:
         self.active = True 
         self.current_turn = 1 
 
+    def get_player_count(self) -> int:
+        """
+        fonction : retourne le nombre de joueurs dans la partie
+        """
+        return len(self.players)
+    
+    def get_max_players(self) -> int:
+        """
+        fonction : retourne le nombre maximum de joueurs
+        """
+        return 2  
+    
+    def is_game_in_progress(self) -> bool:
+        """
+        fonction : indique si la partie est en cours
+        """
+        return self.active and len(self.players) > 0
+

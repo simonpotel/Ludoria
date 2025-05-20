@@ -2,13 +2,14 @@ import socket
 import json
 import threading
 import random
-from typing import Dict, Set, Optional, Any
+from typing import Dict, Set, Optional, Any, List
 from pathlib import Path
 from src.network.common.packets import (
     PacketType, 
     create_player_assignment_dict, create_wait_turn_dict,
     create_your_turn_dict, create_disconnect_dict, 
-    create_player_disconnected_dict, create_chat_receive_dict
+    create_player_disconnected_dict, create_chat_receive_dict,
+    create_game_list_dict
 )
 from src.utils.logger import Logger
 from src.network.server.game_session import GameSession
@@ -171,6 +172,7 @@ class GameServer:
                 PacketType.DISCONNECT: lambda s, pt, pd: self.disconnect_client(s, pd.get("reason", "Client requested disconnect")), # on gère le paquet DISCONNECT
                 PacketType.GAME_ACTION: self.handle_game_action, # on gère le paquet GAME_ACTION
                 PacketType.CHAT_SEND: self.handle_chat_message, # on gère le paquet CHAT_SEND
+                PacketType.GET_GAME_LIST: self.handle_get_game_list, # on gère le paquet GET_GAME_LIST
             }
             
             if packet_type_enum in handlers:
@@ -496,3 +498,26 @@ class GameServer:
                     
         except Exception as e:
             Logger.error("Server", f"Error handling chat message from {client_socket.getpeername()}: {str(e)}")
+
+    def handle_get_game_list(self, client_socket: socket.socket, packet_type: PacketType, packet_data: Dict):
+        """
+        procédure : gère le paquet GET_GAME_LIST
+        """
+        try:
+            Logger.info("Server", f"Game list requested by {client_socket.getpeername()}")
+            
+            game_list = []
+            for game_id, game_session in self.games.items():
+                game_info = {
+                    "game_id": game_id,
+                    "player_count": game_session.get_player_count(),
+                    "max_players": game_session.get_max_players(),
+                    "in_progress": game_session.is_game_in_progress()
+                }
+                game_list.append(game_info)
+            
+            response = create_game_list_dict(game_list)
+            self._send_json(client_socket, response)
+            
+        except Exception as e:
+            Logger.error("Server", f"Error handling GET_GAME_LIST from {client_socket.getpeername()}: {str(e)}")
