@@ -2,13 +2,14 @@ import socket
 import json
 import threading
 import random
-from typing import Dict, Set, Optional, Any
+from typing import Dict, Set, Optional, Any, List
 from pathlib import Path
 from src.network.common.packets import (
     PacketType, 
     create_player_assignment_dict, create_wait_turn_dict,
     create_your_turn_dict, create_disconnect_dict, 
-    create_player_disconnected_dict, create_chat_receive_dict
+    create_player_disconnected_dict, create_chat_receive_dict,
+    create_game_list_dict
 )
 from src.utils.logger import Logger
 from src.network.server.game_session import GameSession
@@ -171,6 +172,7 @@ class GameServer:
                 PacketType.DISCONNECT: lambda s, pt, pd: self.disconnect_client(s, pd.get("reason", "Client requested disconnect")), # on gère le paquet DISCONNECT
                 PacketType.GAME_ACTION: self.handle_game_action, # on gère le paquet GAME_ACTION
                 PacketType.CHAT_SEND: self.handle_chat_message, # on gère le paquet CHAT_SEND
+                PacketType.GET_GAME_LIST: self.handle_get_game_list, # on gère le paquet GET_GAME_LIST
             }
             
             if packet_type_enum in handlers:
@@ -189,15 +191,21 @@ class GameServer:
         try:
             player_name = packet_data.get("player_name", f"Player_{random.randint(100, 999)}") # on récupère le nom du joueur
             game_name = packet_data.get("game_name") # on récupère le nom de la partie
+            game_type = packet_data.get("game_type") # on récupère le type de jeu
             
             if not game_name:
                 Logger.error("Server", f"CONNECT packet from {client_socket.getpeername()} missing 'game_name'.") 
                 self.disconnect_client(client_socket, "Missing game_name in CONNECT packet") 
                 return
+                
+            if not game_type:
+                Logger.error("Server", f"CONNECT packet from {client_socket.getpeername()} missing 'game_type'.") 
+                self.disconnect_client(client_socket, "Missing game_type in CONNECT packet") 
+                return
 
-            Logger.info("Server", f"Connect request from {player_name} for game '{game_name}'") 
+            Logger.info("Server", f"Connect request from {player_name} for game '{game_name}' (type: {game_type})") 
             
-            game = self._get_or_create_game(game_name)
+            game = self._get_or_create_game(game_name, game_type)
             if not game:
                 self.disconnect_client(client_socket, f"Failed to create/find game '{game_name}'") 
                 return
@@ -205,20 +213,22 @@ class GameServer:
             if not self._can_join_game(game, client_socket, game_name): 
                 return 
 
-            self._setup_player(client_socket, game, player_name, game_name) 
+            self._setup_player(client_socket, game, player_name, game_name, game_type) 
 
         except Exception as e:
             Logger.error("Server", f"Error handling connection for {client_socket.getpeername()}: {str(e)}") 
-            self.disconnect_client(client_socket, "Server error during connection handling") 
+            self.disconnect_client(client_socket, "Server error during connection handling")
 
-    def _get_or_create_game(self, game_name: str) -> Optional[GameSession]:
+    def _get_or_create_game(self, game_name: str, game_type: str) -> Optional[GameSession]:
         """
-        procédure : récupère ou crée une partie
+        fonction : récupère ou crée une partie
         """
-        if game_name not in self.games:
-            self.games[game_name] = GameSession(game_name)     
-            Logger.info("Server", f"Created new game session: {game_name}") 
-        return self.games.get(game_name) 
+        if game_name in self.games:
+            return self.games[game_name]
+            
+        game = GameSession(game_name, game_type)
+        self.games[game_name] = game
+        return game
 
     def _can_join_game(self, game: GameSession, client_socket: socket.socket, game_name: str) -> bool:
         """
@@ -231,7 +241,7 @@ class GameServer:
             return False
         return True
 
-    def _setup_player(self, client_socket: socket.socket, game: GameSession, player_name: str, game_name: str):
+    def _setup_player(self, client_socket: socket.socket, game: GameSession, player_name: str, game_name: str, game_type: str):
         """
         procédure : configure le joueur
         """
@@ -239,7 +249,7 @@ class GameServer:
             player_number = game.add_player(client_socket) 
             self.client_to_game[client_socket] = game_name 
 
-            assignment_dict = create_player_assignment_dict(player_number, game_name)
+            assignment_dict = create_player_assignment_dict(player_number, game_name, game_type)
             if not self._send_json(client_socket, assignment_dict):
                  raise ConnectionError("Failed to send player assignment") 
 
@@ -496,3 +506,26 @@ class GameServer:
                     
         except Exception as e:
             Logger.error("Server", f"Error handling chat message from {client_socket.getpeername()}: {str(e)}")
+
+    def handle_get_game_list(self, client_socket: socket.socket, packet_type: PacketType, packet_data: Dict):
+        """
+        procédure : gère la demande de liste des parties
+        """
+        try:
+            games_list = []
+            for game_id, game in self.games.items():
+                if not game.is_full() and game.active:
+                    games_list.append({
+                        "game_id": game_id,
+                        "game_type": game.game_type,
+                        "player_count": game.get_player_count(),
+                        "max_players": game.get_max_players()
+                    })
+            
+            response = create_game_list_dict(games_list)
+            if not self._send_json(client_socket, response):
+                Logger.error("Server", f"Failed to send game list to {client_socket.getpeername()}")
+                
+        except Exception as e:
+            Logger.error("Server", f"Error handling game list request from {client_socket.getpeername()}: {str(e)}")
+            self.disconnect_client(client_socket, "Error processing game list request")

@@ -14,15 +14,22 @@ import os
 class GameConfigScreen(BaseScreen):
     GAMES = ["katerenga", "isolation", "congress"]
     
-    def __init__(self, mode):
+    def __init__(self, mode, game_name=None, game_type=None, quadrants=None):
         """
         constructeur : initialise l'écran de configuration du jeu.
         
         params:
             mode - mode de jeu (solo, multijoueur, etc.).
+            game_name - nom de la partie (optionnel, pour rejoindre une partie réseau).
+            game_type - type de jeu (optionnel, pour rejoindre une partie réseau).
+            quadrants - quadrants prédéfinis (optionnel, pour rejoindre une partie réseau).
         """
         super().__init__(title=f"Ludoria - {mode} Game Configuration")
         self.mode = mode
+        self.existing_game_name = game_name
+        self.existing_game_type = game_type
+        self.existing_quadrants = quadrants
+        
         self.quadrant_handler = QuadrantHandler()
         self.config_loader = ConfigLoader()
         self.game_launcher = GameLauncher()
@@ -54,15 +61,21 @@ class GameConfigScreen(BaseScreen):
         except Exception as e:
             Logger.error("GameConfigScreen", f"Failed to load background image: {e}")
         
-        config_result = self.config_loader.load_quadrants()
-        if config_result:
-            self.quadrants_config, self.quadrant_names, _ = config_result
-            # initialisation des quadrants par défaut
-            for i in range(4):
-                if i < len(self.quadrant_names):
-                    self.selected_quadrants[i] = self.quadrants_config.get(self.quadrant_names[i % len(self.quadrant_names)])
+        # si on rejoint une partie réseau, on utilise les quadrants existants
+        if self.mode == "Network" and self.existing_quadrants:
+            Logger.info("GameConfigScreen", f"Using existing quadrants for network game")
+            self.selected_quadrants = self.existing_quadrants
         else:
-            Logger.error("GameConfigScreen", "Failed to load quadrant configurations.")
+            # chargement des quadrants par défaut depuis la configuration
+            config_result = self.config_loader.load_quadrants()
+            if config_result:
+                self.quadrants_config, self.quadrant_names, _ = config_result
+                # initialisation des quadrants par défaut
+                for i in range(4):
+                    if i < len(self.quadrant_names):
+                        self.selected_quadrants[i] = self.quadrants_config.get(self.quadrant_names[i % len(self.quadrant_names)])
+            else:
+                Logger.error("GameConfigScreen", "Failed to load quadrant configurations.")
     
     def setup_ui(self):
         """
@@ -81,9 +94,20 @@ class GameConfigScreen(BaseScreen):
         
         self.labels = []
         
+        # si on rejoint une partie réseau, on ne peut pas modifier le nom de la partie
+        initial_game_name = ""
+        initial_game_index = 0
+        
+        if self.existing_game_name:
+            initial_game_name = self.existing_game_name
+        
+        if self.existing_game_type and self.existing_game_type in self.GAMES:
+            initial_game_index = self.GAMES.index(self.existing_game_type)
         
         self.save_name_input = TextInput(
-            padding, current_y + 20, element_width, 80, "Game Name"
+            padding, current_y + 20, element_width, 80, "Game Name", 
+            initial_text=initial_game_name,
+            disabled=bool(self.existing_game_name)
         )
         current_y += element_height + element_spacing
         
@@ -91,24 +115,33 @@ class GameConfigScreen(BaseScreen):
         current_y += self.font.get_height() + label_spacing
         
         self.game_dropdown = Dropdown(
-            padding, current_y + 100, element_width, element_height, self.GAMES, 0
+            padding, current_y + 100, element_width, element_height, 
+            self.GAMES, initial_game_index,
+            disabled=bool(self.existing_game_type)
         )
         current_y += element_height + element_spacing
         
         self.labels.append(("Quadrant Configuration:", (padding, current_y + 100)))
         current_y += self.font.get_height() + label_spacing
         
+        # si on rejoint une partie réseau, on ne peut pas modifier les quadrants
+        quadrant_button_text = "Change Quadrant"
+        if self.mode == "Network" and self.existing_quadrants:
+            quadrant_button_text = "Quadrants from Server"
+            
         self.quadrant_config_button = Button(
             padding, current_y + 100, element_width, 100, 
-            "Change Quadrant", self._open_quadrant_config
+            quadrant_button_text, self._open_quadrant_config,
+            disabled=bool(self.existing_quadrants)
         )
         current_y += element_height + element_spacing
         
         current_y += element_spacing
         
+        start_button_text = "Join Game" if self.mode == "Network" and self.existing_game_name else "Start / Load Game"
         self.start_button = Button(
             padding, current_y + 160, element_width, 100, 
-            "Start / Load Game", self.launch_game
+            start_button_text, self.launch_game
         )
         
         # préparation de la zone de prévisualisation
@@ -135,6 +168,10 @@ class GameConfigScreen(BaseScreen):
         """
         procédure : met à jour les quadrants sélectionnés selon la configuration.
         """
+        # si on a des quadrants existants depuis le réseau, on ne les met pas à jour
+        if self.existing_quadrants:
+            return
+            
         if self.quadrants_config and self.quadrant_names:
             for i in range(4):
                 if i < len(self.quadrant_names) and not self.selected_quadrants[i]:
@@ -145,6 +182,10 @@ class GameConfigScreen(BaseScreen):
         """
         procédure : ouvre l'écran de configuration des quadrants.
         """
+        # si on rejoint une partie réseau, on ne peut pas modifier les quadrants
+        if self.mode == "Network" and self.existing_quadrants:
+            return
+            
         from src.windows.screens.game_config.quadrant_config import QuadrantConfigScreen
         # passage de l'instance actuelle comme écran parent
         self.next_screen = lambda: QuadrantConfigScreen(self)
@@ -155,8 +196,9 @@ class GameConfigScreen(BaseScreen):
         """
         procédure : lance le jeu avec les paramètres configurés.
         """
-        game_save = self.save_name_input.get()
-        selected_game = self.GAMES[self.game_dropdown.selected_index]
+        # si on rejoint une partie réseau, on utilise les informations de la partie existante
+        game_save = self.existing_game_name or self.save_name_input.get()
+        selected_game = self.existing_game_type or self.GAMES[self.game_dropdown.selected_index]
         
         if not game_save:
             Logger.warning("GameConfigScreen", "Game save name cannot be empty")
@@ -176,7 +218,10 @@ class GameConfigScreen(BaseScreen):
             self.running = False
             
             # démarrage du jeu (bloquant)
-            game_success = self.game_launcher.start_game(game_save, selected_game, self.mode, self.selected_quadrants)
+            game_success = self.game_launcher.start_game(
+                game_save, selected_game, self.mode, 
+                self.existing_quadrants or self.selected_quadrants
+            )
             
             if game_success:
                 Logger.info("GameConfigScreen", f"Game completed successfully, returning to mode selection")
@@ -199,55 +244,75 @@ class GameConfigScreen(BaseScreen):
     
     def update_screen(self, mouse_pos):
         """
-        procédure : met à jour l'état des éléments de l'écran.
+        procédure : met à jour l'écran.
         
         params:
-            mouse_pos - position actuelle de la souris.
+            mouse_pos - position de la souris.
         """
-        self.save_name_input.update(16)
+        if not self.existing_game_name:
+            self.save_name_input.update(16)
         
         self.quadrant_config_button.check_hover(mouse_pos)
-        
         self.start_button.check_hover(mouse_pos)
     
     def draw_screen(self):
         """
-        procédure : dessine les éléments de l'écran.
+        procédure : dessine l'écran.
         """
         if self.background_image:
             self.screen.blit(self.background_image, (0, 0))
-        else:
-            self.screen.fill((240, 240, 240))
-        
-        # création du panneau semi-transparent
-        panel_surface = pygame.Surface((350, self.height), pygame.SRCALPHA)
-        panel_surface.fill((240, 240, 240, 200))
-        self.screen.blit(panel_surface, (0, 0))
         
         for text, pos in self.labels:
-            text_surface = self.font.render(text, True, (0, 0, 0))
+            text_surface = self.font.render(text, True, (255, 255, 255))
             self.screen.blit(text_surface, pos)
+        
+        preview_border_width = 3
+        pygame.draw.rect(
+            self.screen, 
+            (153, 98, 61),  # couleur du cadre (marron)
+            self.preview_rect, 
+            preview_border_width
+        )
+        
+        quadrant_size = self.preview_rect.width // 2
+        
+        # dessin des quadrants
+        for i in range(4):
+            row = i // 2
+            col = i % 2
+            
+            quadrant_rect = pygame.Rect(
+                self.preview_rect.x + (col * quadrant_size),
+                self.preview_rect.y + (row * quadrant_size),
+                quadrant_size,
+                quadrant_size
+            )
+            
+            # couleur de fond par défaut pour les quadrants
+            fill_color = (200, 200, 200)
+            
+            # si un quadrant est sélectionné, on utilise sa couleur
+            if i < len(self.selected_quadrants) and self.selected_quadrants[i]:
+                quadrant_data = self.selected_quadrants[i]
+                if quadrant_data and "color" in quadrant_data:
+                    color_hex = quadrant_data["color"]
+                    fill_color = tuple(int(color_hex[j:j+2], 16) for j in (1, 3, 5))
+            
+            pygame.draw.rect(self.screen, fill_color, quadrant_rect)
+            pygame.draw.rect(self.screen, (0, 0, 0), quadrant_rect, 1)
+            
+            # afficher le nom du quadrant s'il est disponible
+            if i < len(self.selected_quadrants) and self.selected_quadrants[i]:
+                quadrant_data = self.selected_quadrants[i]
+                if quadrant_data and "name" in quadrant_data:
+                    name = quadrant_data["name"]
+                    name_font = pygame.font.SysFont('Arial', 12, bold=True)
+                    name_surface = name_font.render(name, True, (0, 0, 0))
+                    
+                    name_rect = name_surface.get_rect(center=quadrant_rect.center)
+                    self.screen.blit(name_surface, name_rect)
         
         self.save_name_input.draw(self.screen)
         self.game_dropdown.draw(self.screen)
-        
         self.quadrant_config_button.draw(self.screen)
-        
         self.start_button.draw(self.screen)
-        
-        preview_label = self.font.render("Preview:", True, (0, 0, 0))
-        self.screen.blit(preview_label, (self.preview_rect.left, self.preview_rect.top - 25))
-        
-        # arrière-plan de la prévisualisation
-        preview_bg = pygame.Surface((self.preview_rect.width, self.preview_rect.height), pygame.SRCALPHA)
-        preview_bg.fill((255, 255, 255, 150))
-        self.screen.blit(preview_bg, self.preview_rect)
-        
-        pygame.draw.rect(self.screen, (100, 100, 100), self.preview_rect, 2)
-        
-        if all(self.selected_quadrants):
-            self.quadrant_handler.draw_quadrants(
-                self.screen, 
-                self.selected_quadrants, 
-                self.preview_rect
-            )

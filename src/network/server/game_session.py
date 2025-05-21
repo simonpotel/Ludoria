@@ -5,8 +5,9 @@ class GameSession:
     """
     classe : session de jeu qui gère les joueurs et les tours de jeu 
     """
-    def __init__(self, game_id: str):
+    def __init__(self, game_id: str, game_type: str):
         self.game_id = game_id  # on initialise l'identifiant de la partie
+        self.game_type = game_type  # on initialise le type de jeu
         self.players: Dict[int, socket.socket] = {}  # on initialise les joueurs
         self.current_turn = 1  # on initialise le tour
         self.active = True  # on initialise l'activité de la partie
@@ -80,4 +81,22 @@ class GameSession:
         """
         self.active = True 
         self.current_turn = 1 
+
+    def get_player_count(self) -> int:
+        """
+        fonction : retourne le nombre de joueurs dans la partie
+        """
+        return len(self.players)
+    
+    def get_max_players(self) -> int:
+        """
+        fonction : retourne le nombre maximum de joueurs
+        """
+        return 2  
+    
+    def is_game_in_progress(self) -> bool:
+        """
+        fonction : indique si la partie est en cours
+        """
+        return self.active and len(self.players) > 0
 
