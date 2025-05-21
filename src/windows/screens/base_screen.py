@@ -2,7 +2,11 @@ import pygame
 from src.windows.components.navbar.navbar import NavBar
 from src.utils.logger import Logger
 from src.utils.theme_manager import ThemeManager
+from src.windows.font_manager import FontManager
 from src.windows.components.dropdown import Dropdown
+from src.windows.screens.game_selection.mode_selection import ModeSelectionScreen
+from src.windows.screens.theme_selection import ThemeSelectionScreen
+
 class BaseScreen:
     def __init__(self, width=1280, height=720, title="Ludoria"):
         self.width = width
@@ -14,6 +18,7 @@ class BaseScreen:
         self.fps = 30
         
         self.theme_manager = ThemeManager()
+        self.font_manager = FontManager()
         self.navbar = NavBar(self.width)
         self.navbar_height = 50
         self.content_rect = pygame.Rect(0, self.navbar_height, self.width, self.height - self.navbar_height)
@@ -34,21 +39,26 @@ class BaseScreen:
         
         self.navbar.set_callbacks(
             home_callback=self.home_action,
-            settings_callback=self.settings_action
+            settings_callback=self.menu_action
         )
     
     def setup_ui(self):
         pass
     
     def home_action(self):
-        from src.windows.screens.game_selection.mode_selection import ModeSelectionScreen
-        self.next_screen = ModeSelectionScreen
-        self.running = False
+        
+        if not isinstance(self, ModeSelectionScreen):
+            self.next_screen = ModeSelectionScreen
+            self.running = False
+            Logger.info("BaseScreen", "Redirecting to Mode Selection Screen")
     
-    def settings_action(self):
-        from src.windows.screens.theme_selection import ThemeSelectionScreen
+    def menu_action(self):
         self.next_screen = ThemeSelectionScreen
         self.running = False
+        Logger.info("BaseScreen", "Redirecting to Theme Settings")
+    
+    def settings_action(self):
+        self.menu_action()
     
     def handle_events(self):
         for event in pygame.event.get():
