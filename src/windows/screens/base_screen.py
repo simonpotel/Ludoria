@@ -4,8 +4,6 @@ from src.utils.logger import Logger
 from src.utils.theme_manager import ThemeManager
 from src.windows.font_manager import FontManager
 from src.windows.components.dropdown import Dropdown
-from src.windows.screens.game_selection.mode_selection import ModeSelectionScreen
-from src.windows.screens.theme_selection import ThemeSelectionScreen
 
 class BaseScreen:
     def __init__(self, width=1280, height=720, title="Ludoria"):
@@ -46,6 +44,7 @@ class BaseScreen:
         pass
     
     def home_action(self):
+        from src.windows.screens.game_selection.mode_selection import ModeSelectionScreen
         
         if not isinstance(self, ModeSelectionScreen):
             self.next_screen = ModeSelectionScreen
@@ -53,6 +52,7 @@ class BaseScreen:
             Logger.info("BaseScreen", "Redirecting to Mode Selection Screen")
     
     def menu_action(self):
+        from src.windows.screens.theme_selection import ThemeSelectionScreen
         self.next_screen = ThemeSelectionScreen
         self.running = False
         Logger.info("BaseScreen", "Redirecting to Theme Settings")
