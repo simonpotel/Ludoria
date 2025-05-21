@@ -61,17 +61,17 @@ class GameBase:
             # en mode réseau, game_save est utilisé comme nom/id de la partie
             Logger.error("GameBase", "Cannot setup network without a game name (game_save).")
             return
-
+        
+        game_name = self.game_save  # utilise le nom de sauvegarde comme id de partie
+        
         self.network_client = NetworkClient()
         self._register_network_handlers()
         
-        game_name = self.game_save # utilise le nom de sauvegarde comme id de partie
         Logger.info("GameBase", f"Connecting to server for game '{game_name}' as player '{self.local_player_name}' (type: {self.game_type})")
         if not self.network_client.connect(self.local_player_name, game_name, self.game_type):
             Logger.error("GameBase", "Failed to connect to the game server")
             self.update_status_message("Connection failed!", "red")
             self.cleanup()
-            # idéalement, informer l'utilisateur et revenir au menu principal ici
             return
             
         Logger.info("GameBase", "Connected to game server, waiting for assignment...")
@@ -288,6 +288,9 @@ class GameBase:
         if self.is_network_game and self.network_client and self.is_my_turn:
             # ajoute l'état complet du jeu pour synchronisation
             action_data["board_state"] = self.get_board_state()
+            
+            if "action" not in action_data:
+                action_data["action"] = "move"  # valeur par défaut si non spécifiée
             
             # Log détaillé pour le débogage des problèmes de fin de partie
             Logger.game("GameBase", f"Sending network action with board state: player={self.player_number}, round_turn={self.round_turn}")

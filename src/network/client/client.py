@@ -363,10 +363,10 @@ class NetworkClient:
 
     def _handle_game_list(self, packet_data: Dict):
         """
-        procédure : traite la réception de la liste des parties
+        procédure : traite le paquet GAME_LIST
         """
         games = packet_data.get("games", [])
-        Logger.info("NetworkClient", f"Received game list with {len(games)} games")
+        Logger.info("NetworkClient", f"Received list of {len(games)} games")
         self.call_handler("game_list_received", games)
 
     def register_handler(self, event: str, handler: Callable):
@@ -455,14 +455,14 @@ class NetworkClient:
     
     def request_game_list(self):
         """
-        procédure : demande la liste des parties disponibles au serveur
+        procédure : demande la liste des jeux au serveur
         """
-        if not self.connected or not self.socket:
-            Logger.error("NetworkClient", "Cannot request game list: not connected to lobby.")
-            return False
+        if not self.connected:
+            Logger.warning("NetworkClient", "Cannot request game list: not connected")
+            if not self.connect_to_lobby():
+                Logger.error("NetworkClient", "Failed to connect to lobby to request game list")
+                return
             
-        packet = create_get_game_list_dict()
-        if self._send_json(packet):
-            Logger.info("NetworkClient", "Requested game list from server")
-            return True
-        return False 
+        Logger.info("NetworkClient", "Requesting game list from server")
+        get_list_dict = create_get_game_list_dict()
+        self._send_json(get_list_dict) 
