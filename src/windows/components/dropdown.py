@@ -7,7 +7,7 @@ class Dropdown:
     # variable statique pour suivre toutes les dropdowns ouvertes
     active_dropdown = None
     
-    def __init__(self, x, y, width, height, options, default_index=0):
+    def __init__(self, x, y, width, height, options, default_index=0, disabled=False):
         """
         constructeur : initialise la liste déroulante.
 
@@ -16,17 +16,21 @@ class Dropdown:
             width, height - dimensions de la boîte principale.
             options - liste des chaînes de caractères à afficher.
             default_index - index de l'option sélectionnée par défaut.
+            disabled - indique si la liste déroulante est désactivée.
         """
         self.rect = pygame.Rect(x, y, width, height)
         self.options = options
         self.selected_index = default_index
         self.font = pygame.font.SysFont('Arial', 16)
         self.color = (0, 0, 0)
+        self.disabled_color = (70, 70, 70)
         self.text_color = (240, 240, 240)
+        self.disabled_text_color = (170, 170, 170)
         self.is_open = False
         self.option_height = 30
         self.option_rects = []
         self.transparency = 171
+        self.disabled = disabled
         self.update_option_rects()
         
     def update_option_rects(self):
@@ -53,24 +57,32 @@ class Dropdown:
         # dessin du container principal
         dropdown_surface = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
         
-        pygame.draw.rect(dropdown_surface, self.color + (self.transparency,), dropdown_surface.get_rect(), 0, radius)
+        if self.disabled:
+            bg_color = self.disabled_color
+        else:
+            bg_color = self.color
+            
+        pygame.draw.rect(dropdown_surface, bg_color + (self.transparency,), dropdown_surface.get_rect(), 0, radius)
         
-        pygame.draw.rect(dropdown_surface, (240, 240, 240, 255), dropdown_surface.get_rect(), 1, radius)
+        border_color = (170, 170, 170, 255) if self.disabled else (240, 240, 240, 255)
+        pygame.draw.rect(dropdown_surface, border_color, dropdown_surface.get_rect(), 1, radius)
         
         # affichage de l'élément sélectionné
         if 0 <= self.selected_index < len(self.options):
             text = self.options[self.selected_index]
-            text_surface = self.font.render(text, True, self.text_color)
+            text_color = self.disabled_text_color if self.disabled else self.text_color
+            text_surface = self.font.render(text, True, text_color)
             text_rect = text_surface.get_rect(midleft=(5, self.rect.height // 2))
             dropdown_surface.blit(text_surface, text_rect)
         
         # indicateur visuel (flèche)
+        arrow_color = (170, 170, 170, 255) if self.disabled else (240, 240, 240, 255)
         arrow_points = [
             (self.rect.width - 15, self.rect.height // 2 - 5),
             (self.rect.width - 5, self.rect.height // 2 - 5),
             (self.rect.width - 10, self.rect.height // 2 + 5)
         ]
-        pygame.draw.polygon(dropdown_surface, (240, 240, 240, 255), arrow_points)
+        pygame.draw.polygon(dropdown_surface, arrow_color, arrow_points)
         
         surface.blit(dropdown_surface, self.rect)
         
@@ -183,6 +195,9 @@ class Dropdown:
 
         retour : True si un clic a été géré par cet élément, False sinon.
         """
+        if self.disabled:
+            return False
+            
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(pos):
                 if not self.is_open:

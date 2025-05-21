@@ -4,7 +4,7 @@ class Button:
     """
     classe : représente un bouton cliquable simple dans l'interface.
     """
-    def __init__(self, x, y, width, height, text, action=None):
+    def __init__(self, x, y, width, height, text, action=None, disabled=False):
         """
         constructeur : initialise un bouton.
 
@@ -13,6 +13,7 @@ class Button:
             width, height - dimensions du bouton.
             text - texte affiché sur le bouton.
             action - fonction à appeler lors du clic (callback).
+            disabled - indique si le bouton est désactivé.
         """
         self.rect = pygame.Rect(x, y, width, height)
         self.text = text
@@ -20,10 +21,13 @@ class Button:
         # couleurs pour les états normal et survolé
         self.color = (0, 0, 0)
         self.hover_color = (160, 160, 160)
+        self.disabled_color = (70, 70, 70)
         self.text_color = (255, 255, 255)
+        self.disabled_text_color = (170, 170, 170)
         self.font = pygame.font.SysFont('Arial', 24)
         self.is_hover = False # true si la souris est sur le bouton
         self.transparency = 171  # 67% de 255 (255 * 0.67 ≈ 171)
+        self.disabled = disabled
     
     def draw(self, surface):
         """
@@ -34,7 +38,10 @@ class Button:
             surface - surface pygame sur laquelle dessiner.
         """
         # sélection de la couleur selon l'état de survol
-        color = self.hover_color if self.is_hover else self.color
+        if self.disabled:
+            color = self.disabled_color
+        else:
+            color = self.hover_color if self.is_hover else self.color
         
         # rayon des coins arrondis 
         radius = min(int(self.rect.height * 0.2), 10)
@@ -46,10 +53,12 @@ class Button:
         pygame.draw.rect(button_surface, color + (self.transparency,), button_surface.get_rect(), 0, radius)
         
         # ajout de la bordure
-        pygame.draw.rect(button_surface, (0, 0, 0, self.transparency), button_surface.get_rect(), 1, radius)
+        border_color = (100, 100, 100, self.transparency) if self.disabled else (0, 0, 0, self.transparency)
+        pygame.draw.rect(button_surface, border_color, button_surface.get_rect(), 1, radius)
         
         # ajout du texte centré
-        text_surface = self.font.render(self.text, True, self.text_color)
+        text_color = self.disabled_text_color if self.disabled else self.text_color
+        text_surface = self.font.render(self.text, True, text_color)
         text_rect = text_surface.get_rect(center=(self.rect.width // 2, self.rect.height // 2))
         button_surface.blit(text_surface, text_rect)
         
@@ -63,7 +72,10 @@ class Button:
         params:
             pos - tuple (x, y) de la position de la souris.
         """
-        self.is_hover = self.rect.collidepoint(pos)
+        if self.disabled:
+            self.is_hover = False
+        else:
+            self.is_hover = self.rect.collidepoint(pos)
         
     def handle_event(self, event):
         """
@@ -75,6 +87,9 @@ class Button:
         retour : True si l'action a été déclenchée, False sinon.
         """
         # détection du clic et déclenchement de l'action associée
+        if self.disabled:
+            return False
+            
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.is_hover and self.action:
                 self.action()
