@@ -24,6 +24,10 @@ class GameConfigScreen(BaseScreen):
             game_type - type de jeu (optionnel, pour rejoindre une partie réseau).
             quadrants - quadrants prédéfinis (optionnel, pour rejoindre une partie réseau).
         """
+        if mode.upper() == "SOLO":
+            mode = "Solo"
+        elif mode.upper() == "BOT":
+            mode = "Bot"
         super().__init__(title=f"Ludoria - {mode} Game Configuration")
         self.mode = mode
         self.existing_game_name = game_name
