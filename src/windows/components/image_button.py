@@ -20,10 +20,6 @@ class ImageButton:
             text_color - couleur du texte
         """
         self.rect = pygame.Rect(x, y, width, height)
-        self.x = x  
-        self.y = y
-        self.width = width
-        self.height = height
         self.text = text.upper()
         self.action = action
         self.text_color = text_color
