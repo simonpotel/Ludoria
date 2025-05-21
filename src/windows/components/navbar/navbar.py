@@ -1,42 +1,49 @@
 import pygame
 import os
 from src.windows.components.button import Button
+from src.windows.components.image_button import ImageButton
 from src.utils.logger import Logger
+from src.windows.font_manager import FontManager
 
 class NavBar:
     def __init__(self, screen_width, height=50):
         self.width = screen_width
         self.height = height
-        self.background_color = (50, 50, 50)
+        self.background_color = (0, 0, 0, 0) 
         
-        # dimensions des boutons
-        home_btn_width = 40
-        settings_btn_width = 40
-        padding = 10
+        self.font_manager = FontManager()
         
-        self.home_button = Button(
+        btn_size = 40
+        padding = 5
+        
+        star_icon_path = "assets/Basic_GUI_Bundle/Icons/Icon_Small_Star.png"
+        menu_icon_path = "assets/Basic_GUI_Bundle/Icons/Icon_Small_WhiteOutline_Menu.png"
+        button_bg_path = "assets/Basic_GUI_Bundle/ButtonsIcons/IconButton_Small_Blank_Rounded.png"
+        
+        self.home_button = ImageButton(
             padding, 
-            (self.height - 30) // 2, 
-            home_btn_width, 
-            30, 
-            "⌂", 
-            self.home_action
+            (self.height - btn_size) // 2, 
+            btn_size, 
+            btn_size, 
+            "", 
+            self.home_action,
+            bg_image_path=button_bg_path,
+            icon_path=star_icon_path
         )
         
-        self.settings_button = Button(
-            self.width - settings_btn_width - padding, 
-            (self.height - 30) // 2, 
-            settings_btn_width, 
-            30, 
-            "⚙", 
-            self.settings_action
+        self.settings_button = ImageButton(
+            self.width - btn_size - padding, 
+            (self.height - btn_size) // 2, 
+            btn_size, 
+            btn_size, 
+            "", 
+            self.settings_action,
+            bg_image_path=button_bg_path,
+            icon_path=menu_icon_path
         )
         
-        self.title = "Ludoria"
-        self.title_font = pygame.font.SysFont('Arial', 22, bold=True)
-        
-        self.home_callback = None # callback pour le bouton home (sera une fonction qui sera appelée lorsque le bouton home sera cliqué)
-        self.settings_callback = None # callback pour le bouton settings (sera une fonction qui sera appelée lorsque le bouton settings sera cliqué)
+        self.home_callback = None 
+        self.settings_callback = None 
     
     def set_callbacks(self, home_callback=None, settings_callback=None):
         self.home_callback = home_callback
@@ -55,24 +62,17 @@ class NavBar:
             Logger.warning("NavBar", "Settings button pressed but no callback set")
     
     def handle_events(self, event):
-        # gestion des événements pour les boutons home et settings (appel des callbacks)
         self.home_button.handle_event(event)
         self.settings_button.handle_event(event)
     
     def update(self, mouse_pos):
-        # mise à jour de la position de la souris pour les boutons home et settings
         self.home_button.check_hover(mouse_pos)
         self.settings_button.check_hover(mouse_pos)
     
     def draw(self, screen):
-        # dessin du fond de la navbar
-        pygame.draw.rect(screen, self.background_color, (0, 0, self.width, self.height))
-        
-        # dessin du titre de la navbar
-        title_surface = self.title_font.render(self.title, True, (255, 255, 255))
-        title_x = (self.width - title_surface.get_width()) // 2
-        title_y = (self.height - title_surface.get_height()) // 2
-        screen.blit(title_surface, (title_x, title_y))
+        navbar_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        navbar_surface.fill(self.background_color)
+        screen.blit(navbar_surface, (0,0))
         
         self.home_button.draw(screen)
         self.settings_button.draw(screen) 

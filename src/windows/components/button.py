@@ -1,10 +1,11 @@
 import pygame
+from src.windows.font_manager import FontManager
 
 class Button:
     """
     classe : représente un bouton cliquable simple dans l'interface.
     """
-    def __init__(self, x, y, width, height, text, action=None, disabled=False):
+    def __init__(self, x, y, width, height, text, action=None, disabled=False, font_size=24):
         """
         constructeur : initialise un bouton.
 
@@ -14,6 +15,7 @@ class Button:
             text - texte affiché sur le bouton.
             action - fonction à appeler lors du clic (callback).
             disabled - indique si le bouton est désactivé.
+            font_size - taille de la police (par défaut 24)
         """
         self.rect = pygame.Rect(x, y, width, height)
         self.text = text
@@ -24,7 +26,8 @@ class Button:
         self.disabled_color = (70, 70, 70)
         self.text_color = (255, 255, 255)
         self.disabled_text_color = (170, 170, 170)
-        self.font = pygame.font.SysFont('Arial', 24)
+        self.font_size = font_size
+        self.font_manager = FontManager()
         self.is_hover = False # true si la souris est sur le bouton
         self.transparency = 171  # 67% de 255 (255 * 0.67 ≈ 171)
         self.disabled = disabled
@@ -56,9 +59,10 @@ class Button:
         border_color = (100, 100, 100, self.transparency) if self.disabled else (0, 0, 0, self.transparency)
         pygame.draw.rect(button_surface, border_color, button_surface.get_rect(), 1, radius)
         
-        # ajout du texte centré
+        # ajout du texte centré avec la police personnalisée
         text_color = self.disabled_text_color if self.disabled else self.text_color
-        text_surface = self.font.render(self.text, True, text_color)
+        font = self.font_manager.get_font(self.font_size)
+        text_surface = font.render(self.text, True, text_color)
         text_rect = text_surface.get_rect(center=(self.rect.width // 2, self.rect.height // 2))
         button_surface.blit(text_surface, text_rect)
         
