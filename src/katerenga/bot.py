@@ -159,7 +159,10 @@ class KaterengaBot:
              if self.game.board.board[end_row][end_col][0] is None or self.game.board.board[end_row][end_col][0] != 1:
                  return 5
              else:
-                 return -1 # camp déjà occupé par le bot
+                 if self.game.board.board[end_row][end_col][0] == 1:
+                     return -1
+                 else:
+                     return 5
 
         # vérifie la validité du mouvement simulé
         if not available_move(self.game.board.board, start_row, start_col, end_row, end_col):
@@ -174,7 +177,7 @@ class KaterengaBot:
             # ne pas autoriser la capture au premier tour
             if self.game.first_turn:
                 return -1 # invalide
-            return 1 # mouvement de capture
+            return 3 # mouvement de capture
         
         # mouvement sans capture
         return 0
@@ -206,13 +209,13 @@ class KaterengaBot:
             for dest_col in range(size):
                 # vérifie si la destination est sur le contour (case grise) mais pas dans un coin
                 is_edge = (dest_row == 0 or dest_row == size-1 or dest_col == 0 or dest_col == size-1)
-                is_mycorner = (dest_row == 0 and dest_col == 0) or (dest_row == 0 and dest_col == size-1)
-                is_botcorner = (dest_row == size-1 and dest_col == 0) or (dest_row == size-1 and dest_col == size-1)
+                is_mycorner = (dest_row == (0,0,4) and dest_col == (0,9,4)) or (dest_row == 0 and dest_col == size-1)
+                is_botcorner = (dest_row == (9,0,5) and dest_col == (9,9,5)) or (dest_row == size and dest_col == size-1)
                 
                 # ignorer les cases grises (sur le bord mais pas dans les coins)
                 if is_edge and not is_mycorner:
                     continue
-                if is_botcorner:
+                if is_edge and not is_botcorner:
                     continue
                 
                 # destination vide ou occupée par adversaire (capture possible hors 1er tour)

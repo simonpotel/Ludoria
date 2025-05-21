@@ -17,7 +17,7 @@ class Game(GameBase):
             quadrants: configuration des quadrants initiaux
             game_mode: mode de jeu ("Solo", "Bot", "Network")
         """
-        super().__init__(game_save, quadrants, game_mode)
+        super().__init__(game_save, quadrants, game_mode, player_name="player", game_type="congress")
         self.board = Board(quadrants, 2)
         self.render = Render(game=self)
         self.round_turn = 0

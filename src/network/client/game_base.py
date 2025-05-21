@@ -11,7 +11,7 @@ class GameBase:
     classe : base commune pour tous les jeux réseau ou locaux
     gère la connexion réseau, l'état de base du jeu et les interactions communes.
     """
-    def __init__(self, game_save, quadrants, game_mode="Solo", player_name=None):
+    def __init__(self, game_save, quadrants, game_mode="Solo", player_name=None, game_type=None):
         """
         constructeur : initialise un jeu, potentiellement en mode réseau.
 
@@ -20,6 +20,7 @@ class GameBase:
             quadrants: configuration initiale des quadrants (peut être utilisé par les sous-classes).
             game_mode: mode de jeu ("Solo", "Bot", "Network").
             player_name: nom du joueur local (requis pour le mode réseau).
+            game_type: type du jeu (peut être déterminé automatiquement).
         """
         self.game_save = game_save
         self.quadrants = quadrants
@@ -29,7 +30,7 @@ class GameBase:
         self.game_started = False # indique si la partie réseau a démarré (deux joueurs connectés)
         self.player_number = None # 1 ou 2 en mode réseau
         self.is_my_turn = False # true si c'est le tour du joueur local en réseau
-        self.network_client: Optional[NetworkClient] = None # client réseau
+        self.network_client = None # client réseau
         self.render = None # référence à l'objet render (doit être défini par la sous-classe)
         self.selected_piece = None # pièce sélectionnée (utilisé par certaines sous-classes)
         self.status_message = "" # message affiché à l'utilisateur
@@ -39,6 +40,8 @@ class GameBase:
         self.chat_messages = [] # historique des messages du chat
         self.chat_input = "" # contenu actuel de l'input du chat
         self.chat_active = False # indique si l'input du chat est actuellement actif
+        
+        self.game_type = game_type
         
         if self.is_network_game:
             if not self.local_player_name:
@@ -58,17 +61,17 @@ class GameBase:
             # en mode réseau, game_save est utilisé comme nom/id de la partie
             Logger.error("GameBase", "Cannot setup network without a game name (game_save).")
             return
-
+        
+        game_name = self.game_save  # utilise le nom de sauvegarde comme id de partie
+        
         self.network_client = NetworkClient()
         self._register_network_handlers()
         
-        game_name = self.game_save # utilise le nom de sauvegarde comme id de partie
-        Logger.info("GameBase", f"Connecting to server for game '{game_name}' as player '{self.local_player_name}'")
-        if not self.network_client.connect(self.local_player_name, game_name):
+        Logger.info("GameBase", f"Connecting to server for game '{game_name}' as player '{self.local_player_name}' (type: {self.game_type})")
+        if not self.network_client.connect(self.local_player_name, game_name, self.game_type):
             Logger.error("GameBase", "Failed to connect to the game server")
             self.update_status_message("Connection failed!", "red")
             self.cleanup()
-            # idéalement, informer l'utilisateur et revenir au menu principal ici
             return
             
         Logger.info("GameBase", "Connected to game server, waiting for assignment...")
@@ -285,6 +288,9 @@ class GameBase:
         if self.is_network_game and self.network_client and self.is_my_turn:
             # ajoute l'état complet du jeu pour synchronisation
             action_data["board_state"] = self.get_board_state()
+            
+            if "action" not in action_data:
+                action_data["action"] = "move"  # valeur par défaut si non spécifiée
             
             # Log détaillé pour le débogage des problèmes de fin de partie
             Logger.game("GameBase", f"Sending network action with board state: player={self.player_number}, round_turn={self.round_turn}")

@@ -1,4 +1,5 @@
-from src.windows.selector.selector import Selector
+from src.windows.launcher import Launcher
 
 if __name__ == "__main__":
-    selector = Selector()
+    launcher = Launcher()
+    launcher.start() 

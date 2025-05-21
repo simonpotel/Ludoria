@@ -6,6 +6,8 @@ from src.windows.render.chat_handler import ChatHandler
 from src.windows.components.button import Button
 from src.utils.logger import Logger
 from src.windows.render.image_loader import ImageLoader
+from src.utils.theme_manager import ThemeManager
+from datetime import datetime
 
 class Render:
     """
@@ -41,6 +43,9 @@ class Render:
         self.running = True
         self.needs_render = True
         self.end_game_waiting_input = False  
+        self.pause_popup_active = False
+        self.pause_popup_buttons = []
+        self.pause_popup_action = None
         
         # initialisation pygame
         pygame.init()
@@ -54,6 +59,7 @@ class Render:
         
         # initialisation des gestionnaires
         self.info_bar_handler = InfoBarHandler(self.window_width)
+        self.info_bar_handler.set_pause_callback(self.show_pause_popup)
         self.board_handler = BoardHandler(self.game, self.canvas_size, self.cell_size, 
                                         self.images, self.player_shadows)
         
@@ -168,6 +174,66 @@ class Render:
         pygame.quit()
         sys.exit()
 
+    def show_pause_popup(self):
+        self.pause_popup_active = True
+        self.pause_popup_buttons = []
+        popup_width, popup_height = 500, 240
+        popup_x = (self.window_width - popup_width) // 2
+        popup_y = (self.window_height - popup_height) // 2
+        button_width, button_height = 340, 60
+        button_spacing = 25
+        resume_btn = Button(
+            popup_x + (popup_width - button_width) // 2,
+            popup_y + 60,
+            button_width,
+            button_height,
+            "RESUME",
+            action=self._pause_popup_resume
+        )
+        quit_btn = Button(
+            popup_x + (popup_width - button_width) // 2,
+            popup_y + 60 + button_height + button_spacing,
+            button_width,
+            button_height,
+            "QUIT GAME",
+            action=self._pause_popup_quit
+        )
+        self.pause_popup_buttons = [resume_btn, quit_btn]
+        self.needs_render = True
+
+    def _pause_popup_resume(self):
+        self.pause_popup_active = False
+        self.pause_popup_action = "resume"
+        self.needs_render = True
+
+    def _pause_popup_quit(self):
+        self.pause_popup_active = False
+        self.running = False
+        pygame.quit()
+        sys.exit()
+
+    def _draw_pause_popup(self):
+        popup_width, popup_height = 500, 340
+        popup_x = (self.window_width - popup_width) // 2
+        popup_y = (self.window_height - popup_height) // 2
+        s = pygame.Surface((popup_width, popup_height), pygame.SRCALPHA)
+        s.fill((30, 30, 30, 220))
+        self.screen.blit(s, (popup_x, popup_y))
+        font = self.fonts['main']
+        text_surface = font.render("PAUSE", True, (255, 255, 255))
+        text_rect = text_surface.get_rect(center=(self.window_width//2, popup_y + 35))
+        self.screen.blit(text_surface, text_rect)
+        current_time = datetime.now().strftime("%d %b %Y - %H:%M")
+        date_font = self.fonts['status']
+        date_surface = date_font.render(current_time, True, (200, 200, 200))
+        date_rect = date_surface.get_rect(center=(self.window_width//2, popup_y + popup_height - 30))
+        self.screen.blit(date_surface, date_rect)
+        mouse_pos = pygame.mouse.get_pos()
+        for btn in self.pause_popup_buttons:
+            btn.check_hover(mouse_pos)
+            btn.draw(self.screen)
+        pygame.display.flip()
+
     def render_board(self):
         """
         procédure : dessine l'état complet du jeu (fond, info, plateau).
@@ -194,6 +260,8 @@ class Render:
         # Affichage de la pop-up de fin de partie si active
         if hasattr(self, 'end_popup_active') and self.end_popup_active:
             self._draw_end_popup()
+        if self.pause_popup_active:
+            self._draw_pause_popup()
 
     def _draw_end_popup(self):
         popup_width, popup_height = 500, 260
@@ -208,6 +276,14 @@ class Render:
         text_surface = font.render(self.end_popup_text, True, (40, 40, 40))
         text_rect = text_surface.get_rect(center=(self.window_width//2, popup_y + 50))
         self.screen.blit(text_surface, text_rect)
+        
+        # Ajout de la date et l'heure en bas
+        current_time = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        date_font = self.fonts['chat']  # Utilisation d'une police plus petite
+        date_surface = date_font.render(current_time, True, (80, 80, 80))
+        date_rect = date_surface.get_rect(center=(self.window_width//2, popup_y + popup_height - 15))
+        self.screen.blit(date_surface, date_rect)
+        
         # boutons
         mouse_pos = pygame.mouse.get_pos()
         for btn in self.end_popup_buttons:
@@ -222,6 +298,13 @@ class Render:
         params:
             pos: tuple (x, y) des coordonnées du clic dans la fenêtre
         """
+        if self.pause_popup_active:
+            for btn in self.pause_popup_buttons:
+                btn.check_hover(pos)
+                if btn.is_hover and btn.action:
+                    btn.action()
+                    return
+            return
         if hasattr(self, 'end_popup_active') and self.end_popup_active:
             for btn in self.end_popup_buttons:
                 btn.check_hover(pos)
@@ -261,25 +344,28 @@ class Render:
                     break
                 
                 # vérifie si le popup de fin de partie est actif
-                if hasattr(self, 'end_popup_active') and self.end_popup_active:
+                if self.pause_popup_active:
                     if event.type == pygame.MOUSEBUTTONDOWN:
-                        if event.button == 1:  # clic gauche
-                            for btn in self.end_popup_buttons:
+                        if event.button == 1:
+                            for btn in self.pause_popup_buttons:
                                 btn.check_hover(event.pos)
                                 if btn.is_hover and btn.action:
-                                    Logger.info("Render", f"Button clicked: {btn.text}")
                                     btn.action()
                                     self.needs_render = True
                             self.needs_render = True
+                    if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                        self._pause_popup_resume()
                     continue
-                
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:  # clic gauche
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    self.show_pause_popup()
+                    continue
+                self.info_bar_handler.handle_event(event)
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
                         self.handle_click(event.pos)
                 elif event.type == pygame.USEREVENT and hasattr(self.game, 'handle_events'):
                     self.game.handle_events(event)
                 elif hasattr(self.game, 'handle_events'):
-                    # gestion des événements clavier pour le chat
                     if not self.game.handle_events(event):
                         self.needs_render = True
             
@@ -299,4 +385,4 @@ class Render:
             # limite le framerate
             self.clock.tick(30)
         
-        Logger.info("Render", "Game loop finished") 
+        Logger.info("Render", "Game loop finished")
