@@ -1,5 +1,6 @@
 import pygame
 import os
+from src.utils.logger import Logger
 
 class FontManager:
     """
@@ -38,7 +39,7 @@ class FontManager:
             try:
                 self.fonts[font_key] = pygame.font.Font(path, size)
             except Exception as e:
-                logger.error(f"Error loading font from path '{path}' with size {size}: {e}")
+                Logger.error(f"Error loading font from path '{path}' with size {size}: {e}")
                 self.fonts[font_key] = pygame.font.SysFont('Arial', size)
                 
         return self.fonts[font_key] 

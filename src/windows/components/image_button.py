@@ -19,6 +19,10 @@ class ImageButton:
             icon_path - chemin vers une icône à afficher (optional)
             text_color - couleur du texte
         """
+        self.x = x  
+        self.y = y
+        self.width = width
+        self.height = height
         self.rect = pygame.Rect(x, y, width, height)
         self.text = text.upper()
         self.action = action
