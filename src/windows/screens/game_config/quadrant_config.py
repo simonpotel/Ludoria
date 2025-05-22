@@ -68,6 +68,7 @@ class QuadrantConfigScreen(BaseScreen):
         
         self.quadrant_display_rects = []
         self.labels = []
+        self.previous_indices = [0, 0, 0, 0]
     
     def setup_ui(self):
         """
@@ -283,8 +284,7 @@ class QuadrantConfigScreen(BaseScreen):
         # traitement des événements pour les sélecteurs
         for i, selector in enumerate(self.quadrant_selectors):
             if selector.handle_event(event, pygame.mouse.get_pos()):
-                if not selector.is_open:
-                    self._update_selected_quadrants()
+                self._update_selected_quadrants()
         
         # traitement des événements pour les boutons de rotation
         for left_btn, right_btn in self.quadrant_rotation_buttons:
@@ -307,6 +307,10 @@ class QuadrantConfigScreen(BaseScreen):
         
         self.back_button.check_hover(mouse_pos)
         self.save_button.check_hover(mouse_pos)
+        for i, selector in enumerate(self.quadrant_selectors):
+            if selector.selected_index != self.previous_indices[i]:
+                self._update_selected_quadrants()
+        self.previous_indices = [selector.selected_index for selector in self.quadrant_selectors]
     
     def draw_screen(self):
         """
