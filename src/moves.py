@@ -19,7 +19,23 @@ def available_move(board, iRow, iCol, dRow, dCol):
     if destination[0] is not None and destination[0] == initial[0]:
         Logger.warning("Moves", f"Invalid move: destination cell ({dRow},{dCol}) is occupied by your own piece")
         return False
-        
+
+    # vérification spéciale pour le déplacement vers un camp adverse
+    player = initial[0]
+    finish_line = 9 if player == 0 else 0  # ligne d'arrivée pour le joueur
+    camps = [(0, 0), (0, 9), (9, 0), (9, 9)]
+    
+    # si le pion est sur la dernière ligne ou la ligne juste avant, et veut aller dans un camp sur la dernière ligne
+    if (iRow == finish_line or iRow == finish_line - 1 if player == 0 else iRow == finish_line + 1) and dRow == finish_line and (dRow, dCol) in camps:
+        if destination[0] is None or destination[0] != player:
+            Logger.success("Moves", "Valid move to opponent camp from finish line")
+            return True
+        else:
+            Logger.warning("Moves", "Invalid move: camp is occupied by your own piece")
+            return False
+
+    # si le pion n'est pas sur la dernière ligne ou la ligne juste avant, ou si la destination n'est pas un camp,
+    # on vérifie les règles de mouvement normales
     match initial[1]:
         case 0:
             if iRow != dRow and iCol != dCol:
@@ -125,5 +141,5 @@ def available_move(board, iRow, iCol, dRow, dCol):
             return True
             
     Logger.error("Moves", f"Invalid cell color: {initial[1]}")
-    return False  
+    return False
                 
