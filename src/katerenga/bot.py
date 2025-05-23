@@ -43,7 +43,15 @@ class KaterengaBot:
                     if (i, j) in self.locked_pieces:
                         Logger.bot("KaterengaBot", f"Piece at ({i}, {j}) is locked in a camp, skipping")
                         continue
-                    
+
+                    # determine si la pièce est dans un camp adverse
+                    is_in_opponent_camp = (i, j) in [(0, 0), (0, 9)] # camps pour le joueur 0 (adversaire du joueur 1 du bot)
+
+                    # si la pièce est dans un camp adverse, elle ne peut pas bouger. Passer à la pièce suivante.
+                    if is_in_opponent_camp:
+                        Logger.bot("KaterengaBot", f"Piece at ({i}, {j}) is in opponent's camp and cannot move, skipping.")
+                        continue
+
                     # priorise les mouvements directs vers un camp adverse libre
                     for camp_row, camp_col in bot_camps:
                         if (board[camp_row][camp_col][0] is None or board[camp_row][camp_col][0] != 1) and \
