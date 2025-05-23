@@ -19,6 +19,70 @@ class ModeSelectionScreen(BaseScreen):
         self.version = "v1"
         self.server_address = NetworkClient().host
 
+        # définition des règles pour chaque jeu
+        self.game_rules = {
+            "Katarenga": [
+                "",
+                " - But: Être le premier joueur à placer 2 de ses pions dans les camps adverses.",
+                "   (Cases aux coins opposés de votre camp de départ)",
+                "",
+                " - Mouvement: Chaque pion a un type de mouvement qui dépend de la COULEUR de la case sur laquelle il SE TROUVE au début du tour:",
+                "   - Case ROUGE: Mouvement de TOUR (horizontalement ou verticalement, autant de cases libres souhaitées). S'arrête sur la première case rouge rencontrée.",
+                "   - Case VERTE: Mouvement de CAVALIER (en 'L': 2 cases dans une direction cardinale, puis 1 case perpendiculaire). Peut sauter par-dessus les autres pions.",
+                "   - Case BLEUE: Mouvement de ROI (1 case dans n'importe quelle direction, orthogonale ou diagonale).",
+                "   - Case JAUNE: Mouvement de FOU (diagonalement, autant de cases libres souhaitées). S'arrête sur la première case jaune rencontrée.",
+                "",
+                " - Capture: Un pion peut capturer un pion adverse en se déplaçant sur sa case, SAUF AU TOUT PREMIER TOUR de la partie.",
+                "   Le pion capturé est retiré du plateau.",
+                "",
+                " - Camps: Les camps sont les quatre cases d'angle (0,0), (0,9), (9,0), (9,9).",
+                "   - Une fois qu'un pion atteint un camp adverse, il y est BLOQUÉ et ne peut plus bouger.",
+                "   - Un pion ne peut entrer dans un camp adverse que s'il se trouve sur l'une des DEUX DERNIÈRES LIGNES avant ce camp.",
+                "",
+                " - Fin de partie: Un joueur gagne immédiatement si:",
+                "   1. Il place 2 de ses pions dans les deux camps adverses.",
+                "   2. L'adversaire ne peut plus effectuer aucun mouvement légal (tous ses pions sont bloqués ou il n'a pas de cases où aller).",
+                "",
+                " - Le premier tour (celui du joueur 1) est spécial: aucune capture n'est autorisée."
+            ],
+            "Isolation": [
+                "",
+                " - But: Être le dernier joueur à pouvoir effectuer un mouvement légal.",
+                "",
+                " - Plateau: Un plateau vide (généralement 8x8 ou 10x10) sur lequel les joueurs placent leurs pions.",
+                "",
+                " - Déroulement: La partie commence avec un plateau vide.",
+                "   - Le premier joueur place son premier pion sur n'importe quelle case vide.",
+                "   - Ensuite, chaque joueur, à tour de rôle, déplace UN de ses pions vers une case VUE par ce pion. La case de départ du pion disparaît (est retirée du plateau) après le mouvement.",
+                "   - Une case retirée devient inaccessible pour le reste de la partie.",
+                "",
+                " - Mouvement: Chaque pion se déplace comme un ROI aux échecs (1 case dans n'importe quelle direction: orthogonale ou diagonale).",
+                "   - Un pion ne peut se déplacer que vers une case vide.",
+                "   - La case qu'il quitte est retirée.",
+                "",
+                " - Fin de partie: Un joueur perd s'il ne peut effectuer aucun mouvement légal lors de son tour.",
+                "   L'autre joueur gagne."
+            ],
+            "Congress": [
+                "",
+                " - But: Être le premier joueur à connecter tous ses pions entre eux (former une chaîne continue).",
+                "",
+                " - Plateau: Un plateau avec des flèches indiquant les directions de mouvement autorisées entre les cases.",
+                "",
+                " - Mouvement: Un pion ne peut se déplacer que d'une case adjacente à une autre, dans la direction indiquée par une flèche reliant les deux cases.",
+                "   - Les flèches sont unidirectionnelles.",
+                "   - Un pion ne peut se déplacer que vers une case vide.",
+                "",
+                " - Connexion: Deux pions sont considérés comme connectés s'ils se trouvent sur des cases reliées par une chaîne de flèches (dans le sens des flèches).",
+                "   La connexion est transitive (si A est connecté à B et B à C, A est connecté à C).",
+                "   Tous les pions d'un joueur sont connectés s'il existe un chemin de flèches entre n'importe quelle paire de ses pions.",
+                "",
+                " - Capture: Il n'y a pas de capture dans Congress.",
+                "",
+                " - Fin de partie: Un joueur gagne immédiatement si, à la fin de son tour, tous ses pions encore sur le plateau sont connectés entre eux."
+            ]
+        }
+
     def setup_ui(self):
         button_font = self.font_manager.get_font(40)
         
@@ -40,35 +104,61 @@ class ModeSelectionScreen(BaseScreen):
         button_spacing = 10  
         button_img_path = "assets/Basic_GUI_Bundle/ButtonsText/ButtonText_Large_GreyOutline_Square.png"
 
-        total_height = (button_height * len(self.modes)) + (button_spacing * (len(self.modes) - 1))
+        # ajout du bouton règles à la liste des modes pour le calcul de la hauteur
+        all_buttons = self.modes + ["RULES"]
+
+        total_height = (button_height * len(all_buttons)) + (button_spacing * (len(all_buttons) - 1))
         start_y = (self.height - total_height) // 2 + 30  
 
         first_button_y = 0
         last_button_bottom_y = 0
         
-        for i, mode in enumerate(self.modes):
+        for i, item in enumerate(all_buttons):
             y_pos = start_y + (button_height + button_spacing) * i
             
             if i == 0:
                 first_button_y = y_pos
-            if i == len(self.modes) - 1:
+            if i == len(all_buttons) - 1:
                 last_button_bottom_y = y_pos + button_height
                 
-            button = ImageButton(
-                (self.width - button_width) // 2,
-                y_pos,
-                button_width,
-                button_height,
-                mode,
-                lambda m=mode: self.select_mode(m),
-                bg_image_path=button_img_path,
-                font=button_font
-            )
-            self.mode_buttons.append(button)
-            
+            if item in self.modes:
+                # bouton mode existant
+                button = ImageButton(
+                    (self.width - button_width) // 2,
+                    y_pos,
+                    button_width,
+                    button_height,
+                    item,
+                    lambda m=item: self.select_mode(m),
+                    bg_image_path=button_img_path,
+                    font=button_font
+                )
+                self.mode_buttons.append(button)
+            elif item == "RULES":
+                # nouveau bouton règles
+                rules_icon_path = "assets/Basic_GUI_Bundle/Icons/Icon_Regle.png"
+                rules_button_bg_path = "assets/Basic_GUI_Bundle/ButtonsIcons/IconButton_Large_GreyOutline_Rounded.png"
+                icon_button_size = 60 # on suppose que le bouton icône est carré et correspond à la hauteur pour l'instant
+
+                rules_button = ImageButton(
+                    (self.width - icon_button_size) // 2, # on centre le bouton icône
+                    y_pos, # position en dessous du dernier bouton mode
+                    icon_button_size,
+                    icon_button_size,
+                    "", # pas de texte sur le bouton icône
+                    self.show_game_selection_popup, # lien vers la nouvelle méthode
+                    bg_image_path=rules_button_bg_path,
+                    icon_path=rules_icon_path
+                )
+                self.mode_buttons.append(rules_button)
+
         self.buttons_center_x = (self.width - button_width) // 2 + button_width // 2
         self.buttons_left_x = (self.width - button_width) // 2
         self.buttons_right_x = self.buttons_left_x + button_width
+
+        # initialisation de l'état du popup règles
+        self.rules_popup_visible = False
+        self.rules_popup = None # sera initialisé lorsqu'il sera affiché
 
         try:
             theme = self.theme_manager.current_theme
@@ -107,12 +197,138 @@ class ModeSelectionScreen(BaseScreen):
             self.next_screen = NetworkOptionsScreen
 
         self.running = False
-        
+
+    def show_game_selection_popup(self):
+        Logger.info("ModeSelectionScreen", "Showing game selection popup")
+        popup_width = 400
+        popup_height = 300
+        popup_x = (self.width - popup_width) // 2
+        popup_y = (self.height - popup_height) // 2
+        self.rules_popup = pygame.Surface((popup_width, popup_height), pygame.SRCALPHA)
+        self.rules_popup.fill((0, 0, 0, 200)) # fond semi-transparent noir
+
+        title_font = self.font_manager.get_font(30)
+        button_font = self.font_manager.get_font(25)
+        line_spacing = 15
+        text_start_x = 50
+        text_start_y = 50
+        current_y = text_start_y
+
+        title_surface = title_font.render("Sélectionnez un jeu:", True, (255, 255, 255))
+        title_rect = title_surface.get_rect(center=(popup_width // 2, current_y))
+        self.rules_popup.blit(title_surface, title_rect)
+        current_y += title_rect.height + line_spacing * 2
+
+        game_options = ["Katarenga", "Isolation", "Congress"]
+        self.game_selection_buttons = []
+
+        for game_name in game_options:
+            button_surface = button_font.render(game_name, True, (255, 255, 255))
+            button_rect = button_surface.get_rect(center=(popup_width // 2, current_y))
+            self.rules_popup.blit(button_surface, button_rect)
+            self.game_selection_buttons.append((game_name, button_rect.move(popup_x, popup_y))) # stocker le rect avec le décalage du popup
+            current_y += button_rect.height + line_spacing
+
+        self.rules_popup_rect = self.rules_popup.get_rect(topleft=(popup_x, popup_y))
+        self.rules_popup_visible = True
+        self.current_popup_type = "selection" # suivi du popup visible
+
+    def show_game_rules_popup(self, game_name):
+        Logger.info("ModeSelectionScreen", f"Showing rules for {game_name}")
+        # récupérer les règles de la classe
+        rules_text = self.game_rules.get(game_name, ["Règles non disponibles pour ce jeu.", "Veuillez vérifier le nom du jeu."])
+
+        popup_width = 700
+        popup_height = 600 # hauteur augmentée pour accommoder plus de texte
+        popup_x = (self.width - popup_width) // 2
+        popup_y = (self.height - popup_height) // 2
+        self.rules_popup = pygame.Surface((popup_width, popup_height), pygame.SRCALPHA)
+        self.rules_popup.fill((0, 0, 0, 200)) # fond semi-transparent noir
+
+        title_font = self.font_manager.get_font(30)
+        rules_font = self.font_manager.get_font(20)
+        line_spacing = 5
+        text_start_x = 20
+        text_start_y = 20
+        current_y = text_start_y
+
+        title_surface = title_font.render(f"Règles de {game_name}:", True, (255, 255, 255))
+        self.rules_popup.blit(title_surface, (text_start_x, current_y))
+        current_y += title_surface.get_height() + line_spacing * 2
+
+        for line in rules_text:
+            words = line.split(' ')
+            rendered_lines = []
+            current_line = ''
+            for word in words:
+                test_line = current_line + word + ' '
+                test_surface = rules_font.render(test_line, True, (255, 255, 255))
+                if test_surface.get_width() < popup_width - text_start_x * 2:
+                    current_line = test_line
+                else:
+                    rendered_lines.append(current_line.strip())
+                    current_line = word + ' '
+            rendered_lines.append(current_line.strip())
+
+            for rendered_line in rendered_lines:
+                line_surface = rules_font.render(rendered_line, True, (255, 255, 255))
+                self.rules_popup.blit(line_surface, (text_start_x + 10, current_y))
+                current_y += line_surface.get_height() + line_spacing
+
+        close_text = "Cliquez n'importe où pour fermer."
+        close_surface = rules_font.render(close_text, True, (255, 255, 255))
+        # calculer la position verticale en dessous de la dernière ligne de règle rendue
+        close_y = current_y + line_spacing * 2 # ajouter un peu d'espace
+        close_rect = close_surface.get_rect(center=(popup_width // 2, close_y))
+        self.rules_popup.blit(close_surface, close_rect)
+
+        self.rules_popup_rect = self.rules_popup.get_rect(topleft=(popup_x, popup_y))
+        self.rules_popup_visible = True
+        self.current_popup_type = "rules" # suivi du popup visible
+
     def handle_screen_events(self, event):
+        # si le popup est visible, gérer les événements du popup en premier
+        if self.rules_popup_visible:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: # seulement gérer le clic gauche
+                mouse_pos = event.pos
+                clicked_on_button = False
+                for game_name, button_rect in self.game_selection_buttons:
+                    if button_rect.collidepoint(mouse_pos):
+                        # masquer le popup de sélection
+                        self.rules_popup_visible = False
+                        self.rules_popup = None
+                        self.game_selection_buttons = []
+
+                        # transition vers l'écran des règles
+                        from src.windows.screens.rules_screen import RulesScreen
+                        # récupérer le texte des règles pour le jeu sélectionné
+                        game_rules_text = self.game_rules.get(game_name, ["Règles non disponibles pour ce jeu.", "Veuillez vérifier le nom du jeu."])
+                        self.next_screen = lambda: RulesScreen(game_name, game_rules_text)
+                        self.running = False # arrêter la boucle de l'écran actuel
+                        clicked_on_button = True
+                        break # sortir de la boucle dès que le bouton est cliqué
+
+                # si le clic n'est pas sur un bouton, masquer le popup de sélection
+                if not clicked_on_button:
+                    self.rules_popup_visible = False
+                    self.rules_popup = None
+                    self.game_selection_buttons = []
+
+            return # consommer l'événement, ne pas le passer aux boutons
+
+        # si aucun popup, gérer les événements des boutons
         for button in self.mode_buttons:
             button.handle_event(event)
 
     def update_screen(self, mouse_pos):
+        # si le popup est visible, pas besoin de mettre à jour les boutons
+        if self.rules_popup_visible:
+             # vérifier le survol pour les boutons de sélection si le popup de sélection est visible
+            if self.current_popup_type == "selection":
+                 # pas de survol pour le texte pour l'instant, peut être ajouté plus tard si nécessaire
+                 pass
+            return
+
         for button in self.mode_buttons:
             button.check_hover(mouse_pos)
 
@@ -147,4 +363,8 @@ class ModeSelectionScreen(BaseScreen):
         version_x = self.width - version_surface.get_width() - 20
         version_y = self.height - 30
         self.screen.blit(version_surface, (version_x, version_y))
+        
+        # dessiner le popup des règles si visible
+        if self.rules_popup_visible and self.rules_popup:
+            self.screen.blit(self.rules_popup, self.rules_popup_rect.topleft)
         
