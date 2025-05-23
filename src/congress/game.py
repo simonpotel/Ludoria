@@ -29,7 +29,8 @@ class Game(GameBase):
             Logger.game("Game", "Congress bot mode initialized")
 
         if self.is_network_game:
-            self.update_status_message("Waiting for another player...")
+            if self.render:
+                self.render.edit_info_label("Waiting for another player...")
 
     def on_network_action(self, action_data):
         """
@@ -101,10 +102,12 @@ class Game(GameBase):
         # met à jour le message de statut en fonction du tour
         if self.is_network_game:
             if self.is_my_turn: 
-                self.update_status_message(f"Your turn (Player {self.player_number})", "green")
+                if self.render:
+                    self.render.edit_info_label(f"Your turn (Player {self.player_number})")
             else:
                 other_player_number = 1 if self.round_turn == 0 else 2
-                self.update_status_message(f"Player {other_player_number}'s turn", "orange")
+                if self.render:
+                    self.render.edit_info_label(f"Player {other_player_number}'s turn")
         else:
             self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
             
