@@ -25,6 +25,81 @@ Ce document décrit les conventions de code utilisées dans le projet Ludoria.
    - MAJUSCULES_AVEC_UNDERSCORES
    - Exemple : `MAX_PLAYERS`, `DEFAULT_PORT`
 
+### Décorateurs de Classe
+
+1. `@classmethod` :
+   - Utilisé pour les méthodes qui n'ont pas besoin d'instance (self)
+   - Premier paramètre est `cls` (la classe elle-même)
+   - Utile pour :
+     - Factory methods (création d'objets)
+     - Méthodes utilitaires liées à la classe
+     - Pattern Singleton
+   - Exemple :
+   ```python
+   class Logger:
+       @classmethod
+       def initialize(cls):
+           if cls._instance is None:
+               cls._instance = Logger()
+   ```
+
+2. `@staticmethod` :
+   - Méthode qui n'a pas besoin de la classe ni de l'instance
+   - Pas de paramètre `cls` ou `self`
+   - Utile pour les fonctions utilitaires
+   - Exemple :
+   ```python
+   class MathUtils:
+       @staticmethod
+       def calculate_distance(x1, y1, x2, y2):
+           return ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
+   ```
+
+3. `@property` :
+   - Transforme une méthode en attribut en lecture seule
+   - Utile pour les getters
+   - Exemple :
+   ```python
+   class Player:
+       @property
+       def score(self):
+           return self._calculate_score()
+   ```
+
+### Typage
+
+1. Annotations de type :
+   - Utiliser le module `typing` pour les types complexes
+   - Indiquer les types de retour avec `->`
+   - Exemple :
+   ```python
+   from typing import List, Dict, Optional
+
+   def get_player(game_id: str) -> Optional[Player]:
+       pass
+
+   def get_scores() -> Dict[str, int]:
+       pass
+   ```
+
+2. Types courants :
+   - `str`, `int`, `float`, `bool` : types de base
+   - `List[T]` : liste d'éléments de type T
+   - `Dict[K, V]` : dictionnaire clé K, valeur V
+   - `Optional[T]` : peut être T ou None
+   - `Union[T1, T2]` : peut être T1 ou T2
+   - `Any` : type quelconque
+
+3. Variables de classe :
+   - Définir les types dans `__init__`
+   - Exemple :
+   ```python
+   class Game:
+       def __init__(self):
+           self.players: List[Player] = []
+           self.current_turn: int = 0
+   ```
+
 ### Documentation
 
 1. Docstrings :
