@@ -1,3 +1,4 @@
+from typing import Dict, Optional, Tuple, List
 import pygame
 from src.board import Board
 from src.windows.render.render import Render
@@ -8,39 +9,38 @@ from src.utils.logger import Logger
 from src.congress.bot import CongressBot
 
 class Game(GameBase):
+    """
+    classe : gère une partie de Congress
+    """
     def __init__(self, game_save, quadrants, game_mode="Solo"):
         """
-        constructeur : initialise une nouvelle partie de congress
-
-        params:
-            game_save: sauvegarde de jeu existante ou None
-            quadrants: configuration des quadrants initiaux
-            game_mode: mode de jeu ("Solo", "Bot", "Network")
+        procédure : initialise une nouvelle partie de Congress
+        params :
+            game_save - sauvegarde de jeu existante ou None
+            quadrants - configuration des quadrants initiaux
+            game_mode - mode de jeu ("Solo", "Bot", "Network")
         """
-        super().__init__(game_save, quadrants, game_mode, player_name="player", game_type="congress")
+        super().__init__(game_save, quadrants, game_mode, player_name="player", game_type="congress") # on initialise la GameBase
         self.board = Board(quadrants, 2)
         self.render = Render(game=self)
-        self.round_turn = 0
-        self.selected_piece = None
-        self.game_mode = game_mode
-        self.bot = None
+        self.round_turn = 0 # le tour de jeu commence à 0 (joueur 1) 
+        self.selected_piece = None # aucune pièce sélectionnée par défaut
+        self.game_mode = game_mode # mode de jeu
+        self.bot = None # aucun bot par défaut
         if game_mode == "Bot":
-            self.bot = CongressBot(self)
+            self.bot = CongressBot(self) # initialise le bot pour le mode Bot
             Logger.game("Game", "Congress bot mode initialized")
 
         if self.is_network_game:
             if self.render:
                 self.render.edit_info_label("Waiting for another player...")
 
-    def on_network_action(self, action_data):
+    def on_network_action(self, action_data: Dict) -> bool:
         """
-        procédure : gère une action reçue via le réseau (mouvement d'un autre joueur)
-
-        params:
-            action_data: dictionnaire contenant les données de l'action
-
-        retour :
-            bool: True si l'action a été traitée avec succès, False sinon
+        procédure : gère une action reçue via le réseau
+        params :
+            action_data - dictionnaire contenant les données de l'action
+        retour : True si l'action a été traitée avec succès, False sinon
         """
         Logger.info("Game Congress", f"Received network action: {action_data}")
         if not action_data:
@@ -48,7 +48,7 @@ class Game(GameBase):
             return False
             
         board_state = action_data.get("board_state")
-        if not board_state or "board" not in board_state or "round_turn" not in board_state:
+        if not board_state or "board" not in board_state or "round_turn" not in board_state: # vérifie si l'état du plateau est complet et valide
             Logger.error("Game", f"Received incomplete or invalid board state: {board_state}")
             return False
         
@@ -60,8 +60,8 @@ class Game(GameBase):
 
         Logger.info("Game Congress", f"Applied board state. Current turn: {self.round_turn}")
         
-        save_game(self)
-        
+        save_game(self) # sauvegarde le jeu en local 
+         
         # informe le renderer qu'une mise à jour est nécessaire
         self.render.needs_render = True
         
@@ -69,22 +69,22 @@ class Game(GameBase):
         player_who_just_moved = 1 - self.round_turn
         
         Logger.game("Game Congress", f"Board state after network action for player {player_who_just_moved + 1}:")
-        piece_positions = []
-        for i in range(8):
-            for j in range(8):
+        piece_positions = [] # liste des positions des pièces du joueur
+        for i in range(8): # parcourt toutes les cases du plateau
+            for j in range(8): # parcourt toutes les cases du plateau
                 if self.board.board[i][j][0] == player_who_just_moved:
-                    piece_positions.append((i, j))
+                    piece_positions.append((i, j)) # ajoute la pièce à la liste
         Logger.game("Game Congress", f"Pieces for player {player_who_just_moved + 1}: {piece_positions}")
         
-        # Vérifier si l'action indique explicitement la fin du jeu
+        # vérifie si l'action indique explicitement la fin du jeu
         if action_data.get("game_over", False):
-            winner = action_data.get("winner")
-            if winner is not None:
-                if self.game_mode == "Bot" and winner == 1:
-                    winner_text = "BOT WON THE GAME !"
+            winner = action_data.get("winner") # récupère le gagnant
+            if winner is not None: # si le gagnant n'est pas None
+                if self.game_mode == "Bot" and winner == 1: # si le mode de jeu est Bot et que le gagnant est le joueur 1
+                    winner_text = "BOT WON THE GAME !" # affiche le texte de fin de jeu
                 else:
                     winner_text = f"PLAYER {winner + 1} WON THE GAME !"
-                self.render.show_end_popup(winner_text)
+                self.render.show_end_popup(winner_text) # affiche la popup de fin de jeu
                 self.render.end_game_waiting_input = True
                 return False
         
@@ -113,15 +113,12 @@ class Game(GameBase):
             
         return True # le jeu continue
 
-    def check_connected_pieces(self, player):
+    def check_connected_pieces(self, player: int) -> bool:
         """
-        fonction : vérifie si tous les pions d'un joueur sont connectés orthogonalement via un parcours en profondeur (DFS)
-
-        params:
-            player: l'identifiant du joueur (0 ou 1)
-
-        retour :
-            bool: True si les pions sont connectés, False sinon
+        fonction : vérifie si tous les pions d'un joueur sont connectés orthogonalement
+        params :
+            player - l'identifiant du joueur (0 ou 1)
+        retour : True si les pions sont connectés, False sinon
         """
         start_pos = None
         pieces = []
@@ -148,10 +145,10 @@ class Game(GameBase):
         stack = [start_pos]
         
         # parcours en profondeur (DFS) pour trouver toutes les pièces connectées
-        while stack:
-            current = stack.pop()
-            if current not in visited:
-                visited.add(current)
+        while stack: # tant que la pile n'est pas vide 
+            current = stack.pop() # récupère la pièce à visiter
+            if current not in visited: # si la pièce n'a pas été visitée
+                visited.add(current) # ajoute la pièce à l'ensemble des pièces visitées
                 row, col = current
                 
                 directions = [(0, 1), (1, 0), (0, -1), (-1, 0)] # mouvements orthogonaux
@@ -175,27 +172,24 @@ class Game(GameBase):
         
         return connected
 
-    def on_click(self, row, col):
+    def on_click(self, row: int, col: int) -> bool:
         """
         procédure : gère les clics de souris sur le plateau de jeu
-
-        params:
-            row: ligne du clic (0-7)
-            col: colonne du clic (0-7)
-
-        retour :
-            bool: True si le jeu continue, False si la partie est terminée
+        params :
+            row - ligne du clic (0-7)
+            col - colonne du clic (0-7)
+        retour : True si le jeu continue, False si la partie est terminée
         """
         if self.is_network_game:
             if not self.game_started:
                 self.render.edit_info_label("Waiting for another player...")
                 return True
-            if not self.can_play():
+            if not self.can_play(): # vérifie si le joueur peut jouer
                 self.render.edit_info_label(f"Waiting for Player {2 if self.player_number == 1 else 1}")
                 return True
 
-        if self.game_mode == "Bot" and self.round_turn == 1:
-            self.render.edit_info_label("C'est le tour du bot, veuillez patienter...")
+        if self.game_mode == "Bot" and self.round_turn == 1: # si le mode de jeu est Bot et que c'est le tour du bot
+            self.render.edit_info_label("C'est le tour du bot, veuillez patienter...") # affiche le message de statut
             return True
 
         if not hasattr(self, 'selected_piece') or self.selected_piece is None:
@@ -337,12 +331,10 @@ class Game(GameBase):
 
             return True # clic géré, le jeu continue
     
-    def _bot_play(self):
+    def _bot_play(self) -> bool:
         """
         procédure : exécute le tour du bot
-
-        retour :
-            bool: True si le bot a joué avec succès, False si le bot ne peut pas jouer ou une erreur survient
+        retour : True si le bot a joué avec succès, False sinon
         """
         try:
             if self.bot.make_move(): # la logique du bot met à jour le plateau
@@ -371,23 +363,21 @@ class Game(GameBase):
             self.render.edit_info_label("Player 1's turn")
             return False # indique que le mouvement a échoué
 
-    def load_game(self):
+    def load_game(self) -> None:
         """
         procédure : lance la boucle principale de rendu et d'événements du jeu
         """
         self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
         self.render.run_game_loop()
-        if getattr(self.render, "end_popup_action", None) == "play_again":
-            from src.windows.selector.selector import Selector
-            Selector()
+        if getattr(self.render, "end_popup_action", None) == "play_again": # si l'action de la popup est "play_again" (recommencer la partie)
+            from src.windows.selector.selector import Selector # importe la classe Selector
+            Selector() # affiche la popup de sélection de mode de jeu
         self.cleanup()
 
-    def get_board_state(self):
+    def get_board_state(self) -> Dict:
         """
         fonction : retourne l'état actuel du plateau et le tour
-
-        retour :
-            dict: un dictionnaire contenant une copie du plateau et le joueur actuel
+        retour : dictionnaire contenant une copie du plateau et le joueur actuel
         """
         return {
             "board": [
