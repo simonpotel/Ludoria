@@ -6,11 +6,13 @@ from src.utils.logger import Logger
 
 class RulesScreen(BaseScreen):
     def __init__(self, game_name, rules_text):
-        super().__init__(title=f"Ludoria - Règles de {game_name}")
+        super().__init__(title=f"Ludoria - Regles de {game_name}")
         self.game_name = game_name
         self.rules_text = rules_text
         self.back_button = None
         self.rendered_rules = []
+        self.rules_title_surface = None
+        self.rules_title_rect = None
 
     def setup_ui(self):
         button_font = self.font_manager.get_font(30)
@@ -29,16 +31,28 @@ class RulesScreen(BaseScreen):
             font=button_font
         )
 
-        # préparation du texte des règles pour le rendu avec le retour à la ligne
-        rules_font = self.font_manager.get_font(20)
+        # font pour le texte des règles
+        rules_font_size = 20
+        rules_title_font_size = 30
+        try:
+            rules_font = pygame.font.SysFont('Arial', rules_font_size)
+            rules_title_font = pygame.font.SysFont('Arial', rules_title_font_size)
+        except Exception as e:
+            Logger.error(f"Error loading Arial system font: {e}. Falling back to default.")
+            # font par défaut si Arial n'est pas disponible
+            rules_font = self.font_manager.get_font(rules_font_size)
+            rules_title_font = self.font_manager.get_font(rules_title_font_size)
+
         max_text_width = self.width - 40 # espace de 20px sur chaque côté
         line_spacing = 5
         start_x = 20
         start_y = 80 # en dessous de la zone du titre
         current_y = start_y
 
-        self.rendered_rules.append((rules_font.render(f"Règles de {self.game_name}:", True, (255, 255, 255)), (start_x, current_y)))
-        current_y += self.rendered_rules[-1][0].get_height() + line_spacing * 2
+        # titre de l'écran des règles avec Arial
+        self.rules_title_surface = rules_title_font.render(f"Règles de {self.game_name}:", True, (255, 255, 255))
+        self.rules_title_rect = self.rules_title_surface.get_rect(topleft=(start_x, current_y))
+        current_y += self.rules_title_rect.height + line_spacing * 2
 
         for line in self.rules_text:
             words = line.split(' ')
@@ -66,13 +80,15 @@ class RulesScreen(BaseScreen):
         # dessiner le fond (on peut ajouter un fond spécifique plus tard si nécessaire)
         self.screen.fill((50, 50, 50))
 
-        # dessiner le titre
-        title_font = self.font_manager.get_font(50)
-        title_surface = title_font.render(self.title, True, (255, 255, 255))
-        title_rect = title_surface.get_rect(center=(self.width // 2, 40))
-        self.screen.blit(title_surface, title_rect)
+        screen_title_font = self.font_manager.get_font(50)
+        screen_title_surface = screen_title_font.render(self.title, True, (255, 255, 255))
+        screen_title_rect = screen_title_surface.get_rect(center=(self.width // 2, 40))
+        self.screen.blit(screen_title_surface, screen_title_rect)
 
-        # dessiner le texte des règles
+        # titre et texte des règles avec Arial
+        if self.rules_title_surface and self.rules_title_rect:
+            self.screen.blit(self.rules_title_surface, self.rules_title_rect)
+
         for text_surface, pos in self.rendered_rules:
             self.screen.blit(text_surface, pos)
 

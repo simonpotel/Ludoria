@@ -214,7 +214,7 @@ class ModeSelectionScreen(BaseScreen):
         text_start_y = 50
         current_y = text_start_y
 
-        title_surface = title_font.render("Sélectionnez un jeu:", True, (255, 255, 255))
+        title_surface = title_font.render("Selectionnez un jeu:", True, (255, 255, 255))
         title_rect = title_surface.get_rect(center=(popup_width // 2, current_y))
         self.rules_popup.blit(title_surface, title_rect)
         current_y += title_rect.height + line_spacing * 2
