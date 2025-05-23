@@ -29,18 +29,18 @@ class GameServer:
         try:
             self.server_socket.bind((self.config_manager.get_host(), self.config_manager.get_port()))
             self.server_socket.listen(self.config_manager.get_max_players())
-            Logger.info("Server", f"Server started on {self.config_manager.get_host()}:{self.config_manager.get_port()}, listening...")
+            Logger.server_internal("Server", f"Server started on {self.config_manager.get_host()}:{self.config_manager.get_port()}, listening...")
             
             while True:
                 client_socket, address = self.server_socket.accept()
-                Logger.info("Server", f"New connection from {address}")
+                Logger.server_internal("Server", f"New connection from {address}")
                 self.connection_manager.add_client(client_socket)
                 client_thread = threading.Thread(target=self.handle_client, args=(client_socket, address), daemon=True)
                 client_thread.start()
         except OSError as e:
-            Logger.error("Server", f"Failed to bind or listen: {e}")
+            Logger.server_error("Server", f"Failed to bind or listen: {e}")
         except Exception as e:
-            Logger.error("Server", f"Server error: {str(e)}")
+            Logger.server_error("Server", f"Server error: {str(e)}")
         finally:
             self.cleanup()
 
@@ -50,7 +50,7 @@ class GameServer:
             while True:
                 chunk = client_socket.recv(4096)
                 if not chunk:
-                    Logger.info("Server", f"Client {addr_str} disconnected (received empty chunk).")
+                    Logger.server_internal("Server", f"Client {addr_str} disconnected (received empty chunk).")
                     break
 
                 messages = self.connection_manager.process_received_data(client_socket, chunk)
@@ -58,19 +58,19 @@ class GameServer:
                     self.process_json_packet(client_socket, packet_dict)
 
         except ConnectionResetError:
-            Logger.info("Server", f"Client {addr_str} disconnected forcefully (connection reset).")
+            Logger.server_internal("Server", f"Client {addr_str} disconnected forcefully (connection reset).")
         except socket.timeout:
-            Logger.warning("Server", f"Client {addr_str} timed out.")
+            Logger.server_error("Server", f"Client {addr_str} timed out.")
             self.connection_manager.disconnect_client(client_socket, "Timeout")
         except Exception as e:
-            Logger.error("Server", f"Error handling client {addr_str}: {str(e)}")
+            Logger.server_error("Server", f"Error handling client {addr_str}: {str(e)}")
         finally:
             self.connection_manager.disconnect_client(client_socket, "Closing connection")
 
     def process_json_packet(self, client_socket: socket.socket, packet_dict: Dict):
         try:
             if not isinstance(packet_dict, dict) or "type" not in packet_dict or "data" not in packet_dict:
-                Logger.error("Server", f"Invalid packet structure received from {client_socket.getpeername()}: {packet_dict}")
+                Logger.server_error("Server", f"Invalid packet structure received from {client_socket.getpeername()}: {packet_dict}")
                 return
 
             packet_type_val = packet_dict.get("type")
@@ -79,10 +79,10 @@ class GameServer:
             try:
                 packet_type_enum = PacketType(packet_type_val)
             except ValueError:
-                Logger.warning("Server", f"Unknown packet type value from {client_socket.getpeername()}: {packet_type_val}")
+                Logger.server_error("Server", f"Unknown packet type value from {client_socket.getpeername()}: {packet_type_val}")
                 return
 
-            Logger.info("Server", f"Processing packet from {client_socket.getpeername()}: Type={packet_type_enum.name}, Data={packet_data}")
+            Logger.server_internal("Server", f"Processing packet from {client_socket.getpeername()}: Type={packet_type_enum.name}, Data={packet_data}")
 
             if packet_type_enum == PacketType.CONNECT:
                 self.handle_connect(client_socket, packet_data)
@@ -95,10 +95,10 @@ class GameServer:
             elif packet_type_enum == PacketType.GET_GAME_LIST:
                 self.handle_get_game_list(client_socket)
             else:
-                Logger.warning("Server", f"No handler for packet type from {client_socket.getpeername()}: {packet_type_enum.name}")
+                Logger.server_error("Server", f"No handler for packet type from {client_socket.getpeername()}: {packet_type_enum.name}")
 
         except Exception as e:
-            Logger.error("Server", f"Error processing packet content from {client_socket.getpeername()}: {str(e)}")
+            Logger.server_error("Server", f"Error processing packet content from {client_socket.getpeername()}: {str(e)}")
             self.connection_manager.disconnect_client(client_socket, "Error processing packet")
 
     def handle_connect(self, client_socket: socket.socket, packet_data: Dict):
@@ -111,7 +111,7 @@ class GameServer:
                 self.connection_manager.disconnect_client(client_socket, "Missing game_name or game_type in CONNECT packet")
                 return
 
-            Logger.info("Server", f"Connect request from {player_name} for game '{game_name}' (type: {game_type})")
+            Logger.server_internal("Server", f"Connect request from {player_name} for game '{game_name}' (type: {game_type})")
 
             game = self.game_manager.get_game(game_name)
             if not game:
@@ -125,7 +125,7 @@ class GameServer:
                 self.connection_manager.set_client_game(client_socket, game_name)
 
         except Exception as e:
-            Logger.error("Server", f"Error handling connection: {str(e)}")
+            Logger.server_error("Server", f"Error handling connection: {str(e)}")
             self.connection_manager.disconnect_client(client_socket, "Server error during connection handling")
 
     def handle_game_action(self, client_socket: socket.socket, packet_data: Dict):
@@ -180,9 +180,9 @@ class GameServer:
             self.connection_manager.send_json(waiting_player_socket, wait_turn_dict)
 
     def cleanup(self):
-        Logger.info("Server", "Shutting down server and cleaning up...")
+        Logger.server_internal("Server", "Shutting down server and cleaning up...")
         try:
             self.server_socket.close()
-            Logger.info("Server", "Server socket closed.")
+            Logger.server_internal("Server", "Server socket closed.")
         except Exception as e:
-            Logger.error("Server", f"Error closing server socket: {e}")
+            Logger.server_error("Server", f"Error closing server socket: {e}")

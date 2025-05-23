@@ -21,11 +21,11 @@ class ConfigManager:
                 self.port = config['port']
                 self.max_players = config.get('max_players', 10)
                 self.timeout = config.get('timeout', 60)
-                Logger.info("Server", f"Config loaded from {config_path.resolve()}")
+                Logger.server_internal("Server", f"Config loaded from {config_path.resolve()}")
 
         except Exception as e:
-            Logger.error("Server", f"Failed to load config: {str(e)}")
-            Logger.warning("Server", f"Using default config: {self.host}:{self.port}")
+            Logger.server_error("Server", f"Failed to load config: {str(e)}")
+            Logger.server_error("Server", f"Using default config: {self.host}:{self.port}")
 
     def get_host(self):
         return self.host

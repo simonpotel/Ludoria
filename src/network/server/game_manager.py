@@ -23,7 +23,7 @@ class GameManager:
     def remove_game(self, game_id: str):
         if game_id in self.games:
             del self.games[game_id]
-            Logger.info("Server", f"Removed game session: {game_id}")
+            Logger.server_internal("Server", f"Removed game session: {game_id}")
 
     def get_available_games(self):
         return [
@@ -46,7 +46,7 @@ class GameManager:
                 game.remove_player(client_socket)
                 return False
 
-            Logger.info("Server", f"Assigned player {player_name} as Player {player_number} in game {game.game_id}")
+            Logger.server_internal("Server", f"Assigned player {player_name} as Player {player_number} in game {game.game_id}")
 
             if game.is_full():
                 self._start_game(game, connection_manager)
@@ -54,19 +54,19 @@ class GameManager:
             return True
 
         except Exception as e:
-            Logger.error("Server", f"Error setting up player {player_name}: {str(e)}")
+            Logger.server_error("Server", f"Error setting up player {player_name}: {str(e)}")
             game.remove_player(client_socket)
             return False
 
     def _start_game(self, game: GameSession, connection_manager):
-        Logger.info("Server", f"Game {game.game_id} is full, starting game.")
+        Logger.server_internal("Server", f"Game {game.game_id} is full, starting game.")
         game.start()
 
         player1_socket = game.players.get(1)
         player2_socket = game.players.get(2)
 
         if not player1_socket or not player2_socket:
-            Logger.error("Server", f"Could not find both player sockets for game {game.game_id} to start.")
+            Logger.server_error("Server", f"Could not find both player sockets for game {game.game_id} to start.")
             return
 
         your_turn_dict = create_your_turn_dict(game.game_id)

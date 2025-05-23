@@ -34,13 +34,13 @@ class ConnectionManager:
             json_string = json.dumps(packet_dict)
             message_to_send = (json_string + '\n').encode('utf-8')
             client_socket.sendall(message_to_send)
-            Logger.info("Server", f"Sent JSON to {client_socket.getpeername()}: {json_string}")
+            Logger.server_send("Server", f"Sent JSON to {client_socket.getpeername()}: {json_string}")
             return True
         except BrokenPipeError:
-            Logger.warning("Server", f"Failed to send to {client_socket.getpeername()}: Broken pipe")
+            Logger.server_error("Server", f"Failed to send to {client_socket.getpeername()}: Broken pipe")
             return False
         except Exception as e:
-            Logger.error("Server", f"Error sending JSON to {client_socket.getpeername()}: {str(e)}")
+            Logger.server_error("Server", f"Error sending JSON to {client_socket.getpeername()}: {str(e)}")
             return False
 
     def disconnect_client(self, client_socket: socket.socket, reason: str = "Unknown reason", is_recursive_call: bool = False):
@@ -48,7 +48,7 @@ class ConnectionManager:
             return
 
         addr = client_socket.getpeername() if client_socket.fileno() != -1 else "disconnected socket"
-        Logger.info("Server", f"Disconnecting client {addr}. Reason: {reason}")
+        Logger.server_internal("Server", f"Disconnecting client {addr}. Reason: {reason}")
 
         try:
             # Get the game session before removing the client
@@ -64,7 +64,7 @@ class ConnectionManager:
                             disconnect_packet = create_player_disconnected_dict(game_id, f"Other player disconnected: {reason}")
                             self.send_json(other_socket, disconnect_packet)
                         except Exception as e:
-                            Logger.warning("Server", f"Failed to send disconnect notification to other player: {e}")
+                            Logger.server_error("Server", f"Failed to send disconnect notification to other player: {e}")
                         
                         # Disconnect the other player as well, but mark it as recursive
                         self.disconnect_client(other_socket, "Game session ended", True)
@@ -88,7 +88,7 @@ class ConnectionManager:
                 pass
 
         except Exception as e:
-            Logger.error("Server", f"Error during client ({addr}) disconnect cleanup: {str(e)}")
+            Logger.server_error("Server", f"Error during client ({addr}) disconnect cleanup: {str(e)}")
 
     def process_received_data(self, client_socket: socket.socket, chunk: bytes) -> list:
         if not chunk:
@@ -107,9 +107,10 @@ class ConnectionManager:
             if message_string:
                 try:
                     packet_dict = json.loads(message_string)
+                    Logger.server_receive("Server", f"Received JSON from {client_socket.getpeername()}: {message_string}")
                     messages.append(packet_dict)
                 except json.JSONDecodeError:
-                    Logger.error("Server", f"Invalid JSON received from {client_socket.getpeername()}: {message_string}")
+                    Logger.server_error("Server", f"Invalid JSON received from {client_socket.getpeername()}: {message_string}")
                     self.disconnect_client(client_socket, "Invalid JSON format")
                     return []
 
