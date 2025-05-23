@@ -231,8 +231,12 @@ class Game(GameBase):
             # détermine l'index correct du joueur à vérifier
             player_index_to_select = self.player_number - 1 if self.is_network_game else self.round_turn
             
+            # détermine les camps adverses en fonction du joueur pour la vérification de sélection
+            opponent_camps = [(9, 0), (9, 9)] if player_index_to_select == 0 else [(0, 0), (0, 9)]
+
             # sélection d'une pièce du joueur dont c'est le tour (ou du joueur local en réseau)
-            if cell[0] is not None and cell[0] == player_index_to_select:
+            # ajout de la condition pour vérifier si la pièce n'est PAS dans un camp adverse
+            if cell[0] is not None and cell[0] == player_index_to_select and (row, col) not in opponent_camps:
                 # vérification supplémentaire pour le mode réseau : s'assurer que c'est bien le tour de ce joueur
                 if self.is_network_game and not self.is_my_turn:
                     self.render.edit_info_label(f"Waiting for Player {2 if self.player_number == 1 else 1}")
@@ -241,6 +245,10 @@ class Game(GameBase):
                 self.selected_piece = (row, col)
                 self.render.edit_info_label("Select destination")
                 self.render.needs_render = True
+                return True
+            elif cell[0] is not None and cell[0] == player_index_to_select and (row, col) in opponent_camps:
+                # clic sur une pièce du joueur mais dans un camp adverse - ne pas sélectionner
+                self.render.edit_info_label("Cannot move piece from opponent's camp")
                 return True
             elif cell[0] is not None:
                 # clic sur une pièce adverse ou une case vide

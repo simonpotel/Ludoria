@@ -154,6 +154,11 @@ class KaterengaBot:
         end_row, end_col = end
         bot_camps = [(r, c) for r, c in self.game.camps if r == 0] # Camps du bot
 
+        # valeur très élevée pour les mouvements vers un camp depuis la dernière ligne
+        if start_row == 9 and (end_row, end_col) in bot_camps:
+            if self.game.board.board[end_row][end_col][0] is None or self.game.board.board[end_row][end_col][0] != 1:
+                return 10  # priorité maximale pour rejoindre un camp depuis la dernière ligne
+
         # valeur élevée pour les mouvements vers un camp libre
         if self.is_camp_move(end_row, end_col, bot_camps):
              if self.game.board.board[end_row][end_col][0] is None or self.game.board.board[end_row][end_col][0] != 1:
