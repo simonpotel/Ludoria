@@ -37,7 +37,8 @@ class Game(GameBase):
             Logger.game("Game", "Katerenga bot mode initialized")
 
         if self.is_network_game:
-            self.update_status_message("Waiting for another player...")
+            if self.render:
+                self.render.edit_info_label("Waiting for another player...")
 
     def on_network_action(self, action_data):
         """
@@ -97,10 +98,12 @@ class Game(GameBase):
         # met à jour le message de statut en fonction du tour
         if self.is_network_game:
             if self.is_my_turn: # is_my_turn doit avoir été mis à jour par les gestionnaires de GameBase
-                self.update_status_message(f"Your turn (Player {self.player_number})", "green")
+                if self.render:
+                    self.render.edit_info_label(f"Your turn (Player {self.player_number})")
             else:
                 other_player = 1 if self.player_number == 2 else 2  # numéro de joueur opposé
-                self.update_status_message(f"Player {other_player}'s turn", "orange")
+                if self.render:
+                    self.render.edit_info_label(f"Player {other_player}'s turn")
         else:
             # fallback pour le contexte non réseau, bien que cette fonction principalement gère le réseau
             self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
