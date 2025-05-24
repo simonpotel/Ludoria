@@ -21,65 +21,67 @@ class ModeSelectionScreen(BaseScreen):
 
         # définition des règles pour chaque jeu
         self.game_rules = {
+            "Movement": [
+                "",
+                "Unlike most board games, a pawn's movement does not depend on its nature since all pawns are identical, but on the color of the square it is located on.",
+                "",
+                "A pawn on a BLUE square moves like a chess king, i.e. to one of the 8 adjacent squares.",
+                "",
+                "A pawn on a GREEN square moves like a chess knight, i.e. in an L-shape (two squares in one direction, horizontal or vertical, and one square perpendicular to the first direction).",
+                "",
+                "A pawn on a YELLOW square moves like a chess bishop, i.e. diagonally over empty squares only, with the additional constraint that it must stop at the first yellow square it encounters.",
+                "",
+                "A pawn on a RED square moves like a chess rook, i.e. along the same row or column over empty squares only, with the additional constraint that it must stop at the first red square it encounters."
+            ],
             "Katarenga": [
                 "",
-                " - But: Être le premier joueur à placer 2 de ses pions dans les camps adverses.",
-                "   (Cases aux coins opposés de votre camp de départ)",
+                " - Goal: Be the first player to place 2 of your pawns in the opponent's camps.",
+                "   (Squares in the opposite corners of your starting camp)",
                 "",
-                " - Mouvement: Chaque pion a un type de mouvement qui dépend de la COULEUR de la case sur laquelle il SE TROUVE au début du tour:",
-                "   - Case ROUGE: Mouvement de TOUR (horizontalement ou verticalement, autant de cases libres souhaitées). S'arrête sur la première case rouge rencontrée.",
-                "   - Case VERTE: Mouvement de CAVALIER (en 'L': 2 cases dans une direction cardinale, puis 1 case perpendiculaire). Peut sauter par-dessus les autres pions.",
-                "   - Case BLEUE: Mouvement de ROI (1 case dans n'importe quelle direction, orthogonale ou diagonale).",
-                "   - Case JAUNE: Mouvement de FOU (diagonalement, autant de cases libres souhaitées). S'arrête sur la première case jaune rencontrée.",
+                " - Capture: A pawn can capture an opponent's pawn by moving to its square, EXCEPT ON THE VERY FIRST TURN of the game.",
+                "   The captured pawn is removed from the board.",
                 "",
-                " - Capture: Un pion peut capturer un pion adverse en se déplaçant sur sa case, SAUF AU TOUT PREMIER TOUR de la partie.",
-                "   Le pion capturé est retiré du plateau.",
+                " - Camps: The camps are the four corner squares (0,0), (0,9), (9,0), (9,9).",
+                "   - Once a pawn reaches an opponent's camp, it is BLOCKED and can no longer move.",
+                "   - A pawn can only enter an opponent's camp if it is on one of the LAST TWO ROWS before that camp.",
                 "",
-                " - Camps: Les camps sont les quatre cases d'angle (0,0), (0,9), (9,0), (9,9).",
-                "   - Une fois qu'un pion atteint un camp adverse, il y est BLOQUÉ et ne peut plus bouger.",
-                "   - Un pion ne peut entrer dans un camp adverse que s'il se trouve sur l'une des DEUX DERNIÈRES LIGNES avant ce camp.",
+                " - End of game: A player wins immediately if:",
+                "   1. They place 2 of their pawns in the two opponent's camps.",
+                "   2. The opponent can no longer make any legal moves (all their pawns are blocked or they have no squares to go to).",
                 "",
-                " - Fin de partie: Un joueur gagne immédiatement si:",
-                "   1. Il place 2 de ses pions dans les deux camps adverses.",
-                "   2. L'adversaire ne peut plus effectuer aucun mouvement légal (tous ses pions sont bloqués ou il n'a pas de cases où aller).",
-                "",
-                " - Le premier tour (celui du joueur 1) est spécial: aucune capture n'est autorisée."
+                " - The first turn (player 1's turn) is special: no captures are allowed."
             ],
             "Isolation": [
                 "",
-                " - But: Être le dernier joueur à pouvoir effectuer un mouvement légal.",
+                " - Goal: Be the last player able to place a pawn.",
                 "",
-                " - Plateau: Un plateau vide (généralement 8x8 ou 10x10) sur lequel les joueurs placent leurs pions.",
+                " - Board: An empty board (8x8) where players place their pawns.",
                 "",
-                " - Déroulement: La partie commence avec un plateau vide.",
-                "   - Le premier joueur place son premier pion sur n'importe quelle case vide.",
-                "   - Ensuite, chaque joueur, à tour de rôle, déplace UN de ses pions vers une case VUE par ce pion. La case de départ du pion disparaît (est retirée du plateau) après le mouvement.",
-                "   - Une case retirée devient inaccessible pour le reste de la partie.",
+                " - Gameplay: The game starts with an empty board.",
+                "   - Players take turns placing one of their pawns on an empty square.",
+                "   - A pawn can only be placed on a square where it cannot be potentially captured by any pawn already on the board (of either color).",
                 "",
-                " - Mouvement: Chaque pion se déplace comme un ROI aux échecs (1 case dans n'importe quelle direction: orthogonale ou diagonale).",
-                "   - Un pion ne peut se déplacer que vers une case vide.",
-                "   - La case qu'il quitte est retirée.",
+                " - Important: There are no moves or captures in this game.",
                 "",
-                " - Fin de partie: Un joueur perd s'il ne peut effectuer aucun mouvement légal lors de son tour.",
-                "   L'autre joueur gagne."
+                " - End of game: The winner is the last player who can place a pawn."
             ],
             "Congress": [
                 "",
-                " - But: Être le premier joueur à connecter tous ses pions entre eux (former une chaîne continue).",
+                " - Goal: Be the first player to connect all their pawns together (form a continuous chain).",
                 "",
-                " - Plateau: Un plateau avec des flèches indiquant les directions de mouvement autorisées entre les cases.",
+                " - Board: A board with arrows indicating the allowed movement directions between squares.",
                 "",
-                " - Mouvement: Un pion ne peut se déplacer que d'une case adjacente à une autre, dans la direction indiquée par une flèche reliant les deux cases.",
-                "   - Les flèches sont unidirectionnelles.",
-                "   - Un pion ne peut se déplacer que vers une case vide.",
+                " - Movement: A pawn can only move from one adjacent square to another, in the direction indicated by an arrow connecting the two squares.",
+                "   - Arrows are one-way.",
+                "   - A pawn can only move to an empty square.",
                 "",
-                " - Connexion: Deux pions sont considérés comme connectés s'ils se trouvent sur des cases reliées par une chaîne de flèches (dans le sens des flèches).",
-                "   La connexion est transitive (si A est connecté à B et B à C, A est connecté à C).",
-                "   Tous les pions d'un joueur sont connectés s'il existe un chemin de flèches entre n'importe quelle paire de ses pions.",
+                " - Connection: Two pawns are considered connected if they are on squares linked by a chain of arrows (in the direction of the arrows).",
+                "   The connection is transitive (if A is connected to B and B to C, A is connected to C).",
+                "   All of a player's pawns are connected if there exists a path of arrows between any pair of their pawns.",
                 "",
-                " - Capture: Il n'y a pas de capture dans Congress.",
+                " - Capture: There is no capture in Congress.",
                 "",
-                " - Fin de partie: Un joueur gagne immédiatement si, à la fin de son tour, tous ses pions encore sur le plateau sont connectés entre eux."
+                " - End of game: A player wins immediately if, at the end of their turn, all their pawns still on the board are connected to each other."
             ]
         }
 
@@ -214,12 +216,12 @@ class ModeSelectionScreen(BaseScreen):
         text_start_y = 50
         current_y = text_start_y
 
-        title_surface = title_font.render("Selectionnez un jeu:", True, (255, 255, 255))
+        title_surface = title_font.render("Select a game:", True, (255, 255, 255))
         title_rect = title_surface.get_rect(center=(popup_width // 2, current_y))
         self.rules_popup.blit(title_surface, title_rect)
         current_y += title_rect.height + line_spacing * 2
 
-        game_options = ["Katarenga", "Isolation", "Congress"]
+        game_options = ["Movement", "Katarenga", "Isolation", "Congress"]
         self.game_selection_buttons = []
 
         for game_name in game_options:

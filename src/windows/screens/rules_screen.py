@@ -6,7 +6,7 @@ from src.utils.logger import Logger
 
 class RulesScreen(BaseScreen):
     def __init__(self, game_name, rules_text):
-        super().__init__(title=f"Ludoria - Regles de {game_name}")
+        super().__init__(title=f"Ludoria - Rules of {game_name}")
         self.game_name = game_name
         self.rules_text = rules_text
         self.back_button = None
@@ -25,7 +25,7 @@ class RulesScreen(BaseScreen):
             self.height - back_button_height - 20, # position y
             back_button_width,
             back_button_height,
-            "Retour",
+            "Back",
             self.go_back,
             bg_image_path=back_button_img_path,
             font=button_font
