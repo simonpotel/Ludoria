@@ -1,6 +1,7 @@
 import pygame
 from src.windows.screens.base_screen import BaseScreen
 from src.windows.components.button import Button
+from src.windows.components.image_button import ImageButton
 from src.utils.logger import Logger
 from src.windows.selector.game_launcher import GameLauncher
 from src.network.client.client import NetworkClient
@@ -18,6 +19,12 @@ class JoinGameScreen(BaseScreen):
         self.refresh_button = None
         self.join_button = None
         self.player_name_input = None
+        self.server_info = "Server: potel.dev"
+        self.version = "V1"
+        self.quit_requested = False 
+        
+        self.refresh_timer = 0
+        self.refresh_interval = 5000 
         
         # charger les quadrants par défaut
         self.quadrants_config = None
@@ -32,8 +39,20 @@ class JoinGameScreen(BaseScreen):
         else:
             Logger.error("JoinGameScreen", "Failed to load quadrant configurations.")
             self.selected_quadrants = None
+        
+        self.background = pygame.image.load('assets/tropique/background.png').convert()
+        self.icon_green_circle = pygame.image.load('assets/Basic_GUI_Bundle/ButtonsIcons/IconButton_Large_Green_Circle.png').convert_alpha()
+        self.icon_red_circle = pygame.image.load('assets/Basic_GUI_Bundle/ButtonsIcons/IconButton_Large_Red_Circle.png').convert_alpha()
+        
+        try:
+            self.icon_refresh = pygame.image.load('assets/Basic_GUI_Bundle/ButtonsIcons/IconButton_Large_Green_Circle.png').convert_alpha()
+        except:
+            Logger.warning("JoinGameScreen", "Navigation icons not found, using defaults")
+            self.icon_refresh = self.icon_green_circle
             
         self.connect_to_server()
+        
+        self.last_refresh_time = pygame.time.get_ticks()
         
     def connect_to_server(self):
         """procédure : se connecte au serveur de jeu et demande la liste des jeux"""
@@ -50,81 +69,86 @@ class JoinGameScreen(BaseScreen):
         Logger.info("JoinGameScreen", f"Received {len(games)} games from server")
     
     def setup_ui(self):
-        panel_width = 600
-        #panel_height = 400
-        padding = 20
-        element_height = 30
-        element_spacing = 20
-        current_y = self.navbar_height + 40
-        element_width = panel_width - 2 * padding
+        try:
+            self.title_font = pygame.font.SysFont('Arial', 48, bold=True)
+            self.status_font = pygame.font.SysFont('Arial', 20, bold=True)
+            self.host_font = pygame.font.SysFont('Arial', 18)
+            self.button_font = pygame.font.SysFont('Arial', 18, bold=True)
+            self.footer_font = pygame.font.SysFont('Arial', 14)
+        except Exception as e:
+            Logger.error("JoinGameScreen", f"Font loading error: {str(e)}")
+            self.title_font = pygame.font.Font(None, 48)
+            self.status_font = pygame.font.Font(None, 20)
+            self.host_font = pygame.font.Font(None, 18)
+            self.button_font = pygame.font.Font(None, 18)
+            self.footer_font = pygame.font.Font(None, 14)
+            
+        panel_width = int(self.width * 0.7)
+        panel_height = int(self.height * 0.6)
+        self.panel_x = (self.width - panel_width) // 2
         
-        title_font = pygame.font.SysFont('Arial', 24, bold=True)
-        self.font = pygame.font.SysFont('Arial', 16)
-        self.header_font = pygame.font.SysFont('Arial', 18, bold=True)
+        self.panel_y = self.navbar_height + 60
         
-        self.labels = []
+        self.panel_width = panel_width
+        self.panel_height = panel_height
         
-        title_text = "Join Network Game"
-        title_surface = title_font.render(title_text, True, (50, 50, 50))
-        title_x = (self.width - title_surface.get_width()) // 2
-        self.labels.append((title_text, (title_x, current_y), title_font))
-        current_y += title_font.get_height() + 30
+        list_margin_top = 80
+        list_margin_bottom = 50
+        self.list_area_x = self.panel_x + 20
+        self.list_area_y = self.panel_y + list_margin_top
+        self.list_area_width = self.panel_width - 40
+        self.list_area_height = self.panel_height - list_margin_top - list_margin_bottom
         
-        panel_x = (self.width - panel_width) // 2
+        self.row_height = 80
+        self.row_spacing = 12
         
-        self.labels.append(("Your Name:", (panel_x, current_y), self.font))
-        current_y += self.font.get_height() + 5
+        button_refresh_path = 'assets/Basic_GUI_Bundle/ButtonsText/ButtonText_Large_GreyOutline_Square.png'
+        refresh_button_width = 120
+        refresh_button_height = 40
         
-        self.player_name_input = TextInput(
-            panel_x, current_y, element_width, element_height
-        )
-        current_y += element_height + element_spacing
-        
-        # dimensions de la table
-        self.table_x = panel_x
-        self.table_y = current_y
-        self.table_width = element_width
-        self.table_height = 250  
-        self.row_height = 30
-        
-        current_y += self.table_height + element_spacing
-        
-        # boutons
-        button_width = (element_width - padding) // 2
-        
-        self.refresh_button = Button(
-            panel_x, current_y, button_width, 40, 
-            "Refresh Games", self.refresh_games
-        )
-        
-        self.join_button = Button(
-            panel_x + button_width + padding, current_y, button_width, 40, 
-            "Join Game", self.join_game
+        self.refresh_button = ImageButton(
+            self.panel_x + self.panel_width - refresh_button_width - 20, 
+            self.panel_y + 20, 
+            refresh_button_width, 
+            refresh_button_height,
+            "REFRESH", 
+            lambda: self.refresh_games(),
+            bg_image_path=button_refresh_path,
+            font=self.button_font,
+            text_color=(255, 255, 255)
         )
         
-        # dimensions des colonnes de la table (pourcentage de la largeur de la table)
-        self.column_sizes = [0.30, 0.30, 0.40]
-    
-    def refresh_games(self):
-        """procédure : demande la liste mise à jour des jeux depuis le serveur"""
-        if not self.network_client.connected:
-            self.connect_to_server()
-        else:
-            self.network_client.request_game_list()
-            Logger.info("JoinGameScreen", "Refreshing game list")
-    
-    def join_game(self):
-        """procédure : rejoindre le jeu sélectionné"""
-        player_name = self.player_name_input.get()
-        if not player_name:
-            Logger.warning("JoinGameScreen", "Please enter your name before joining")
+    def go_to_previous_screen(self):
+        """
+        procédure : retourne à l'écran de sélection de mode précédent
+        ferme l'écran actuel et définit l'écran suivant
+        """
+        from src.windows.screens.game_selection.mode_selection import ModeSelectionScreen
+        self.running = False
+        self.next_screen = ModeSelectionScreen
+        
+    def show_menu(self):
+        """
+        procédure : affiche le menu d'options (à implémenter)
+        enregistre l'action dans le journal pour une implémentation future
+        """
+        Logger.info("JoinGameScreen", "Menu button clicked")
+        
+    def join_game(self, game_index):
+        """
+        procédure : rejoint la partie sélectionnée par son index dans la liste
+        
+        params:
+            game_index - index de la partie à rejoindre dans self.games_list
+            
+        valide le jeu sélectionné, se déconnecte du lobby et lance la partie réseau
+        """
+        # Vérifie si l'index est valide
+        if game_index < 0 or game_index >= len(self.games_list):
+            Logger.warning("JoinGameScreen", "Invalid game selection")
             return
             
-        if self.selected_game_index < 0 or self.selected_game_index >= len(self.games_list):
-            Logger.warning("JoinGameScreen", "No game selected")
-            return
-        
-        selected_game = self.games_list[self.selected_game_index]
+        selected_game = self.games_list[game_index]
         game_name = selected_game.get("game_id")
         game_type = selected_game.get("game_type")
         
@@ -134,7 +158,8 @@ class JoinGameScreen(BaseScreen):
         
         Logger.info("JoinGameScreen", f"Joining network game '{game_name}' of type '{game_type}'")
         
-        # lancer le jeu directement au lieu d'aller à l'écran de configuration
+        player_name = "Player"
+        
         valid_params = self.game_launcher.validate_game_params(
             game_name, "Network", ["Solo", "Bot", "Network"]
         )
@@ -143,15 +168,12 @@ class JoinGameScreen(BaseScreen):
             Logger.info("JoinGameScreen", "Directly launching game")
             self.running = False
             
-            # déconnecter la connexion du lobby
             if self.network_client.connected:
                 self.network_client.disconnect("Starting game")
             
-            # retour à l'écran de sélection de mode après la fin du jeu
             from src.windows.screens.game_selection.mode_selection import ModeSelectionScreen
             self.next_screen = ModeSelectionScreen
             
-            # lancer le jeu avec le nom du joueur et les quadrants
             game_success = self.game_launcher.start_game(
                 game_name, game_type, "Network", self.selected_quadrants, player_name=player_name
             )
@@ -159,111 +181,185 @@ class JoinGameScreen(BaseScreen):
             if not game_success:
                 Logger.warning("JoinGameScreen", "Game exited with errors")
     
+    def refresh_games(self):
+        """
+        procédure : demande la liste mise à jour des jeux au serveur
+        
+        établit la connexion si nécessaire, puis envoie une requête de liste de parties
+        """
+        if not self.network_client.connected:
+            self.connect_to_server()
+        else:
+            self.network_client.request_game_list()
+            Logger.info("JoinGameScreen", "Refreshing game list")
+    
     def handle_screen_events(self, event):
+        """
+        procédure : gère les événements pour cet écran
+        
+        params:
+            event - événement pygame à traiter
+            
+        traite les interactions utilisateur avec les boutons et la liste des parties
+        """
         mouse_pos = pygame.mouse.get_pos()
         
-        # gérer l'input du nom du joueur
-        self.player_name_input.handle_event(event, mouse_pos)
+        self.refresh_button.handle_event(event)
+        
+        if hasattr(self, 'join_buttons'):
+            for button in self.join_buttons:
+                button.handle_event(event)
         
         if event.type == pygame.MOUSEBUTTONDOWN:
-            # vérifier si le clic est dans la zone de la table
-            if (self.table_x <= mouse_pos[0] <= self.table_x + self.table_width and
-                self.table_y <= mouse_pos[1] <= self.table_y + self.table_height):
-                # calculer quelle ligne a été cliquée
-                relative_y = mouse_pos[1] - self.table_y - self.row_height  # ignorer la première ligne
-                if relative_y >= 0:
-                    clicked_row = relative_y // self.row_height
-                    if 0 <= clicked_row < len(self.games_list):
-                        self.selected_game_index = clicked_row
-        
-        self.refresh_button.handle_event(event)
-        self.join_button.handle_event(event)
+            if self.panel_x <= mouse_pos[0] <= self.panel_x + self.panel_width:
+                for i, game in enumerate(self.games_list):
+                    row_y = self.list_area_y + i * (self.row_height + self.row_spacing)
+                    if row_y <= mouse_pos[1] <= row_y + self.row_height:
+                        join_button_width = 100
+                        join_button_height = 40
+                        join_button_x = self.list_area_x + self.list_area_width - 16 - join_button_width
+                        join_button_y = row_y + (self.row_height - join_button_height) // 2
+                        
+                        if (join_button_x <= mouse_pos[0] <= join_button_x + join_button_width and 
+                            join_button_y <= mouse_pos[1] <= join_button_y + join_button_height):
+                            self.join_game(i)
+                            break
     
     def update_screen(self, mouse_pos):
-        self.player_name_input.update(16)
+        """
+        procédure : met à jour l'état de l'écran
+        
+        params:
+            mouse_pos - position actuelle de la souris
+            
+        vérifie le survol des boutons et gère le rafraîchissement automatique
+        """
         self.refresh_button.check_hover(mouse_pos)
-        self.join_button.check_hover(mouse_pos)
+        
+        if hasattr(self, 'join_buttons'):
+            for button in self.join_buttons:
+                button.check_hover(mouse_pos)
+                
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_refresh_time > self.refresh_interval:
+            self.refresh_games()
+            self.last_refresh_time = current_time
+    
+    def apply_blur(self, surface, amount=3):
+        """
+        fonction : applique un effet de flou à une surface pygame
+        
+        params:
+            surface - la surface pygame à flouter
+            amount - intensité du flou (valeur entière > 0)
+            
+        retour:
+            surface - la surface floutée
+        """
+        width, height = surface.get_size()
+        scaled = pygame.transform.smoothscale(surface, (width//amount, height//amount))
+        return pygame.transform.smoothscale(scaled, (width, height))
+    
+    def draw_rounded_rect(self, surface, rect, color, radius=15, alpha=255):
+        """
+        procédure : dessine un rectangle avec des coins arrondis et une transparence configurable
+        
+        params:
+            surface - surface pygame sur laquelle dessiner
+            rect - tuple (x, y, width, height) ou pygame.Rect définissant le rectangle
+            color - tuple (r, g, b) définissant la couleur du rectangle
+            radius - rayon des coins arrondis en pixels
+            alpha - valeur de transparence (0-255)
+        """
+        rect = pygame.Rect(rect)
+        
+        panel_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+        
+        pygame.draw.rect(panel_surface, (*color, alpha), (0, 0, rect.width, rect.height), border_radius=radius)
+        
+        surface.blit(panel_surface, rect.topleft)
     
     def draw_screen(self):
-        # dessiner les labels
-        for text, pos, font in self.labels:
-            text_surface = font.render(text, True, (0, 0, 0))
-            self.screen.blit(text_surface, pos)
+        """
+        procédure : dessine tous les éléments de l'écran de jointure de partie
         
-        # dessiner l'input du nom du joueur
-        self.player_name_input.draw(self.screen)
+        affiche l'arrière-plan, le panneau principal, les titres, le bouton de rafraîchissement
+        et la liste des parties disponibles avec leurs informations et boutons
+        """
+        if self.width > 0 and self.height > 0:
+            bg_scaled = pygame.transform.scale(self.background, (self.width, self.height))
+            bg_blurred = self.apply_blur(bg_scaled, 2)
+            self.screen.blit(bg_blurred, (0, 0))
         
-        # dessiner la table
-        self.draw_table()
+        self.draw_rounded_rect(self.screen, (self.panel_x, self.panel_y, self.panel_width, self.panel_height), 
+                            (255, 255, 255), radius=12, alpha=153)  # 60% opacity (153/255)
         
-        # dessiner les boutons
+        title_network = self.title_font.render("NETWORK", True, (255, 255, 255))
+        title_join = self.title_font.render("JOIN A GAME", True, (255, 255, 255))
+        title_network_x = (self.width - title_network.get_width()) // 2
+        title_join_x = (self.width - title_join.get_width()) // 2
+        self.screen.blit(title_network, (title_network_x, self.panel_y - 90))
+        self.screen.blit(title_join, (title_join_x, self.panel_y - 40))
+        
         self.refresh_button.draw(self.screen)
-        self.join_button.draw(self.screen)
-    
-    def draw_table(self):
-        # dessiner le fond de la table
-        pygame.draw.rect(self.screen, (240, 240, 240), 
-                        (self.table_x, self.table_y, self.table_width, self.table_height))
         
-        # dessiner la bordure de la table
-        pygame.draw.rect(self.screen, (200, 200, 200), 
-                        (self.table_x, self.table_y, self.table_width, self.table_height), 1)
+        visible_count = min(len(self.games_list), 
+                          int(self.list_area_height // (self.row_height + self.row_spacing)))
         
-        # dessiner l'en-tête
-        header_bg_rect = (self.table_x, self.table_y, self.table_width, self.row_height)
-        pygame.draw.rect(self.screen, (220, 220, 220), header_bg_rect)
-        pygame.draw.line(self.screen, (200, 200, 200), 
-                        (self.table_x, self.table_y + self.row_height),
-                        (self.table_x + self.table_width, self.table_y + self.row_height))
+        self.join_buttons = []
+        button_img_path = "assets/Basic_GUI_Bundle/ButtonsText/ButtonText_Large_GreyOutline_Square.png"
         
-        # titres de l'en-tête
-        header_titles = ["Game Name", "Game Type", "Status"]
-        current_x = self.table_x + 10
-        
-        for i, title in enumerate(header_titles):
-            column_width = int(self.column_sizes[i] * self.table_width)
-            title_surface = self.header_font.render(title, True, (50, 50, 50))
-            self.screen.blit(title_surface, (current_x, self.table_y + 5))
-            current_x += column_width
+        for i in range(visible_count):
+            if i >= len(self.games_list):
+                break
+                
+            game = self.games_list[i]
+            row_y = self.list_area_y + i * (self.row_height + self.row_spacing)
             
-            # dessiner le séparateur vertical
-            if i < len(header_titles) - 1:
-                pygame.draw.line(self.screen, (200, 200, 200),
-                                (self.table_x + int(sum(self.column_sizes[:i+1]) * self.table_width), self.table_y),
-                                (self.table_x + int(sum(self.column_sizes[:i+1]) * self.table_width), self.table_y + self.table_height))
-        
-        # dessiner les lignes
-        for i, game in enumerate(self.games_list):
-            row_y = self.table_y + self.row_height + (i * self.row_height)
+            self.draw_rounded_rect(self.screen, 
+                               (self.list_area_x, row_y, self.list_area_width, self.row_height),
+                               (50, 50, 60), radius=8, alpha=80)
             
-            # dessiner le fond de la ligne (mettre en évidence si sélectionné)
-            row_bg_color = (230, 240, 255) if i == self.selected_game_index else (255, 255, 255)
-            row_bg_rect = (self.table_x, row_y, self.table_width, self.row_height)
-            pygame.draw.rect(self.screen, row_bg_color, row_bg_rect)
-            
-            # dessiner les données de la ligne
-            current_x = self.table_x + 10
-            
-            # nom du jeu
-            game_name = game.get("game_id", "Unknown")
-            text_surface = self.font.render(game_name, True, (0, 0, 0))
-            self.screen.blit(text_surface, (current_x, row_y + 5))
-            current_x += int(self.column_sizes[0] * self.table_width)
-            
-            # type de jeu
-            game_type = game.get("game_type", "Unknown")
-            text_surface = self.font.render(game_type, True, (0, 0, 0))
-            self.screen.blit(text_surface, (current_x, row_y + 5))
-            current_x += int(self.column_sizes[1] * self.table_width)
-            
-            # statut
             player_count = game.get("player_count", 0)
             max_players = game.get("max_players", 2)
-            status = f"{player_count}/{max_players} Players"
-            text_surface = self.font.render(status, True, (0, 0, 0))
-            self.screen.blit(text_surface, (current_x, row_y + 5))
+            icon = self.icon_green_circle if player_count < max_players else self.icon_red_circle
+            icon = pygame.transform.scale(icon, (48, 48))
+            self.screen.blit(icon, (self.list_area_x + 16, row_y + (self.row_height - 48) // 2))
             
-            # dessiner le séparateur de ligne
-            pygame.draw.line(self.screen, (220, 220, 220),
-                            (self.table_x, row_y + self.row_height),
-                            (self.table_x + self.table_width, row_y + self.row_height)) 
+            game_type = game.get("game_type", "UNKNOWN").upper()
+            status_text = f"{player_count}/{max_players} {game_type}"
+            status_surface = self.status_font.render(status_text, True, (255, 255, 255))
+            self.screen.blit(status_surface, (self.list_area_x + 16 + 48 + 8, 
+                                          row_y + (self.row_height - 48) // 2))
+            
+            game_name = game.get("game_id", "UNKNOWN").upper()
+            game_name_surface = self.host_font.render(game_name, True, (221, 221, 221))
+            self.screen.blit(game_name_surface, (self.list_area_x + 16 + 48 + 8, 
+                                        row_y + (self.row_height - 48) // 2 + 28))
+            
+            join_button_width = 100
+            join_button_height = 40
+            join_button_x = self.list_area_x + self.list_area_width - 16 - join_button_width
+            join_button_y = row_y + (self.row_height - join_button_height) // 2
+            
+            join_button = ImageButton(
+                join_button_x, 
+                join_button_y, 
+                join_button_width, 
+                join_button_height,
+                "JOIN", 
+                lambda idx=i: self.join_game(idx),
+                bg_image_path=button_img_path,
+                font=self.button_font,
+                text_color=(255, 255, 255)
+            )
+            
+            self.join_buttons.append(join_button)
+            join_button.draw(self.screen)
+        
+        server_surface = self.footer_font.render(self.server_info, True, (255, 255, 255, 204))  # 80% opacity
+        version_surface = self.footer_font.render(self.version, True, (255, 255, 255, 204))  # 80% opacity
+        
+        self.screen.blit(server_surface, (self.panel_x + 16, self.panel_y + self.panel_height - 16 - server_surface.get_height()))
+        self.screen.blit(version_surface, (self.panel_x + self.panel_width - 16 - version_surface.get_width(), 
+                                       self.panel_y + self.panel_height - 16 - version_surface.get_height()))
