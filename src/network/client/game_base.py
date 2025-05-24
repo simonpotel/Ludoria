@@ -33,7 +33,7 @@ class GameBase:
         self.network_client = None # client réseau
         self.render = None # référence à l'objet render (doit être défini par la sous-classe)
         self.selected_piece = None # pièce sélectionnée (utilisé par certaines sous-classes)
-        self.status_message = "" # message affiché à l'utilisateur
+        #self.status_message = "" # message affiché à l'utilisateur (plus utilisé merci d'utiliser infobar)
         self.status_color = (0, 0, 0) # couleur du message
         self.game_id = None # id unique de la partie réseau
         self._bot_timer_set = False # flag pour le timer du bot
@@ -70,12 +70,14 @@ class GameBase:
         Logger.info("GameBase", f"Connecting to server for game '{game_name}' as player '{self.local_player_name}' (type: {self.game_type})")
         if not self.network_client.connect(self.local_player_name, game_name, self.game_type):
             Logger.error("GameBase", "Failed to connect to the game server")
-            self.update_status_message("Connection failed!", "red")
+            if self.render:
+                self.render.edit_info_label("Connection failed!")
             self.cleanup()
             return
             
         Logger.info("GameBase", "Connected to game server, waiting for assignment...")
-        self.update_status_message("Connected, waiting for player assignment...", "blue")
+        if self.render:
+            self.render.edit_info_label("Connected, waiting for player assignment...")
 
     def _register_network_handlers(self):
         """
@@ -91,36 +93,6 @@ class GameBase:
         self.network_client.register_handler("player_disconnected", self.on_player_disconnected)
         self.network_client.register_handler("chat_message", self.on_chat_message)
         # ajouter d'autres handlers si nécessaire (ex: "game_over", "chat_message")
-
-    def update_status_message(self, message: str, color=(0, 0, 0)):
-        """
-        procédure : met à jour le message d'état affiché à l'utilisateur et sa couleur.
-        déclenche un rafraîchissement de l'affichage si le message ou la couleur change.
-
-        params:
-            message: le nouveau message à afficher.
-            color: la couleur du texte (tuple RGB ou nom de couleur prédéfini).
-        """
-        needs_redraw = False
-        if self.status_message != message:
-            self.status_message = message
-            needs_redraw = True
-        
-        # conversion des noms de couleur en RGB
-        if isinstance(color, str):
-            if color == "red": color = (255, 0, 0)
-            elif color == "green": color = (0, 255, 0)
-            elif color == "blue": color = (0, 0, 255)
-            elif color == "orange": color = (255, 165, 0)
-            else: color = (0, 0, 0) # noir par défaut
-                
-        if self.status_color != color:
-            self.status_color = color
-            needs_redraw = True
-            
-        # redessine le plateau si nécessaire et si le rendu est disponible
-        if needs_redraw and self.render:
-            self.render.needs_render = True
 
     def on_player_assignment(self, data: Dict):
         """
@@ -139,20 +111,21 @@ class GameBase:
             status = f"You are Player {self.player_number}. "
             if self.is_my_turn:
                  status += "Your turn!"
-                 color = "green"
             else:
                  status += "Waiting for Player 1..."
-                 color = "orange"
                  
-            self.update_status_message(status, color)
+            if self.render:
+                self.render.edit_info_label(status)
             Logger.info("GameBase", f"Assigned as Player {self.player_number} in game {self.game_id}. My turn: {self.is_my_turn}")
             if self.render: self.render.needs_render = True
         except KeyError as e:
             Logger.error("GameBase", f"Received invalid player assignment data: {data}. Missing key: {e}")
-            self.update_status_message("Error receiving player assignment!", "red")
+            if self.render:
+                self.render.edit_info_label("Error receiving player assignment!")
         except Exception as e:
             Logger.error("GameBase", f"Error in on_player_assignment: {e}")
-            self.update_status_message("Error processing player assignment!", "red")
+            if self.render:
+                self.render.edit_info_label("Error processing player assignment!")
 
     def on_turn_started(self, data: Optional[Dict] = None):
         """
@@ -161,8 +134,8 @@ class GameBase:
         """
         self.game_started = True # confirme que le jeu est actif
         self.is_my_turn = True
-        self.update_status_message(f"Your turn (Player {self.player_number})", "green")
         if self.render:
+            self.render.edit_info_label(f"Your turn (Player {self.player_number})")
             self.render.needs_render = True # rafraîchit pour indiquer que c'est notre tour
         Logger.info("GameBase", f"Turn started for Player {self.player_number}")
 
@@ -174,8 +147,8 @@ class GameBase:
         self.game_started = True
         self.is_my_turn = False
         other_player = 2 if self.player_number == 1 else 1
-        self.update_status_message(f"Player {other_player}'s turn", "orange")
         if self.render:
+            self.render.edit_info_label(f"Player {other_player}'s turn")
             self.render.needs_render = True # rafraîchit pour indiquer l'attente
         Logger.info("GameBase", f"Turn ended for Player {self.player_number}")
 
@@ -270,7 +243,8 @@ class GameBase:
         Logger.warning("GameBase", f"Disconnection event: {message}")
         self.game_started = False
         self.is_my_turn = False
-        self.update_status_message(f"Game ended: {message}", "red")
+        if self.render:
+            self.render.edit_info_label(f"Game ended: {message}")
         
         if self.render is not None and hasattr(self.render, 'end_game_waiting_input') and self.render.end_game_waiting_input:
             pass
@@ -338,16 +312,19 @@ class GameBase:
             
         # vérifications pour le mode réseau
         if not self.game_started:
-            self.update_status_message("Waiting for game to start...", "blue")
+            if self.render:
+                self.render.edit_info_label("Waiting for game to start...")
             return False
             
         if self.network_client and not self.network_client.opponent_connected:
-            self.update_status_message("Waiting for another player to join...", "blue")
+            if self.render:
+                self.render.edit_info_label("Waiting for another player to join...")
             return False
             
         if not self.is_my_turn:
             other_player = 2 if self.player_number == 1 else 1
-            self.update_status_message(f"Waiting for Player {other_player}...", "orange")
+            if self.render:
+                self.render.edit_info_label(f"Waiting for Player {other_player}...")
             return False
             
         # si on arrive ici, c'est notre tour en réseau
