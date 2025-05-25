@@ -37,7 +37,8 @@ class Game(GameBase):
             Logger.game("Game", "Katerenga bot mode initialized")
 
         if self.is_network_game:
-            self.update_status_message("Waiting for another player...")
+            if self.render:
+                self.render.edit_info_label("Waiting for another player...")
 
     def on_network_action(self, action_data):
         """
@@ -97,10 +98,12 @@ class Game(GameBase):
         # met à jour le message de statut en fonction du tour
         if self.is_network_game:
             if self.is_my_turn: # is_my_turn doit avoir été mis à jour par les gestionnaires de GameBase
-                self.update_status_message(f"Your turn (Player {self.player_number})", "green")
+                if self.render:
+                    self.render.edit_info_label(f"Your turn (Player {self.player_number})")
             else:
                 other_player = 1 if self.player_number == 2 else 2  # numéro de joueur opposé
-                self.update_status_message(f"Player {other_player}'s turn", "orange")
+                if self.render:
+                    self.render.edit_info_label(f"Player {other_player}'s turn")
         else:
             # fallback pour le contexte non réseau, bien que cette fonction principalement gère le réseau
             self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
@@ -231,8 +234,12 @@ class Game(GameBase):
             # détermine l'index correct du joueur à vérifier
             player_index_to_select = self.player_number - 1 if self.is_network_game else self.round_turn
             
+            # détermine les camps adverses en fonction du joueur pour la vérification de sélection
+            opponent_camps = [(9, 0), (9, 9)] if player_index_to_select == 0 else [(0, 0), (0, 9)]
+
             # sélection d'une pièce du joueur dont c'est le tour (ou du joueur local en réseau)
-            if cell[0] is not None and cell[0] == player_index_to_select:
+            # ajout de la condition pour vérifier si la pièce n'est PAS dans un camp adverse
+            if cell[0] is not None and cell[0] == player_index_to_select and (row, col) not in opponent_camps:
                 # vérification supplémentaire pour le mode réseau : s'assurer que c'est bien le tour de ce joueur
                 if self.is_network_game and not self.is_my_turn:
                     self.render.edit_info_label(f"Waiting for Player {2 if self.player_number == 1 else 1}")
@@ -241,6 +248,10 @@ class Game(GameBase):
                 self.selected_piece = (row, col)
                 self.render.edit_info_label("Select destination")
                 self.render.needs_render = True
+                return True
+            elif cell[0] is not None and cell[0] == player_index_to_select and (row, col) in opponent_camps:
+                # clic sur une pièce du joueur mais dans un camp adverse - ne pas sélectionner
+                self.render.edit_info_label("Cannot move piece from opponent's camp")
                 return True
             elif cell[0] is not None:
                 # clic sur une pièce adverse ou une case vide
