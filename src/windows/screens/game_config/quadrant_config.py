@@ -63,6 +63,8 @@ class QuadrantConfigScreen(BaseScreen):
         self.quadrant_display_rects = []
         self.labels = []
         self.previous_indices = [0, 0, 0, 0]
+        
+        self.quadrants_initialized = [False, False, False, False]
     
     def setup_ui(self):
         """
@@ -248,7 +250,8 @@ class QuadrantConfigScreen(BaseScreen):
         for i, selector in enumerate(self.quadrant_selectors):
             if 0 <= selector.selected_index < len(self.quadrant_names):
                 quadrant_name = self.quadrant_names[selector.selected_index]
-                self.selected_quadrants[i] = self.quadrants_config.get(quadrant_name)
+                if self.selected_quadrants[i] is None:
+                    self.selected_quadrants[i] = self.quadrants_config.get(quadrant_name)
     
     def _rotate_left_handler(self, index):
         """
@@ -258,6 +261,9 @@ class QuadrantConfigScreen(BaseScreen):
             index - index du quadrant à pivoter.
         """
         self.selected_quadrants = self.quadrant_handler.rotate_left(self.selected_quadrants, index)
+        Logger.info("QuadrantConfigScreen", f"Rotated quadrant {index+1} left")
+        
+        self._sync_quadrant_with_dropdown(index)
     
     def _rotate_right_handler(self, index):
         """
@@ -267,6 +273,20 @@ class QuadrantConfigScreen(BaseScreen):
             index - index du quadrant à pivoter.
         """
         self.selected_quadrants = self.quadrant_handler.rotate_right(self.selected_quadrants, index)
+        Logger.info("QuadrantConfigScreen", f"Rotated quadrant {index+1} right")
+        
+        self._sync_quadrant_with_dropdown(index)
+    
+    def _sync_quadrant_with_dropdown(self, index):
+        """
+        procédure : synchronise le dropdown avec l'état actuel du quadrant après rotation.
+        
+        params:
+            index - index du quadrant qui a été pivoté.
+        """
+        current_quadrant = self.selected_quadrants[index]
+        if current_quadrant and self.quadrant_names:
+            Logger.info("QuadrantConfigScreen", f"Quadrant {index+1} rotation saved")
     
     def _back_action(self):
         """
@@ -284,7 +304,6 @@ class QuadrantConfigScreen(BaseScreen):
         """
         procédure : action du bouton Enregistrer - sauvegarde les quadrants et revient à l'écran parent.
         """
-        self._update_selected_quadrants()
         
         # transmission des quadrants configurés à l'écran parent
         if self.parent_screen:
@@ -356,9 +375,12 @@ class QuadrantConfigScreen(BaseScreen):
         
         self.back_button.check_hover(mouse_pos)
         self.save_button.check_hover(mouse_pos)
+        
         for i, selector in enumerate(self.quadrant_selectors):
             if selector.selected_index != self.previous_indices[i]:
-                self._update_selected_quadrants()
+                # correctement le remplacement de quadrant
+                self._on_dropdown_change(i)
+                
         self.previous_indices = [selector.selected_index for selector in self.quadrant_selectors]
     
     def draw_rounded_rect(self, surface, rect, color, radius=15, alpha=255):
