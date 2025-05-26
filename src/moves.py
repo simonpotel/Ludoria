@@ -19,51 +19,7 @@ def available_move(board, iRow, iCol, dRow, dCol):
     if destination[0] is not None and destination[0] == initial[0]:
         Logger.warning("Moves", f"Invalid move: destination cell ({dRow},{dCol}) is occupied by your own piece")
         return False
-    
-    if len(board) == 10: # katerenga uniquement (vérification mauvaise à long terme si on ajoute d'autres jeux, ça serait mieux de passer l'objet de board pour faire board.game_number)
-        player = initial[0]
-        camps = [(0, 0), (0, 9), (9, 0), (9, 9)]
-
-        # verifie si la pièce de départ est dans un camp adverse
-        # si la pièce est dans un camp adverse, elle ne peut pas se déplacer
-        if (iRow, iCol) in camps:
-            # determine le joueur du camp
-            camp_player = None
-            if (iRow, iCol) == (0, 0) or (iRow, iCol) == (0, 9):
-                camp_player = 1  # Camps du haut pour le joueur 1
-            elif (iRow, iCol) == (9, 0) or (iRow, iCol) == (9, 9):
-                camp_player = 0  # Camps du bas pour le joueur 0
-                
-            # si le camp appartient au joueur adverse de la pièce, le mouvement est invalide
-            if camp_player is not None and camp_player != player:
-                Logger.warning("Moves", "Invalid move: cannot move pieces out of opponent camps")
-                return False
-
-        # vérification spéciale pour le déplacement vers un camp adverse
-        finish_line = 9 if player == 0 else 0  # ligne d'arrivée pour le joueur
         
-        # si la destination est un camp, on vérifie uniquement la règle des deux dernières lignes
-        if (dRow, dCol) in camps:
-            # verifie si la pièce est sur la dernière ou l'avant-dernière ligne
-            is_on_allowed_line = False
-            if player == 0:
-                if iRow == finish_line or iRow == finish_line - 1:
-                    is_on_allowed_line = True
-            else:
-                if iRow == finish_line or iRow == finish_line + 1:
-                    is_on_allowed_line = True
-
-            if not is_on_allowed_line:
-                Logger.warning("Moves", "Invalid move: can only access opponent camps from the last two lines")
-                return False
-
-            if destination[0] is not None and destination[0] == player:
-                Logger.warning("Moves", "Invalid move: camp is occupied by your own piece")
-                return False
-            Logger.success("Moves", "Valid move to opponent camp from allowed lines")
-            return True
-
-    # si la destination n'est pas un camp, on vérifie les règles de mouvement normales
     match initial[1]:
         case 0:
             if iRow != dRow and iCol != dCol:
