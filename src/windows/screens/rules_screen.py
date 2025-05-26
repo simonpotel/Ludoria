@@ -50,7 +50,7 @@ class RulesScreen(BaseScreen):
         current_y = start_y
 
         # titre de l'écran des règles avec Arial
-        self.rules_title_surface = rules_title_font.render(f"Règles de {self.game_name}:", True, (255, 255, 255))
+        self.rules_title_surface = rules_title_font.render(f"Rules of {self.game_name}:", True, (255, 255, 255))
         self.rules_title_rect = self.rules_title_surface.get_rect(topleft=(start_x, current_y))
         current_y += self.rules_title_rect.height + line_spacing * 2
 

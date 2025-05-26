@@ -258,7 +258,7 @@ class ThemeSelectionScreen(BaseScreen):
         self.screen.blit(title_surface, (title_x, title_y))
         
         # sous-titre
-        subtitle_text = "CHOISISSEZ VOTRE THÈME :"
+        subtitle_text = "SELECT YOUR THEME :"
         subtitle_surface = self.subtitle_font.render(subtitle_text, True, (255, 255, 255))
         subtitle_x = (self.width - subtitle_surface.get_width()) // 2
         subtitle_y = title_y + title_surface.get_height() + 30
@@ -338,7 +338,7 @@ class ThemeSelectionScreen(BaseScreen):
             self.screen.blit(title_surface, (title_x, title_y))
             
             # afficher le sous-titre
-            subtitle_text = "CHOISISSEZ VOTRE THÈME :"
+            subtitle_text = "SELECT YOUR THEME :"
             subtitle_surface = self.subtitle_font.render(subtitle_text, True, (255, 255, 255))
             subtitle_x = (self.width - subtitle_surface.get_width()) // 2
             subtitle_y = title_y + title_surface.get_height() + 30
