@@ -1,6 +1,7 @@
+from typing import List, Optional
 from src.utils.logger import Logger
 
-def available_move(board, iRow, iCol, dRow, dCol):
+def available_move(board: List[List[List[Optional[int]]]], iRow: int, iCol: int, dRow: int, dCol: int) -> bool:
     """
     fonction : vérifie la validité d'un déplacement selon les règles du jeu
     params :
