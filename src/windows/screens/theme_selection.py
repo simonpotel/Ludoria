@@ -16,10 +16,10 @@ class ThemeSelectionScreen(BaseScreen):
         constructeur : initialise l'écran de sélection de thème.
         """
         super().__init__(title="Ludoria - Sélection de Thème")
-        self.themes = ["tropique", "grec", "japon", "nordique", "sahara"]
+        self.themes = ["tropique", "grec", "japon", "nordique", "sahara", "pirate", "urbain", "montagne"]
         self.theme_buttons = []
         self.selected_theme = None
-        self.current_theme_index = 0
+        self.current_theme_index = 5
         self.background = None
         self.title_font = None
         self.subtitle_font = None

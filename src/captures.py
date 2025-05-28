@@ -1,7 +1,8 @@
+from typing import List, Optional
 from src.moves import available_move
 from src.utils.logger import Logger
 
-def is_threatened(board, row, col, current_player, check_all_pieces=False):
+def is_threatened(board: List[List[List[Optional[int]]]], row: int, col: int, current_player: int, check_all_pieces: bool = False) -> bool:
     """
     fonction : vérifie si une case est menacée par un pion adverse
     params :
@@ -27,7 +28,7 @@ def is_threatened(board, row, col, current_player, check_all_pieces=False):
     Logger.success("Captures", f"Cell ({row},{col}) is not threatened")
     return False
 
-def has_valid_move(board, current_player, check_all_pieces=False):
+def has_valid_move(board: List[List[List[Optional[int]]]], current_player: int, check_all_pieces: bool = False) -> bool:
     """
     fonction : vérifie s'il existe des cases non menacées pour placer un pion
     params :

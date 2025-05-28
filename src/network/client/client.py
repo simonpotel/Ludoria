@@ -2,7 +2,7 @@ import socket
 import json
 import threading
 import random
-from typing import Optional, Callable, Dict, Any, List
+from typing import Optional, Callable, Dict, Any, List, Union
 from pathlib import Path
 from src.network.common.packets import (
     PacketType, create_connect_dict, create_game_action_dict, create_chat_send_dict,
@@ -14,23 +14,25 @@ class NetworkClient:
     """
     classe : client réseau pour la communication avec le serveur de jeu
     """
-    def __init__(self):
+    def __init__(self) -> None:
         """
         procédure : initialise le client réseau
         """
         self._load_config()
         self.socket: Optional[socket.socket] = None # socket de communication
-        self.connected = False # indique si le client est connecté
+        self.connected: bool = False # indique si le client est connecté
         self.listen_thread: Optional[threading.Thread] = None # thread de réception des messages
         self.game_id: Optional[str] = None # id de la partie
         self.player_number: Optional[int] = None # numéro du joueur
-        self.is_my_turn = False # indique si c'est le tour du joueur
-        self.opponent_connected = False # indique si un adversaire est connecté
+        self.is_my_turn: bool = False # indique si c'est le tour du joueur
+        self.opponent_connected: bool = False # indique si un adversaire est connecté
         self.handlers: Dict[str, Callable] = {} # dictionnaire des gestionnaires d'événements
-        self.receive_buffer = b"" # buffer de réception des messages
+        self.receive_buffer: bytes = b"" # buffer de réception des messages
+        self.host: str = ""
+        self.port: int = 0
         Logger.initialize()
 
-    def _load_config(self):
+    def _load_config(self) -> None:
         """
         procédure : charge la configuration du serveur
         """
@@ -101,7 +103,7 @@ class NetworkClient:
                 self.socket = None
             return False
 
-    def disconnect(self, reason="No reason specified"):
+    def disconnect(self, reason: str = "No reason specified") -> None:
         """
         procédure : déconnecte le client du serveur
         """
@@ -133,7 +135,7 @@ class NetworkClient:
         # appel du gestionnaire *après* la réinitialisation de l'état
         self.call_handler("player_disconnected", reason)
 
-    def _reset_state(self):
+    def _reset_state(self) -> None:
         """
         procédure : réinitialise l'état du client
         """
@@ -145,7 +147,7 @@ class NetworkClient:
         self.receive_buffer = b"" 
         self.listen_thread = None
 
-    def _send_json(self, packet_dict: Dict) -> bool:
+    def _send_json(self, packet_dict: Dict[str, Any]) -> bool:
         """
         procédure : envoie un paquet au serveur
         params :
@@ -169,7 +171,7 @@ class NetworkClient:
             self.disconnect(f"Send error: {e}") # déconnexion
             return False
 
-    def send_game_action(self, action: Dict[str, Any]):
+    def send_game_action(self, action: Dict[str, Any]) -> None:
         """
         procédure : envoie une action de jeu au serveur
         params :
@@ -200,7 +202,7 @@ class NetworkClient:
             return False
         return True
 
-    def _listen_for_messages(self):
+    def _listen_for_messages(self) -> None:
         """
         procédure : écoute les messages du serveur
         """
@@ -253,7 +255,7 @@ class NetworkClient:
         if self.connected:
             self.disconnect("Listen loop terminated unexpectedly")
 
-    def _handle_packet_dict(self, packet_dict: Dict):
+    def _handle_packet_dict(self, packet_dict: Dict[str, Any]) -> None:
         """
         procédure : gère un paquet reçu en fonction de son type
         params :
@@ -300,7 +302,7 @@ class NetworkClient:
             Logger.error("NetworkClient", f"Error handling packet content: {str(e)}")
             Logger.error("NetworkClient", f"Packet data: {packet_dict}")
 
-    def _handle_player_assignment(self, packet_data: Dict):
+    def _handle_player_assignment(self, packet_data: Dict[str, Any]) -> None:
         if not isinstance(packet_data, dict) or "player_number" not in packet_data:
             Logger.error("NetworkClient", f"Invalid player assignment data: {packet_data}")
             return
@@ -312,39 +314,39 @@ class NetworkClient:
         Logger.info("NetworkClient", f"Assigned as Player {self.player_number} in game {self.game_id}")
         self.call_handler("player_assignment", packet_data) # Pass the data dict to UI/game logic
 
-    def _handle_your_turn(self, packet_data: Dict):
+    def _handle_your_turn(self, packet_data: Dict[str, Any]) -> None:
         self.is_my_turn = True
         self.opponent_connected = True  # si on reçoit un signal de tour, l'adversaire est connecté
         Logger.info("NetworkClient", f"Starting turn for Player {self.player_number}")
         self.call_handler("turn_started") 
 
-    def _handle_wait_turn(self, packet_data: Dict):
+    def _handle_wait_turn(self, packet_data: Dict[str, Any]) -> None:
         self.is_my_turn = False
         self.opponent_connected = True  # si on reçoit un signal d'attente, l'adversaire est connecté
         other_player = 2 if self.player_number == 1 else (1 if self.player_number == 2 else "?")
         Logger.info("NetworkClient", f"Player {self.player_number} waiting for Player {other_player}'s turn")
         self.call_handler("turn_ended") 
 
-    def _handle_game_action(self, packet_data: Dict):
+    def _handle_game_action(self, packet_data: Dict[str, Any]) -> None:
         Logger.info("NetworkClient", f"Player {self.player_number} received game action: {packet_data}")
         self.call_handler("game_action", packet_data)
 
-    def _handle_game_state(self, packet_data: Dict):
+    def _handle_game_state(self, packet_data: Dict[str, Any]) -> None:
         Logger.info("NetworkClient", f"Received game state update: {packet_data}")
         self.call_handler("game_state", packet_data)
 
-    def _handle_player_disconnected(self, packet_data: Dict):
+    def _handle_player_disconnected(self, packet_data: Dict[str, Any]) -> None:
         message = packet_data.get("message", "Other player disconnected")
         self.opponent_connected = False  # l'adversaire s'est déconnecté
         Logger.info("NetworkClient", f"Received player disconnected notification: {message}")
         self.call_handler("player_disconnected", message)
 
-    def _handle_disconnect(self, packet_data: Dict):
+    def _handle_disconnect(self, packet_data: Dict[str, Any]) -> None:
         message = packet_data.get("message", "Server initiated disconnect")
         Logger.info("NetworkClient", f"Received disconnect command from server: {message}")
         self.disconnect(message)
 
-    def _handle_chat_message(self, packet_data: Dict):
+    def _handle_chat_message(self, packet_data: Dict[str, Any]) -> None:
         """
         procédure : gère les messages de chat reçus
         params :
@@ -361,7 +363,7 @@ class NetworkClient:
         Logger.info("NetworkClient", f"Received chat message from Player {player_number} ({sender_name}): {message}")
         self.call_handler("chat_message", packet_data)
 
-    def _handle_game_list(self, packet_data: Dict):
+    def _handle_game_list(self, packet_data: Dict[str, Any]) -> None:
         """
         procédure : traite le paquet GAME_LIST
         """
@@ -369,7 +371,7 @@ class NetworkClient:
         Logger.info("NetworkClient", f"Received list of {len(games)} games")
         self.call_handler("game_list_received", games)
 
-    def register_handler(self, event: str, handler: Callable):
+    def register_handler(self, event: str, handler: Callable) -> None:
         """
         procédure : enregistre une fonction de gestionnaire pour un événement réseau spécifique
         params :
@@ -379,7 +381,7 @@ class NetworkClient:
         self.handlers[event] = handler
         Logger.info("NetworkClient", f"Registered handler for event: {event}")
 
-    def call_handler(self, event: str, data: Any = None):
+    def call_handler(self, event: str, data: Any = None) -> None:
         """
         procédure : appelle le gestionnaire enregistré pour un événement donné
         params :
@@ -397,7 +399,7 @@ class NetworkClient:
         else:
             Logger.warning("NetworkClient", f"No handler registered for event: {event}")
 
-    def send_chat_message(self, message: str, sender_name: str):
+    def send_chat_message(self, message: str, sender_name: str) -> None:
         """
         procédure : envoie un message de chat au serveur
         params :
@@ -453,7 +455,7 @@ class NetworkClient:
                 self.socket = None
             return False
     
-    def request_game_list(self):
+    def request_game_list(self) -> None:
         """
         procédure : demande la liste des jeux au serveur
         """

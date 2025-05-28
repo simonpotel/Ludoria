@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+from typing import Optional, Dict, List, Tuple, Any
 from src.utils.logger import Logger
 
 class ConfigLoader:
@@ -8,13 +9,13 @@ class ConfigLoader:
     responsable du chargement et de la validation initiale des fichiers de configuration, comme `quadrants.json`.
     """
     
-    def __init__(self):
+    def __init__(self) -> None:
         """
         constructeur : procédure d'initialisation du chargeur de configuration.
         """
         pass
     
-    def load_quadrants(self):
+    def load_quadrants(self) -> Optional[Tuple[Dict[str, List[List[List[Optional[int]]]]], List[str], List[List[List[List[Optional[int]]]]]]]:
         """
         fonction : charge les configurations des quadrants depuis `configs/quadrants.json`.
         lit le fichier json, extrait les configurations, les noms des quadrants et les données associées.
@@ -31,11 +32,11 @@ class ConfigLoader:
              
         try:
             with config_path.open('r', encoding='utf-8') as file: # assure l'encodage utf-8 pour la lecture
-                quadrants_config = json.load(file)
-                quadrant_names = sorted(quadrants_config.keys()) # trie les noms pour un ordre constant
-                quadrants_data = [quadrants_config[key] for key in quadrant_names]
+                quadrants_config: Dict[str, List[List[List[Optional[int]]]]] = json.load(file)
+                quadrant_names: List[str] = sorted(quadrants_config.keys()) # trie les noms pour un ordre constant
+                quadrants_data: List[List[List[List[Optional[int]]]]] = [quadrants_config[key] for key in quadrant_names]
                 
-                Logger.info("ConfigLoader", f"Config of Quadrants loaded from {config_path}")
+                Logger.info("ConfigLoader", f"Config of Quadrants loaded from {config_path.resolve()}")
                 return quadrants_config, quadrant_names, quadrants_data
                 
         except json.JSONDecodeError as e:
@@ -46,7 +47,7 @@ class ConfigLoader:
             self.handle_config_error(f"Unexpected error while loading quadrants: {e}")
             return None
 
-    def handle_config_error(self, message):
+    def handle_config_error(self, message: str) -> None:
         """
         procédure : gestion centralisée des erreurs de chargement de configuration.
         enregistre un message critique dans les logs.

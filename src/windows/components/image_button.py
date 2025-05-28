@@ -1,11 +1,13 @@
 import pygame
+from typing import Optional, Callable, Tuple
 
 class ImageButton:
     """
     classe : représente un bouton avec une image de fond.
     """
-    def __init__(self, x, y, width, height, text, action=None, bg_image_path="assets/cta_background.png", 
-                 font=None, icon_path=None, text_color=(255, 255, 255)):
+    def __init__(self, x: int, y: int, width: int, height: int, text: str, action: Optional[Callable] = None, 
+                 bg_image_path: str = "assets/cta_background.png", font: Optional[pygame.font.Font] = None, 
+                 icon_path: Optional[str] = None, text_color: Tuple[int, int, int] = (255, 255, 255)) -> None:
         """
         constructeur : initialise un bouton avec image.
 
@@ -19,26 +21,26 @@ class ImageButton:
             icon_path - chemin vers une icône à afficher (optional)
             text_color - couleur du texte
         """
-        self.x = x  
-        self.y = y
-        self.width = width
-        self.height = height
-        self.rect = pygame.Rect(x, y, width, height)
-        self.text = text.upper()
-        self.action = action
-        self.text_color = text_color
-        self.font = font if font else pygame.font.SysFont('Arial', 20, bold=True)
-        self.is_hover = False
-        self.bg_image_path = bg_image_path
-        self.bg_image = None
-        self.icon_path = icon_path
-        self.icon_image = None
+        self.x: int = x  
+        self.y: int = y
+        self.width: int = width
+        self.height: int = height
+        self.rect: pygame.Rect = pygame.Rect(x, y, width, height)
+        self.text: str = text.upper()
+        self.action: Optional[Callable] = action
+        self.text_color: Tuple[int, int, int] = text_color
+        self.font: Optional[pygame.font.Font] = font if font else pygame.font.SysFont('Arial', 20, bold=True)
+        self.is_hover: bool = False
+        self.bg_image_path: str = bg_image_path
+        self.bg_image: Optional[pygame.Surface] = None
+        self.icon_path: Optional[str] = icon_path
+        self.icon_image: Optional[pygame.Surface] = None
         
         self.load_image()
         if self.icon_path:
             self.load_icon()
         
-    def load_image(self):
+    def load_image(self) -> None:
         """
         procédure : charge l'image de fond du bouton.
         """
@@ -52,7 +54,7 @@ class ImageButton:
             self.bg_image = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
             self.bg_image.fill((60, 60, 60, 230))
     
-    def load_icon(self):
+    def load_icon(self) -> None:
         """
         procédure : charge l'icône du bouton.
         """
@@ -66,7 +68,7 @@ class ImageButton:
             print(f"Error loading icon: {e}")
             self.icon_image = None
     
-    def scale_image_preserve_ratio(self, image, target_width, target_height):
+    def scale_image_preserve_ratio(self, image: pygame.Surface, target_width: int, target_height: int) -> pygame.Surface:
         """
         fonction : redimensionne l'image en préservant son ratio.
 
@@ -90,7 +92,7 @@ class ImageButton:
         
         return final_image
     
-    def draw(self, surface):
+    def draw(self, surface: pygame.Surface) -> None:
         """
         procédure : dessine le bouton sur la surface donnée.
 
@@ -118,7 +120,7 @@ class ImageButton:
             )
             surface.blit(text_surface, text_rect)
     
-    def check_hover(self, pos):
+    def check_hover(self, pos: Tuple[int, int]) -> None:
         """
         procédure : vérifie si la position donnée est sur le bouton.
 
@@ -127,7 +129,7 @@ class ImageButton:
         """
         self.is_hover = self.rect.collidepoint(pos)
         
-    def handle_event(self, event):
+    def handle_event(self, event: pygame.event.Event) -> bool:
         """
         fonction : gère les événements pygame pour ce bouton.
 

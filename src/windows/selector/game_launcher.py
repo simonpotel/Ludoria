@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+from typing import Optional, List, Dict, Any, Union, Type
 from src.utils.logger import Logger
 from src.katerenga.game import Game as Katerenga
 from src.isolation.game import Game as Isolation
@@ -13,13 +14,13 @@ class GameLauncher:
     du chargement des sauvegardes et du démarrage de la boucle principale du jeu.
     """
     
-    def __init__(self):
+    def __init__(self) -> None:
         """
         constructeur : procédure d'initialisation du lanceur de jeu.
         """
         pass
     
-    def validate_game_params(self, game_save, selected_mode, game_modes):
+    def validate_game_params(self, game_save: str, selected_mode: str, game_modes: List[str]) -> bool:
         """
         fonction : valide les paramètres de jeu.
         vérifie que le nom de la partie n'est pas vide et que le mode de jeu sélectionné est valide.
@@ -42,7 +43,7 @@ class GameLauncher:
         
         return True
 
-    def create_game_instance(self, selected_game, game_save, mode, selected_quadrants):
+    def create_game_instance(self, selected_game: str, game_save: str, mode: str, selected_quadrants: List[List[List[List[Optional[int]]]]], player_name: Optional[str] = None) -> Union[Katerenga, Isolation, Congress]:
         """
         fonction : création d'une instance de jeu.
         crée et retourne une instance du jeu spécifié par `selected_game` avec les paramètres fournis.
@@ -52,6 +53,7 @@ class GameLauncher:
             game_save (str): nom de la partie/sauvegarde.
             mode (str): mode de jeu (ex: "Solo", "Bot").
             selected_quadrants (list): configuration des quadrants sélectionnée pour le jeu.
+            player_name (str, optional): nom du joueur pour les parties réseau.
 
         retour:
             object | none: instance du jeu créé, ou `none` si `selected_game` est inconnu.
@@ -74,7 +76,7 @@ class GameLauncher:
         instance.game_type = selected_game
         return instance
 
-    def start_game(self, game_save, selected_game, selected_mode, selected_quadrants, player_name=None):
+    def start_game(self, game_save: str, selected_game: str, selected_mode: str, selected_quadrants: List[List[List[List[Optional[int]]]]], player_name: Optional[str] = None) -> bool:
         """
         procédure : démarrage d'une partie.
         crée l'instance du jeu, tente de charger une sauvegarde si elle existe, puis lance la boucle principale du jeu.
