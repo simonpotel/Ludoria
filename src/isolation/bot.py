@@ -3,26 +3,25 @@ from typing import List, Tuple, Optional
 from src.captures import is_threatened
 
 class IsolationBot:
-    def __init__(self, player_id):
+    """
+    classe : bot pour le jeu d'Isolation
+    """
+    def __init__(self, player_id: int):
         """
-        fonction : initialise le bot pour le jeu d'isolation.
-        
+        procédure : initialise le bot pour le jeu d'Isolation
         params :
             player_id - l'identifiant du joueur (1 ou 2)
         """
         self.player_id = player_id - 1
         self.opponent_id = 1 - self.player_id
 
-    def get_valid_moves(self, board: List[List[List]], player) -> List[Tuple[int, int]]:
+    def get_valid_moves(self, board: List[List[List]], player: int) -> List[Tuple[int, int]]:
         """
-        fonction : retourne tous les coups valides pour un joueur.
-        
-        params:
-            board: l'état actuel du plateau
-            player: l'identifiant du joueur (0 ou 1)
-            
-        retour :
-            liste des positions (ligne, colonne) valides
+        fonction : retourne tous les coups valides pour un joueur
+        params :
+            board - l'état actuel du plateau
+            player - l'identifiant du joueur (0 ou 1)
+        retour : liste des positions (ligne, colonne) valides
         """
         valid_moves = []
         for row in range(len(board)):
@@ -31,18 +30,12 @@ class IsolationBot:
                     valid_moves.append((row, column))
         return valid_moves
 
-    def get_move(self, board) -> Optional[Tuple[int, int]]:
+    def get_move(self, board: List[List[List]]) -> Optional[Tuple[int, int]]:
         """
-        fonctuon : détermine le meilleur coup à jouer.
-        
+        fonction : détermine le meilleur coup à jouer
         params :
-            board: l'état actuel du plateau
-            
-        retour:
-            Position (ligne, colonne) du meilleur coup
-            
-        raises:
-            ValueError: si aucun coup n'est disponible
+            board - l'état actuel du plateau
+        retour : Position (ligne, colonne) du meilleur coup
         """
         valid_moves = self.get_valid_moves(board, self.player_id)
         
