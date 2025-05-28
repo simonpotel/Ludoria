@@ -13,6 +13,8 @@
 <img src="assets/nordique/joueur2.png" style="width: 100px; margin: 5px;">
 <img src="assets/pirate/joueur1.png" style="width: 100px; margin: 5px;">
 <img src="assets/pirate/joueur2.png" style="width: 100px; margin: 5px;">
+<img src="assets/urbain/joueur1.png" style="width: 100px; margin: 5px;">
+<img src="assets/urbain/joueur2.png" style="width: 100px; margin: 5px;">
 </div>
 
 
