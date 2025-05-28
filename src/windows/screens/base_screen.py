@@ -101,7 +101,8 @@ class BaseScreen:
             "nordique": (100, 181, 246),
             "sahara": (255, 183, 77),
             "pirate": (255, 183, 77),
-            "urbain": (255, 183, 77)
+            "urbain": (255, 183, 77),
+            "montagne": (255, 183, 77)
         }
         
         theme = self.theme_manager.current_theme
