@@ -1,13 +1,14 @@
 import pygame
+from typing import Optional, Callable, List, Tuple
 
 class Dropdown:
     """
     classe : représente une liste déroulante pour sélectionner une option.
     """
     # variable statique pour suivre toutes les dropdowns ouvertes
-    active_dropdown = None
+    active_dropdown: Optional['Dropdown'] = None
     
-    def __init__(self, x, y, width, height, options, default_index=0, disabled=False, callback=None):
+    def __init__(self, x: int, y: int, width: int, height: int, options: List[str], default_index: int = 0, disabled: bool = False, callback: Optional[Callable] = None) -> None:
         """
         constructeur : initialise la liste déroulante.
 
@@ -19,23 +20,23 @@ class Dropdown:
             disabled - indique si la liste déroulante est désactivée.
             callback - fonction à appeler lorsque la sélection change.
         """
-        self.rect = pygame.Rect(x, y, width, height)
-        self.options = options
-        self.selected_index = default_index
-        self.font = pygame.font.SysFont('Arial', 16)
-        self.color = (0, 0, 0)
-        self.disabled_color = (70, 70, 70)
-        self.text_color = (240, 240, 240)
-        self.disabled_text_color = (170, 170, 170)
-        self.is_open = False
-        self.option_height = 30
-        self.option_rects = []
-        self.transparency = 171
-        self.disabled = disabled
-        self.callback = callback
+        self.rect: pygame.Rect = pygame.Rect(x, y, width, height)
+        self.options: List[str] = options
+        self.selected_index: int = default_index
+        self.font: pygame.font.Font = pygame.font.SysFont('Arial', 16)
+        self.color: Tuple[int, int, int] = (0, 0, 0)
+        self.disabled_color: Tuple[int, int, int] = (70, 70, 70)
+        self.text_color: Tuple[int, int, int] = (240, 240, 240)
+        self.disabled_text_color: Tuple[int, int, int] = (170, 170, 170)
+        self.is_open: bool = False
+        self.option_height: int = 30
+        self.option_rects: List[pygame.Rect] = []
+        self.transparency: int = 171
+        self.disabled: bool = disabled
+        self.callback: Optional[Callable] = callback
         self.update_option_rects()
         
-    def update_option_rects(self):
+    def update_option_rects(self) -> None:
         """
         procédure : calcule les rectangles pour chaque option de la liste déroulante.
         """
@@ -47,7 +48,7 @@ class Dropdown:
                            self.rect.width, self.option_height)
             )
     
-    def draw(self, surface):
+    def draw(self, surface: pygame.Surface) -> None:
         """
         procédure : dessine la liste déroulante sur la surface donnée.
 
@@ -92,7 +93,7 @@ class Dropdown:
         if self.is_open and Dropdown.active_dropdown == self:
             self._prepare_overlay_options(surface)
     
-    def _prepare_overlay_options(self, surface):
+    def _prepare_overlay_options(self, surface: pygame.Surface) -> None:
         """
         procédure : prépare le rendu des options du dropdown pour être dessinées comme overlay.
         
@@ -120,7 +121,7 @@ class Dropdown:
             )
     
     @classmethod
-    def render_active_dropdown(cls, surface):
+    def render_active_dropdown(cls, surface: pygame.Surface) -> None:
         """
         procédure : dessine le dropdown actif comme un overlay sur toute la surface.
         
@@ -160,13 +161,13 @@ class Dropdown:
         surface.blit(overlay, (0, 0))
     
     @classmethod
-    def check_dropdown_click(cls, event):
+    def check_dropdown_click(cls, event: pygame.event.Event) -> bool:
         if cls.active_dropdown is not None and cls.active_dropdown.is_open:
             return True
         return False
     
     @classmethod
-    def handle_global_event(cls, event, pos):
+    def handle_global_event(cls, event: pygame.event.Event, pos: Tuple[int, int]) -> bool:
         if cls.active_dropdown is not None and cls.active_dropdown.is_open:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 dropdown = cls.active_dropdown
@@ -191,7 +192,7 @@ class Dropdown:
                 return True
         return False
     
-    def handle_event(self, event, pos):
+    def handle_event(self, event: pygame.event.Event, pos: Tuple[int, int]) -> bool:
         """
         fonction : gère les événements pygame pour la liste déroulante.
 
@@ -217,7 +218,7 @@ class Dropdown:
                 return True
         return False
     
-    def get(self):
+    def get(self) -> Optional[str]:
         """
         fonction : retourne la valeur de l'option actuellement sélectionnée.
 

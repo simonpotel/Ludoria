@@ -99,7 +99,8 @@ class BaseScreen:
             "grec": (156, 136, 255),
             "japon": (255, 138, 174),
             "nordique": (100, 181, 246),
-            "sahara": (255, 183, 77)
+            "sahara": (255, 183, 77),
+            "pirate": (255, 183, 77)
         }
         
         theme = self.theme_manager.current_theme

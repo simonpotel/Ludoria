@@ -9,7 +9,7 @@ class ThemeManager:
     def __new__(cls) -> 'ThemeManager':
         if cls._instance is None:
             cls._instance = super(ThemeManager, cls).__new__(cls)
-            cls._instance._current_theme: str = "tropique"  # thème par défaut
+            cls._instance._current_theme: str = "pirate"  # thème par défaut
         return cls._instance
     
     @property

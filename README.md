@@ -11,6 +11,8 @@
 <img src="assets/sahara/joueur2.png" style="width: 100px; margin: 5px;">
 <img src="assets/nordique/joueur1.png" style="width: 100px; margin: 5px;">
 <img src="assets/nordique/joueur2.png" style="width: 100px; margin: 5px;">
+<img src="assets/pirate/joueur1.png" style="width: 100px; margin: 5px;">
+<img src="assets/pirate/joueur2.png" style="width: 100px; margin: 5px;">
 </div>
 
 

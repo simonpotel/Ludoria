@@ -1,15 +1,16 @@
 import pygame
 import os
+from typing import Optional, Callable, Tuple
 from src.windows.components.button import Button
 from src.windows.components.image_button import ImageButton
 from src.utils.logger import Logger
 from src.windows.font_manager import FontManager
 
 class NavBar:
-    def __init__(self, screen_width, height=50):
-        self.width = screen_width
-        self.height = height
-        self.background_color = (0, 0, 0, 0) 
+    def __init__(self, screen_width: int, height: int = 50) -> None:
+        self.width: int = screen_width
+        self.height: int = height
+        self.background_color: Tuple[int, int, int, int] = (0, 0, 0, 0)
         
         self.font_manager = FontManager()
         
@@ -42,34 +43,34 @@ class NavBar:
             icon_path=menu_icon_path
         )
         
-        self.home_callback = None 
-        self.settings_callback = None 
+        self.home_callback: Optional[Callable] = None 
+        self.settings_callback: Optional[Callable] = None 
     
-    def set_callbacks(self, home_callback=None, settings_callback=None):
+    def set_callbacks(self, home_callback: Optional[Callable] = None, settings_callback: Optional[Callable] = None) -> None:
         self.home_callback = home_callback
         self.settings_callback = settings_callback
     
-    def home_action(self):
+    def home_action(self) -> None:
         if self.home_callback:
             self.home_callback()
         else:
             Logger.warning("NavBar", "Home button pressed but no callback set")
     
-    def settings_action(self):
+    def settings_action(self) -> None:
         if self.settings_callback:
             self.settings_callback()
         else:
             Logger.warning("NavBar", "Settings button pressed but no callback set")
     
-    def handle_events(self, event):
+    def handle_events(self, event: pygame.event.Event) -> None:
         self.home_button.handle_event(event)
         self.settings_button.handle_event(event)
     
-    def update(self, mouse_pos):
+    def update(self, mouse_pos: Tuple[int, int]) -> None:
         self.home_button.check_hover(mouse_pos)
         self.settings_button.check_hover(mouse_pos)
     
-    def draw(self, screen):
+    def draw(self, screen: pygame.Surface) -> None:
         navbar_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         navbar_surface.fill(self.background_color)
         screen.blit(navbar_surface, (0,0))
