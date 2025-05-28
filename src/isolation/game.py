@@ -1,3 +1,4 @@
+from typing import Dict, Optional, Tuple
 import pygame
 from src.board import Board
 from src.windows.render.render import Render
@@ -8,14 +9,16 @@ from src.utils.logger import Logger
 from src.isolation.bot import IsolationBot
 
 class Game(GameBase):
+    """
+    classe : gère une partie d'Isolation
+    """
     def __init__(self, game_save, quadrants, game_mode="Solo"):
         """
-        constructeur : initialise une nouvelle partie d'isolation
-
-        params:
-            game_save: sauvegarde de jeu existante ou None
-            quadrants: configuration des quadrants initiaux
-            game_mode: mode de jeu ("Solo", "Bot", "Network")
+        procédure : initialise une nouvelle partie d'Isolation
+        params :
+            game_save - sauvegarde de jeu existante ou None
+            quadrants - configuration des quadrants initiaux
+            game_mode - mode de jeu ("Solo", "Bot", "Network")
         """
         super().__init__(game_save, quadrants, game_mode, player_name="player", game_type="isolation")
         self.board = Board(quadrants, 1)
@@ -31,15 +34,12 @@ class Game(GameBase):
             if self.render:
                 self.render.edit_info_label("Waiting for another player...")
 
-    def on_network_action(self, action_data):
+    def on_network_action(self, action_data: Dict) -> bool:
         """
         procédure : traite une action reçue d'un autre joueur en réseau
-
-        params:
-            action_data: dictionnaire contenant les données de l'action (mouvement)
-
-        retour:
-            bool: True si l'action a été traitée avec succès, False sinon
+        params :
+            action_data - dictionnaire contenant les données de l'action
+        retour : True si l'action a été traitée avec succès, False sinon
         """
         Logger.info("Game Isolation", f"Received network action: {action_data}")
         if not action_data:
@@ -86,16 +86,13 @@ class Game(GameBase):
             
         return True # le jeu continue
 
-    def on_click(self, row, col):
+    def on_click(self, row: int, col: int) -> bool:
         """
         procédure : gère les clics sur le plateau de jeu
-
-        params:
-            row: ligne du clic
-            col: colonne du clic
-
-        retour:
-            bool: True si le jeu continue, False si la partie est terminée
+        params :
+            row - ligne du clic
+            col - colonne du clic
+        retour : True si le jeu continue, False si la partie est terminée
         """
         # gestion des tours en mode réseau
         if self.is_network_game:
@@ -180,12 +177,10 @@ class Game(GameBase):
             
         return True # le jeu continue
 
-    def _bot_play(self):
+    def _bot_play(self) -> bool:
         """
         procédure : exécute le tour du bot
-
-        retour:
-            bool: True si le bot a joué avec succès, False sinon
+        retour : True si le bot a joué avec succès, False sinon
         """
         try:
             bot_move = self.bot.get_move(self.board.board)
@@ -219,7 +214,7 @@ class Game(GameBase):
             self.render.edit_info_label(f"Bot error: {str(e)}") # affiche l'erreur dans le jeu
             return False # indique un échec
 
-    def load_game(self):
+    def load_game(self) -> None:
         """
         procédure : lance la boucle principale du jeu
         """
@@ -230,12 +225,10 @@ class Game(GameBase):
             Selector()
         self.cleanup()
 
-    def get_board_state(self):
+    def get_board_state(self) -> Dict:
         """
         fonction : retourne l'état actuel complet du jeu pour la sauvegarde ou le réseau
-
-        retour:
-            dict: dictionnaire contenant l'état du plateau et le tour
+        retour : dictionnaire contenant l'état du plateau et le tour
         """
         return {
             "board": [[cell[:] for cell in row] for row in self.board.board], # copie profonde du plateau

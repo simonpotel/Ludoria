@@ -1,3 +1,4 @@
+from typing import List, Tuple, Optional, Dict
 import random
 import time
 import math 
@@ -6,23 +7,25 @@ from src.utils.logger import Logger
 from copy import deepcopy 
 
 class CongressBot:
+    """
+    classe : bot pour le jeu de Congress
+    """
     def __init__(self, game):
         """
-        constructeur : initialise une nouvelle instance de bot pour Congress
-
-        params:
-            game: instance du jeu Congress
+        procédure : initialise une nouvelle instance de bot pour Congress
+        params :
+            game - instance du jeu Congress
         """
         self.game = game
-        self.player = 1 # le bot est toujours le joueur 1 (blanc)
-        self.opponent = 0 # l'adversaire est le joueur 0 (noir)
+        self.player = 1 # le bot est toujours le joueur 1 (blanc) (index 1 mais joueur 2)
+        self.opponent = 0 # l'adversaire est le joueur 0 (noir) (index 0 mais joueur 1)
         self.move_history = [] # historique pour éviter répétitions simples
         self.max_history = 5 # taille max de l'historique
         self.max_depth = 2 # profondeur de recherche minimax (limitée pour performance)
         self.max_time = 3.0 # temps max de réflexion en secondes
         Logger.bot("CongressBot", "Bot initialized")
 
-    def get_move(self):
+    def get_move(self) -> Optional[Tuple[Tuple[int, int], Tuple[int, int]]]:
         """
         fonction : détermine le meilleur coup à jouer en utilisant une évaluation simple
                   (pas de minimax pour l'instant pour la performance/simplicité)
@@ -31,21 +34,21 @@ class CongressBot:
             tuple: ((from_row, from_col), (to_row, to_col)) ou None si aucun coup
         """
         start_time = time.time()
-        possible_moves = self._get_all_possible_moves()
+        possible_moves = self._get_all_possible_moves() # récupère tous les coups possibles
         
-        if not possible_moves:
+        if not possible_moves: # si aucun coup n'est possible
             Logger.warning("CongressBot", "No valid moves found")
             return None
             
-        scored_moves = []
-        board = self.game.board.board # référence au plateau actuel
+        scored_moves = [] # liste pour stocker les coups évalués
+        board = self.game.board.board 
         
         Logger.bot("CongressBot", f"Evaluating {len(possible_moves)} possible moves")
         
         # évalue chaque coup possible
         for from_pos, to_pos in possible_moves:
             # simule le coup sur une copie temporaire pour évaluation
-            temp_board = deepcopy(board)
+            temp_board = deepcopy(board) # copie du tableau pour pouvoir le modifier sans affecter le tableau principal
             from_row, from_col = from_pos
             to_row, to_col = to_pos
             
@@ -57,47 +60,47 @@ class CongressBot:
             score = self._evaluate_position(temp_board)
             
             # pénalise les coups répétitifs (aller-retour simple)
-            if len(self.move_history) > 0:
+            if len(self.move_history) > 0: # si l'historique n'est pas vide
                 last_from, last_to = self.move_history[-1]
                 if to_pos == last_from and from_pos == last_to:
                     score -= 150 # forte pénalité pour annuler le dernier coup
             
             # pénalise les coups joués récemment (pour éviter cycles simples)
-            history_penalty = self.move_history.count((from_pos, to_pos))
-            if history_penalty > 0:
-                 score -= 50 * history_penalty
+            history_penalty = self.move_history.count((from_pos, to_pos)) # compte le nombre de fois que le coup a été joué
+            if history_penalty > 0: # si le coup a été joué plusieurs fois
+                 score -= 50 * history_penalty # pénalise le coup
             
-            scored_moves.append((score, from_pos, to_pos))
+            scored_moves.append((score, from_pos, to_pos)) # ajoute le coup à la liste des coups évalués
         
         # trie les coups par score décroissant
-        scored_moves.sort(key=lambda x: x[0], reverse=True)
+        scored_moves.sort(key=lambda x: x[0], reverse=True) # trie les coups par score décroissant
         
         # sélection du meilleur coup avec une part d\'aléatoire
-        if not scored_moves:
+        if not scored_moves: # si aucun coup n'est possible
              Logger.warning("CongressBot", "No moves left after scoring")
-             return None
+             return None 
 
         top_n = min(3, len(scored_moves)) # considère les 3 meilleurs coups
-        top_moves = scored_moves[:top_n]
+        top_moves = scored_moves[:top_n] # récupère les 3 meilleurs coups
         
         # probabilité plus élevée de choisir le meilleur coup absolu
-        if random.random() < 0.8 or len(top_moves) == 1:
-            best_score, best_from, best_to = top_moves[0]
-        else:
+        if random.random() < 0.8 or len(top_moves) == 1: # si la probabilité est inférieure à 0.8 ou si il n'y a qu'un seul coup
+            best_score, best_from, best_to = top_moves[0] # choisit le meilleur coup
+        else: # sinon, choisit aléatoirement parmi les 3 meilleurs coups
             # sinon, choisir aléatoirement parmi les 3 meilleurs
             best_score, best_from, best_to = random.choice(top_moves)
             
-        elapsed_time = time.time() - start_time
+        elapsed_time = time.time() - start_time # temps d'exécution des calculs du bot
         Logger.bot("CongressBot", f"Selected move from {best_from} to {best_to} with score {best_score:.2f} in {elapsed_time:.2f}s")
         
         # enregistre le coup dans l'historique
-        self.move_history.append((best_from, best_to))
-        if len(self.move_history) > self.max_history:
-            self.move_history.pop(0) # garde l'historique à taille fixe
+        self.move_history.append((best_from, best_to)) # ajoute le coup à l'historique
+        if len(self.move_history) > self.max_history: # si l'historique est trop long
+            self.move_history.pop(0) # supprime le premier coup de l'historique
             
-        return (best_from, best_to)
+        return (best_from, best_to) # retourne le meilleur coup
     
-    def _evaluate_position(self, board):
+    def _evaluate_position(self, board: List[List[List]]) -> float:
         """
         fonction : évalue la position actuelle du plateau pour le bot
 
@@ -120,7 +123,7 @@ class CongressBot:
         # score final = avantage de connectivité du bot - léger désavantage pour l'adversaire
         return bot_score - opponent_score * 0.8
     
-    def _calculate_connectivity_score(self, board, player):
+    def _calculate_connectivity_score(self, board: List[List[List]], player: int) -> float:
         """
         fonction : calcule un score basé sur la connectivité des pièces d'un joueur
 
@@ -131,31 +134,31 @@ class CongressBot:
         retour:
             float: score de connectivité pour ce joueur
         """
-        score = 0.0
-        pieces = []
-        for r in range(8):
+        score = 0.0 # score de connectivité
+        pieces = [] # liste des pièces du joueur
+        for r in range(8): # parcourt toutes les cases du plateau
             for c in range(8):
                 if board[r][c][0] == player:
-                    pieces.append((r, c))
+                    pieces.append((r, c)) # ajoute la pièce à la liste
         
-        if not pieces:
-            return 0.0
+        if not pieces: # si aucune pièce n'est trouvée
+            return 0.0 # retourne 0
 
         # bonus pour les paires adjacentes (indicateur simple de regroupement)
-        adjacent_pairs = 0
-        for r, c in pieces:
+        adjacent_pairs = 0 # nombre de paires adjacentes
+        for r, c in pieces: # parcourt toutes les pièces
             # vérifier voisin de droite
-            if c < 7 and board[r][c+1][0] == player:
-                adjacent_pairs += 1
+            if c < 7 and board[r][c+1][0] == player: # si le voisin de droite est le joueur
+                adjacent_pairs += 1 # ajoute 1 au nombre de paires adjacentes
             # vérifier voisin du bas
-            if r < 7 and board[r+1][c][0] == player:
-                adjacent_pairs += 1
+            if r < 7 and board[r+1][c][0] == player: # si le voisin du bas est le joueur
+                adjacent_pairs += 1 # ajoute 1 au nombre de paires adjacentes
         # normalisé par le nombre possible de paires max (approximatif)
-        score += (adjacent_pairs / (len(pieces) * 2 if pieces else 1)) * 50
+        score += (adjacent_pairs / (len(pieces) * 2 if pieces else 1)) * 50 # ajoute le score de connectivité
         
         # bonus pour la proximité au centre
-        center_proximity = 0
-        for r, c in pieces:
+        center_proximity = 0 # score de proximité au centre
+        for r, c in pieces: 
             # distance de Manhattan au centre (3.5, 3.5)
             dist = abs(r - 3.5) + abs(c - 3.5)
             # score inversement proportionnel à la distance (max = 7)
@@ -171,7 +174,7 @@ class CongressBot:
         
         return score
     
-    def _find_largest_group(self, board, player, pieces):
+    def _find_largest_group(self, board: List[List[List]], player: int, pieces: List[Tuple[int, int]]) -> int:
         """
         fonction : trouve la taille du plus grand groupe de pièces connectées orthogonalement
 
@@ -186,35 +189,35 @@ class CongressBot:
         if not pieces:
             return 0
             
-        visited = set()
-        max_size = 0
+        visited = set() # ensemble pour suivre les pièces déjà visitées
+        max_size = 0 # taille du plus grand groupe trouvé
         
-        for r_start, c_start in pieces:
-            if (r_start, c_start) not in visited:
-                current_group_size = 0
+        for r_start, c_start in pieces: # parcourt toutes les pièces
+            if (r_start, c_start) not in visited: # si la pièce n'a pas été visitée
+                current_group_size = 0 # taille du groupe actuel
                 stack = [(r_start, c_start)] # utiliser une pile pour DFS
                 group_nodes = set() # suivi des nœuds dans ce groupe spécifique
                 
                 while stack:
-                    r, c = stack.pop()
-                    if (r, c) not in visited:
-                        visited.add((r, c))
-                        group_nodes.add((r,c))
-                        current_group_size += 1
+                    r, c = stack.pop() # récupère la pièce à visiter
+                    if (r, c) not in visited: # si la pièce n'a pas été visitée
+                        visited.add((r, c)) # ajoute la pièce à l'ensemble des pièces visitées
+                        group_nodes.add((r,c)) # ajoute la pièce au groupe
+                        current_group_size += 1 # ajoute 1 à la taille du groupe
                         
                         # explorer les voisins orthogonaux
                         for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-                            nr, nc = r + dr, c + dc
-                            if (0 <= nr < 8 and 0 <= nc < 8 and
-                                board[nr][nc][0] == player and
-                                (nr, nc) not in visited):
-                                stack.append((nr, nc))
+                            nr, nc = r + dr, c + dc # récupère les coordonnées du voisin
+                            if (0 <= nr < 8 and 0 <= nc < 8 and # si le voisin est dans le plateau
+                                board[nr][nc][0] == player and # si le voisin est le joueur
+                                (nr, nc) not in visited): # si le voisin n'a pas été visité
+                                stack.append((nr, nc)) # ajoute le voisin à la pile
                 
-                max_size = max(max_size, current_group_size)
+                max_size = max(max_size, current_group_size) # met à jour la taille du plus grand groupe
         
         return max_size
     
-    def _check_connected_pieces(self, board, player):
+    def _check_connected_pieces(self, board: List[List[List]], player: int) -> bool:
         """
         fonction : vérifie si *toutes* les pièces d'un joueur sont connectées en un seul groupe
 
@@ -225,15 +228,15 @@ class CongressBot:
         retour:
             bool: True si toutes les pièces sont connectées, False sinon
         """
-        pieces = []
-        for i in range(8):
+        pieces = [] # liste des pièces du joueur
+        for i in range(8): # parcourt toutes les cases du plateau
             for j in range(8):
-                if board[i][j][0] == player:
-                    pieces.append((i, j))
+                if board[i][j][0] == player: # si la case est occupée par le joueur
+                    pieces.append((i, j)) # ajoute la pièce à la liste
         
-        total_pieces = len(pieces)
+        total_pieces = len(pieces) # nombre total de pièces du joueur
         if total_pieces <= 1: # 0 ou 1 pièce sont considérées comme connectées
-            return True
+            return True 
         
         # utilise la recherche du plus grand groupe
         largest_group = self._find_largest_group(board, player, pieces)
@@ -241,7 +244,7 @@ class CongressBot:
         # si la taille du plus grand groupe égale le nombre total de pièces, elles sont toutes connectées
         return largest_group == total_pieces
     
-    def _get_all_possible_moves(self):
+    def _get_all_possible_moves(self) -> List[Tuple[Tuple[int, int], Tuple[int, int]]]:
         """
         fonction : récupère tous les coups valides possibles pour le bot (joueur 1)
 
@@ -270,7 +273,7 @@ class CongressBot:
         
         return moves
 
-    def make_move(self):
+    def make_move(self) -> bool:
         """
         procédure : choisit et exécute le meilleur coup trouvé sur le plateau de jeu réel
 
