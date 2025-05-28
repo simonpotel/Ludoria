@@ -2,6 +2,7 @@ import pygame
 from src.windows.screens.base_screen import BaseScreen
 from src.windows.components.button import Button
 from src.windows.components.dropdown import Dropdown
+from src.windows.components.image_button import ImageButton
 from src.utils.logger import Logger
 from src.windows.selector.quadrant_handler import QuadrantHandler
 from src.windows.selector.config_loader import ConfigLoader
@@ -50,13 +51,6 @@ class QuadrantConfigScreen(BaseScreen):
             current_theme = self.theme_manager.current_theme
             bg_path = os.path.join("assets", current_theme, "background.png")
             self.background_image = pygame.image.load(bg_path)
-            self.background_image = pygame.transform.scale(self.background_image, (self.width, self.height))
-            
-            # ajouter un effet semi-transparent pour améliorer la lisibilité
-            overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 120))  # overlay noir semi-transparent
-            self.background_image.blit(overlay, (0, 0))
-            
             Logger.info("QuadrantConfigScreen", f"Background image loaded: {bg_path}")
         except Exception as e:
             Logger.error("QuadrantConfigScreen", f"Failed to load background image: {e}")
@@ -68,92 +62,143 @@ class QuadrantConfigScreen(BaseScreen):
         
         self.quadrant_display_rects = []
         self.labels = []
+        self.previous_indices = [0, 0, 0, 0]
+        
+        self.quadrants_initialized = [False, False, False, False]
     
     def setup_ui(self):
         """
         procédure : configure l'interface utilisateur de l'écran de configuration des quadrants.
         """
-        padding = 20
-        left_panel_width = 280
-        button_height = 40
+        try:
+            self.title_font = pygame.font.SysFont('Arial', 48, bold=True)
+            self.label_font = pygame.font.SysFont('Arial', 20, bold=True)
+            self.button_font = pygame.font.SysFont('Arial', 24, bold=True)
+        except Exception as e:
+            Logger.error("QuadrantConfigScreen", f"Font loading error: {str(e)}")
+            self.title_font = pygame.font.Font(None, 48)
+            self.label_font = pygame.font.Font(None, 20)
+            self.button_font = pygame.font.Font(None, 24)
+        
+        if self.background_image:
+            self.background_image = pygame.transform.scale(self.background_image, (self.width, self.height))
+            
+            overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 120))
+            self.background_image.blit(overlay, (0, 0))
+        
+        padding = 30
+        right_panel_width = int(self.width * 0.4)
+        left_panel_width = self.width - right_panel_width - (padding * 3)
+        
+        preview_margin_top = self.navbar_height + 80
+        self._setup_quadrant_preview_rects(left_panel_width, preview_margin_top)
+        
+        button_img_path = 'assets/Basic_GUI_Bundle/ButtonsText/ButtonText_Large_GreyOutline_Square.png'
         button_width = 200
+        button_height = 70
+        button_spacing = 20
+        buttons_y = self.preview_rect.bottom + 30
+        
+        self.back_button = ImageButton(
+            self.preview_rect.left,
+            buttons_y,
+            button_width,
+            button_height,
+            "BACK",
+            self._back_action,
+            bg_image_path=button_img_path,
+            font=self.button_font,
+            text_color=(255, 255, 255)
+        )
+        
+        self.save_button = ImageButton(
+            self.preview_rect.left + button_width + button_spacing,
+            buttons_y,
+            button_width,
+            button_height,
+            "SAVE",
+            self._save_action,
+            bg_image_path=button_img_path,
+            font=self.button_font,
+            text_color=(255, 255, 255)
+        )
+        
+        right_panel_x = self.width - right_panel_width - padding
+        right_panel_y = self.navbar_height + 80
+        
+        dropdown_width = int(right_panel_width * 0.7)
         dropdown_height = 40
-        dropdown_width = 180
-        spacing = 20
         small_button_width = 40
-        
-        self.font = pygame.font.SysFont('Arial', 20)
-        
-        self._setup_quadrant_preview_rects()
+        small_button_height = 40
+        spacing = 30
         
         self.quadrant_selectors = []
         self.quadrant_rotation_buttons = []
-        
-        left_margin = padding
-        top_margin = self.navbar_height + 80
+        self.labels = []
         
         # création des contrôles pour chaque quadrant
         for i in range(4):
-            self.labels.append((f"Quadrant {i+1}:", (left_margin, top_margin + i * (dropdown_height + spacing) * 2)))
+            label_y = right_panel_y + i * (dropdown_height + spacing) * 2
+            self.labels.append((f"Quadrant {i+1}:", (right_panel_x, label_y)))
             
             # dropdown pour sélectionner le type de quadrant
             selector = Dropdown(
-                left_margin, top_margin + i * (dropdown_height + spacing) * 2 + 30, 
-                dropdown_width, dropdown_height, 
+                right_panel_x, 
+                label_y + 30, 
+                dropdown_width, 
+                dropdown_height, 
                 self.quadrant_names, 
-                self._get_quadrant_index(i)
+                self._get_quadrant_index(i),
+                callback=lambda idx=i: self._on_dropdown_change(idx)
             )
             self.quadrant_selectors.append(selector)
             
             # boutons de rotation pour chaque quadrant
-            left_button = Button(
-                left_margin + dropdown_width + 10, top_margin + i * (dropdown_height + spacing) * 2 + 30, 
-                small_button_width, dropdown_height, 
-                "←", 
+            left_button = ImageRotationButton(
+                right_panel_x + dropdown_width + 10, 
+                label_y + 30, 
+                small_button_width, 
+                small_button_height, 
+                "assets/undo-alt (1).png", 
                 lambda idx=i: self._rotate_left_handler(idx)
             )
-            right_button = Button(
-                left_margin + dropdown_width + small_button_width + 15, top_margin + i * (dropdown_height + spacing) * 2 + 30, 
-                small_button_width, dropdown_height, 
-                "→", 
+            right_button = ImageRotationButton(
+                right_panel_x + dropdown_width + small_button_width + 15, 
+                label_y + 30, 
+                small_button_width, 
+                small_button_height, 
+                "assets/redo-alt (2).png", 
                 lambda idx=i: self._rotate_right_handler(idx)
             )
             self.quadrant_rotation_buttons.append((left_button, right_button))
         
-        # boutons de navigation en bas de l'écran
-        button_y = self.height - padding - button_height * 2 - spacing
-        
-        self.save_button = Button(
-            left_margin, button_y, button_width, button_height,
-            "Enregistrer", self._save_action
-        )
-        
-        self.back_button = Button(
-            left_margin, button_y + button_height + spacing, button_width, button_height,
-            "Retour", self._back_action
-        )
-        
         self._update_selected_quadrants()
     
-    def _setup_quadrant_preview_rects(self):
+    def _setup_quadrant_preview_rects(self, panel_width, top_margin):
         """
         procédure : configure les rectangles pour l'affichage des quadrants.
+        
+        params:
+            panel_width - largeur du panneau de prévisualisation
+            top_margin - marge supérieure pour le panneau
         """
-        left_panel_width = 300
-        padding = 20
+        padding = 30
         
-        available_width = self.width - left_panel_width - (padding * 2)
-        available_height = self.height - self.navbar_height - 60
+        preview_size = min(panel_width, self.height - top_margin - 100)
         
-        # calcul de la taille optimale du plateau
-        preview_size = min(available_width, available_height)
-        
-        preview_x = left_panel_width + ((available_width - preview_size) // 2) + padding
-        preview_y = self.navbar_height + ((available_height - preview_size) // 2) + 30
+        preview_x = padding
+        preview_y = top_margin
         
         quadrant_size = preview_size // 2
         
-        # définition des rectangles pour chacun des quatre quadrants
+        self.preview_rect = pygame.Rect(
+            preview_x, 
+            preview_y, 
+            preview_size, 
+            preview_size
+        )
+        
         self.quadrant_display_rects = [
             pygame.Rect(
                 preview_x, 
@@ -176,14 +221,6 @@ class QuadrantConfigScreen(BaseScreen):
                 quadrant_size, quadrant_size
             )
         ]
-        
-        # rectangle global contenant tous les quadrants
-        self.preview_rect = pygame.Rect(
-            preview_x, 
-            preview_y, 
-            preview_size, 
-            preview_size
-        )
     
     def _get_quadrant_index(self, quadrant_position):
         """
@@ -213,7 +250,8 @@ class QuadrantConfigScreen(BaseScreen):
         for i, selector in enumerate(self.quadrant_selectors):
             if 0 <= selector.selected_index < len(self.quadrant_names):
                 quadrant_name = self.quadrant_names[selector.selected_index]
-                self.selected_quadrants[i] = self.quadrants_config.get(quadrant_name)
+                if self.selected_quadrants[i] is None:
+                    self.selected_quadrants[i] = self.quadrants_config.get(quadrant_name)
     
     def _rotate_left_handler(self, index):
         """
@@ -223,6 +261,9 @@ class QuadrantConfigScreen(BaseScreen):
             index - index du quadrant à pivoter.
         """
         self.selected_quadrants = self.quadrant_handler.rotate_left(self.selected_quadrants, index)
+        Logger.info("QuadrantConfigScreen", f"Rotated quadrant {index+1} left")
+        
+        self._sync_quadrant_with_dropdown(index)
     
     def _rotate_right_handler(self, index):
         """
@@ -232,6 +273,20 @@ class QuadrantConfigScreen(BaseScreen):
             index - index du quadrant à pivoter.
         """
         self.selected_quadrants = self.quadrant_handler.rotate_right(self.selected_quadrants, index)
+        Logger.info("QuadrantConfigScreen", f"Rotated quadrant {index+1} right")
+        
+        self._sync_quadrant_with_dropdown(index)
+    
+    def _sync_quadrant_with_dropdown(self, index):
+        """
+        procédure : synchronise le dropdown avec l'état actuel du quadrant après rotation.
+        
+        params:
+            index - index du quadrant qui a été pivoté.
+        """
+        current_quadrant = self.selected_quadrants[index]
+        if current_quadrant and self.quadrant_names:
+            Logger.info("QuadrantConfigScreen", f"Quadrant {index+1} rotation saved")
     
     def _back_action(self):
         """
@@ -249,7 +304,6 @@ class QuadrantConfigScreen(BaseScreen):
         """
         procédure : action du bouton Enregistrer - sauvegarde les quadrants et revient à l'écran parent.
         """
-        self._update_selected_quadrants()
         
         # transmission des quadrants configurés à l'écran parent
         if self.parent_screen:
@@ -261,6 +315,21 @@ class QuadrantConfigScreen(BaseScreen):
         
         Logger.info("QuadrantConfigScreen", "Quadrants configuration saved")
         self.running = False
+    
+    def _on_dropdown_change(self, quadrant_index):
+        """
+        procédure : appelée quand un dropdown change de valeur
+        
+        params:
+            quadrant_index - index du quadrant (0-3) dont le dropdown a changé
+        """
+        Logger.info("QuadrantConfigScreen", f"Dropdown changed for quadrant {quadrant_index+1}")
+        selector = self.quadrant_selectors[quadrant_index]
+        
+        if 0 <= selector.selected_index < len(self.quadrant_names):
+            quadrant_name = self.quadrant_names[selector.selected_index]
+            self.selected_quadrants[quadrant_index] = self.quadrants_config.get(quadrant_name)
+            Logger.info("QuadrantConfigScreen", f"Selected {quadrant_name} for quadrant {quadrant_index+1}")
     
     def handle_screen_events(self, event):
         """
@@ -283,8 +352,7 @@ class QuadrantConfigScreen(BaseScreen):
         # traitement des événements pour les sélecteurs
         for i, selector in enumerate(self.quadrant_selectors):
             if selector.handle_event(event, pygame.mouse.get_pos()):
-                if not selector.is_open:
-                    self._update_selected_quadrants()
+                self._update_selected_quadrants()
         
         # traitement des événements pour les boutons de rotation
         for left_btn, right_btn in self.quadrant_rotation_buttons:
@@ -307,6 +375,32 @@ class QuadrantConfigScreen(BaseScreen):
         
         self.back_button.check_hover(mouse_pos)
         self.save_button.check_hover(mouse_pos)
+        
+        for i, selector in enumerate(self.quadrant_selectors):
+            if selector.selected_index != self.previous_indices[i]:
+                # correctement le remplacement de quadrant
+                self._on_dropdown_change(i)
+                
+        self.previous_indices = [selector.selected_index for selector in self.quadrant_selectors]
+    
+    def draw_rounded_rect(self, surface, rect, color, radius=15, alpha=255):
+        """
+        procédure : dessine un rectangle avec des coins arrondis et une transparence configurable
+        
+        params:
+            surface - surface pygame sur laquelle dessiner
+            rect - tuple (x, y, width, height) ou pygame.Rect définissant le rectangle
+            color - tuple (r, g, b) définissant la couleur du rectangle
+            radius - rayon des coins arrondis en pixels
+            alpha - valeur de transparence (0-255)
+        """
+        rect = pygame.Rect(rect)
+        
+        panel_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+        
+        pygame.draw.rect(panel_surface, (*color, alpha), (0, 0, rect.width, rect.height), border_radius=radius)
+        
+        surface.blit(panel_surface, rect.topleft)
     
     def draw_screen(self):
         """
@@ -317,23 +411,19 @@ class QuadrantConfigScreen(BaseScreen):
         else:
             self.screen.fill((240, 240, 240))
         
-        # panneau de contrôle semi-transparent
-        left_panel_width = 300
-        panel_surface = pygame.Surface((left_panel_width, self.height), pygame.SRCALPHA)
-        panel_surface.fill((240, 240, 240, 200))
-        self.screen.blit(panel_surface, (0, 0))
         
-        for text, pos in self.labels:
-            text_surface = self.font.render(text, True, (0, 0, 0))
-            self.screen.blit(text_surface, pos)
+        title_text = "QUADRANT CONFIGURATION"
+        title_surface = self.title_font.render(title_text, True, (255, 255, 255))
+        title_x = (self.width - title_surface.get_width()) // 2
+        title_y = self.navbar_height + 20
+        self.screen.blit(title_surface, (title_x, title_y))
         
-        # zone de prévisualisation semi-transparente
         preview_bg = pygame.Surface((self.preview_rect.width, self.preview_rect.height), pygame.SRCALPHA)
         preview_bg.fill((255, 255, 255, 150))
         self.screen.blit(preview_bg, self.preview_rect)
         
-        preview_label = self.font.render("Preview:", True, (0, 0, 0))
-        self.screen.blit(preview_label, (self.preview_rect.left, self.preview_rect.top - 25))
+        preview_label = self.label_font.render("Preview:", True, (255, 255, 255))
+        self.screen.blit(preview_label, (self.preview_rect.left, self.preview_rect.top - 30))
         
         # dessin des quadrants si tous sont définis
         if all(self.selected_quadrants):
@@ -343,13 +433,71 @@ class QuadrantConfigScreen(BaseScreen):
                 self.preview_rect
             )
         
-        # dessin des contrôles d'interface
+        # dessin des boutons d'action
+        self.back_button.draw(self.screen)
+        self.save_button.draw(self.screen)
+        
+        for text, pos in self.labels:
+            text_surface = self.label_font.render(text, True, (255, 255, 255))
+            self.screen.blit(text_surface, pos)
+        
         for selector in self.quadrant_selectors:
             selector.draw(self.screen)
         
         for left_btn, right_btn in self.quadrant_rotation_buttons:
             left_btn.draw(self.screen)
             right_btn.draw(self.screen)
+
+class ImageRotationButton:
+    """
+    classe : bouton de rotation utilisant des images PNG
+    """
+    def __init__(self, x, y, width, height, image_path, action=None):
+        """
+        constructeur : initialise un bouton avec une image.
         
-        self.back_button.draw(self.screen)
-        self.save_button.draw(self.screen) 
+        params:
+            x, y - position du bouton
+            width, height - dimensions du bouton
+            image_path - chemin vers l'image
+            action - fonction à exécuter quand le bouton est cliqué
+        """
+        self.rect = pygame.Rect(x, y, width, height)
+        self.image_path = image_path
+        self.action = action
+        self.is_hover = False
+        
+        try:
+            self.original_image = pygame.image.load(image_path)
+            self.image = pygame.transform.scale(self.original_image, (width, height))
+            
+            
+        except Exception as e:
+            print(f"Erreur lors du chargement de l'image: {e}")
+            self.image = pygame.Surface((width, height), pygame.SRCALPHA)
+            pygame.draw.rect(self.image, (200, 200, 200), (0, 0, width, height), 1)
+    
+    def draw(self, surface):
+        """
+        procédure : dessine le bouton sur la surface donnée.
+        
+        params:
+            surface - surface pygame sur laquelle dessiner
+        """
+        surface.blit(self.image, self.rect)
+    
+    def check_hover(self, pos):
+        """
+        procédure : vérifie si la souris est sur le bouton.
+        """
+        self.is_hover = self.rect.collidepoint(pos)
+    
+    def handle_event(self, event):
+        """
+        fonction : gère les événements pour le bouton.
+        """
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.is_hover and self.action:
+                self.action()
+                return True
+        return False

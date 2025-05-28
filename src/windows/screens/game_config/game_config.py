@@ -3,6 +3,7 @@ from src.windows.screens.base_screen import BaseScreen
 from src.windows.components.button import Button
 from src.windows.components.dropdown import Dropdown
 from src.windows.components.text_input import TextInput
+from src.windows.components.image_button import ImageButton
 from src.utils.logger import Logger
 from src.windows.selector.quadrant_handler import QuadrantHandler
 from src.windows.selector.config_loader import ConfigLoader
@@ -24,6 +25,10 @@ class GameConfigScreen(BaseScreen):
             game_type - type de jeu (optionnel, pour rejoindre une partie réseau).
             quadrants - quadrants prédéfinis (optionnel, pour rejoindre une partie réseau).
         """
+        if mode.upper() == "SOLO":
+            mode = "Solo"
+        elif mode.upper() == "BOT":
+            mode = "Bot"
         super().__init__(title=f"Ludoria - {mode} Game Configuration")
         self.mode = mode
         self.existing_game_name = game_name
@@ -81,20 +86,19 @@ class GameConfigScreen(BaseScreen):
         """
         procédure : configure l'interface utilisateur de l'écran.
         """
-        panel_width = 300
         padding = 20
-        element_height = 30
-        element_spacing = 15
-        label_spacing = 5
-        current_y = self.navbar_height + 30
-        element_width = panel_width - 2 * padding
+        element_spacing = 20
+        label_spacing = 10
+        current_y = self.navbar_height + 200
         
-        title_font = pygame.font.SysFont('Arial', 24, bold=True)
-        self.font = pygame.font.SysFont('Arial', 24)
+        button_font = self.font_manager.get_font(30)
+        title_font = self.font_manager.get_font(24)
+        self.font = self.font_manager.get_font(20)
         
         self.labels = []
         
-        # si on rejoint une partie réseau, on ne peut pas modifier le nom de la partie
+        button_img_path = "assets/Basic_GUI_Bundle/ButtonsText/ButtonText_Large_GreyOutline_Square.png"
+        
         initial_game_name = ""
         initial_game_index = 0
         
@@ -104,63 +108,70 @@ class GameConfigScreen(BaseScreen):
         if self.existing_game_type and self.existing_game_type in self.GAMES:
             initial_game_index = self.GAMES.index(self.existing_game_type)
         
+        button_width = 280
+        button_height = 50
+        button_spacing = 30
+        element_width = 240
+        quadrant_button_width = 420
+        
+        center_x = self.width // 2
+        left_x = center_x - (element_width // 2)
+        
+        # Nom de la partie
+        self.labels.append(("GAME NAME:", (left_x, current_y)))
+        current_y += self.font.get_height() + label_spacing
+        
         self.save_name_input = TextInput(
-            padding, current_y + 20, element_width, 80, "Game Name", 
+            left_x, current_y, element_width, 40, "Game Name", 
             initial_text=initial_game_name,
             disabled=bool(self.existing_game_name)
         )
-        current_y += element_height + element_spacing
+        current_y += 40 + element_spacing * 2
         
-        self.labels.append(("Game:", (padding, current_y + 100)))
+        # Type de jeu
+        self.labels.append(("GAME TYPE:", (left_x, current_y)))
         current_y += self.font.get_height() + label_spacing
         
         self.game_dropdown = Dropdown(
-            padding, current_y + 100, element_width, element_height, 
+            left_x, current_y, element_width, 40, 
             self.GAMES, initial_game_index,
             disabled=bool(self.existing_game_type)
         )
-        current_y += element_height + element_spacing
-        
-        self.labels.append(("Quadrant Configuration:", (padding, current_y + 100)))
-        current_y += self.font.get_height() + label_spacing
-        
+        current_y += 40 + element_spacing * 3
+
         # si on rejoint une partie réseau, on ne peut pas modifier les quadrants
-        quadrant_button_text = "Change Quadrant"
+        quadrant_button_text = "CONFIGURE QUADRANTS"
         if self.mode == "Network" and self.existing_quadrants:
-            quadrant_button_text = "Quadrants from Server"
+            quadrant_button_text = "QUADRANTS FROM SERVER"
             
-        self.quadrant_config_button = Button(
-            padding, current_y + 100, element_width, 100, 
-            quadrant_button_text, self._open_quadrant_config,
-            disabled=bool(self.existing_quadrants)
+        self.quadrant_config_button = ImageButton(
+            center_x - (quadrant_button_width // 2),
+            current_y,
+            quadrant_button_width,
+            button_height,
+            quadrant_button_text,
+            self._open_quadrant_config,
+            bg_image_path=button_img_path,
+            font=button_font,
+            text_color=(255, 255, 255)
         )
-        current_y += element_height + element_spacing
+        current_y += button_height + button_spacing * 2
         
-        current_y += element_spacing
-        
-        start_button_text = "Join Game" if self.mode == "Network" and self.existing_game_name else "Start / Load Game"
-        self.start_button = Button(
-            padding, current_y + 160, element_width, 100, 
-            start_button_text, self.launch_game
-        )
-        
-        # préparation de la zone de prévisualisation
-        available_width = self.width - panel_width - (padding * 2)
-        available_height = self.height - self.navbar_height - 60
-        
-        preview_size = min(available_width, available_height)
-        
-        preview_x = panel_width + ((available_width - preview_size) // 2) + padding
-        preview_y = self.navbar_height + ((available_height - preview_size) // 2) + 30
-        
-        self.preview_rect = pygame.Rect(
-            preview_x, 
-            preview_y, 
-            preview_size, 
-            preview_size
+        start_button_text = "JOIN GAME" if self.mode == "Network" and self.existing_game_name else "START GAME"
+        self.start_button = ImageButton(
+            center_x - (button_width // 2),
+            current_y,
+            button_width,
+            button_height,
+            start_button_text,
+            self.launch_game,
+            bg_image_path=button_img_path,
+            font=button_font,
+            text_color=(255, 255, 255)
         )
         
-        Logger.info("GameConfigScreen", f"Preview rectangle: {self.preview_rect}")
+        self.buttons_left_x = center_x - (quadrant_button_width // 2)
+        self.buttons_right_x = self.buttons_left_x + quadrant_button_width
         
         self._update_selected_quadrants()
     
@@ -168,10 +179,9 @@ class GameConfigScreen(BaseScreen):
         """
         procédure : met à jour les quadrants sélectionnés selon la configuration.
         """
-        # si on a des quadrants existants depuis le réseau, on ne les met pas à jour
         if self.existing_quadrants:
             return
-            
+        
         if self.quadrants_config and self.quadrant_names:
             for i in range(4):
                 if i < len(self.quadrant_names) and not self.selected_quadrants[i]:
@@ -180,9 +190,8 @@ class GameConfigScreen(BaseScreen):
     
     def _open_quadrant_config(self):
         """
-        procédure : ouvre l'écran de configuration des quadrants.
+        Ouvre l'écran de configuration des quadrants.
         """
-        # si on rejoint une partie réseau, on ne peut pas modifier les quadrants
         if self.mode == "Network" and self.existing_quadrants:
             return
             
@@ -262,55 +271,65 @@ class GameConfigScreen(BaseScreen):
         if self.background_image:
             self.screen.blit(self.background_image, (0, 0))
         
+        
+        title_text = "LUDORIA"
+        subtitle_text = f"{self.mode.upper()} MODE"
+        title_font = self.font_manager.get_font(120)
+        subtitle_font = self.font_manager.get_font(36)
+        
+        title_surface = title_font.render(title_text, True, (255, 255, 255))
+        subtitle_surface = subtitle_font.render(subtitle_text, True, (255, 255, 255))
+        
+        title_x = (self.width - title_surface.get_width()) // 2
+        subtitle_x = (self.width - subtitle_surface.get_width()) // 2
+        
+        self.screen.blit(title_surface, (title_x, 40))
+        self.screen.blit(subtitle_surface, (subtitle_x, 150))
+        
+        
+        try:
+            theme = self.theme_manager.current_theme
+            player1_path = f"assets/{theme}/joueur1.png"
+            player2_path = f"assets/{theme}/joueur2.png"
+            
+            
+            player1_img = pygame.image.load(player1_path).convert_alpha()
+            player2_img = pygame.image.load(player2_path).convert_alpha()
+            
+            
+            character_height = 320  
+            
+            p1_aspect = player1_img.get_width() / player1_img.get_height()
+            p2_aspect = player2_img.get_width() / player2_img.get_height()
+            
+            p1_width = int(character_height * p1_aspect)
+            p2_width = int(character_height * p2_aspect)
+            
+            player1_img = pygame.transform.smoothscale(player1_img, (p1_width, character_height))
+            player2_img = pygame.transform.smoothscale(player2_img, (p2_width, character_height))
+            
+            
+            p1_x = self.buttons_left_x - p1_width - 40 
+            p2_x = self.buttons_right_x + 40
+            p1_y = self.height // 2 - character_height // 2 - 20  
+            p2_y = p1_y
+            
+            self.screen.blit(player1_img, (p1_x, p1_y))
+            self.screen.blit(player2_img, (p2_x, p2_y))
+            
+        except Exception as e:
+            Logger.error("GameConfigScreen", f"Error loading player images: {e}")
+        
+        
         for text, pos in self.labels:
+           
+            shadow_surface = self.font.render(text, True, (30, 30, 30))
+            self.screen.blit(shadow_surface, (pos[0] + 1, pos[1] + 1))
+            
+           
             text_surface = self.font.render(text, True, (255, 255, 255))
             self.screen.blit(text_surface, pos)
         
-        preview_border_width = 3
-        pygame.draw.rect(
-            self.screen, 
-            (153, 98, 61),  # couleur du cadre (marron)
-            self.preview_rect, 
-            preview_border_width
-        )
-        
-        quadrant_size = self.preview_rect.width // 2
-        
-        # dessin des quadrants
-        for i in range(4):
-            row = i // 2
-            col = i % 2
-            
-            quadrant_rect = pygame.Rect(
-                self.preview_rect.x + (col * quadrant_size),
-                self.preview_rect.y + (row * quadrant_size),
-                quadrant_size,
-                quadrant_size
-            )
-            
-            # couleur de fond par défaut pour les quadrants
-            fill_color = (200, 200, 200)
-            
-            # si un quadrant est sélectionné, on utilise sa couleur
-            if i < len(self.selected_quadrants) and self.selected_quadrants[i]:
-                quadrant_data = self.selected_quadrants[i]
-                if quadrant_data and "color" in quadrant_data:
-                    color_hex = quadrant_data["color"]
-                    fill_color = tuple(int(color_hex[j:j+2], 16) for j in (1, 3, 5))
-            
-            pygame.draw.rect(self.screen, fill_color, quadrant_rect)
-            pygame.draw.rect(self.screen, (0, 0, 0), quadrant_rect, 1)
-            
-            # afficher le nom du quadrant s'il est disponible
-            if i < len(self.selected_quadrants) and self.selected_quadrants[i]:
-                quadrant_data = self.selected_quadrants[i]
-                if quadrant_data and "name" in quadrant_data:
-                    name = quadrant_data["name"]
-                    name_font = pygame.font.SysFont('Arial', 12, bold=True)
-                    name_surface = name_font.render(name, True, (0, 0, 0))
-                    
-                    name_rect = name_surface.get_rect(center=quadrant_rect.center)
-                    self.screen.blit(name_surface, name_rect)
         
         self.save_name_input.draw(self.screen)
         self.game_dropdown.draw(self.screen)

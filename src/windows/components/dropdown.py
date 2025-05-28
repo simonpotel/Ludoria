@@ -7,7 +7,7 @@ class Dropdown:
     # variable statique pour suivre toutes les dropdowns ouvertes
     active_dropdown = None
     
-    def __init__(self, x, y, width, height, options, default_index=0, disabled=False):
+    def __init__(self, x, y, width, height, options, default_index=0, disabled=False, callback=None):
         """
         constructeur : initialise la liste déroulante.
 
@@ -17,6 +17,7 @@ class Dropdown:
             options - liste des chaînes de caractères à afficher.
             default_index - index de l'option sélectionnée par défaut.
             disabled - indique si la liste déroulante est désactivée.
+            callback - fonction à appeler lorsque la sélection change.
         """
         self.rect = pygame.Rect(x, y, width, height)
         self.options = options
@@ -31,6 +32,7 @@ class Dropdown:
         self.option_rects = []
         self.transparency = 171
         self.disabled = disabled
+        self.callback = callback
         self.update_option_rects()
         
     def update_option_rects(self):
@@ -172,10 +174,14 @@ class Dropdown:
                 
                 for i, option_rect in enumerate(dropdown.option_rects):
                     if option_rect.collidepoint(pos):
+                        previous_index = dropdown.selected_index
                         dropdown.selected_index = i
                         dropdown.is_open = False
                         cls.active_dropdown = None
                         option_clicked = True
+                        
+                        if dropdown.callback is not None and previous_index != i:
+                            dropdown.callback()
                         break
                 
                 if not option_clicked:
@@ -219,4 +225,4 @@ class Dropdown:
         """
         if 0 <= self.selected_index < len(self.options):
             return self.options[self.selected_index]
-        return None 
+        return None
