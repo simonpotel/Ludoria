@@ -2,6 +2,7 @@ import pygame
 from src.utils.logger import Logger
 from src.windows.render.constants import RenderConstants
 from src.windows.render.player_handler import PlayerHandler
+from src.moves import available_move
 
 class BoardHandler:
     """
@@ -113,6 +114,33 @@ class BoardHandler:
             pygame.draw.rect(self.board_surface, RenderConstants.SELECTION_COLOR, cell_rect, 
                             RenderConstants.SELECTION_WIDTH)
             
+        # 4. prévisualisation des mouvements possibles
+        if hasattr(self.game, 'selected_piece') and self.game.selected_piece is not None:
+            from_row, from_col = self.game.selected_piece
+            
+            # Vérifie si le mouvement est valide selon le type de jeu
+            is_valid_move = False
+            if hasattr(self.game, 'game_type'):
+                if self.game.game_type == "katerenga":
+                    # Pour Katerenga: pas de prévisualisation sur les camps
+                    is_valid_move = available_move(self.game.board.board, from_row, from_col, row, col) and terrain_id not in [4, 5]
+                elif self.game.game_type == "congress":
+                    # Pour Congress: pas de prévisualisation sur les cases occupées
+                    is_valid_move = available_move(self.game.board.board, from_row, from_col, row, col) and cell[0] is None
+                #else:
+                    # Pour les isolation 
+                    
+            else:
+                # Fallback si le type de jeu n'est pas défini
+                is_valid_move = available_move(self.game.board.board, from_row, from_col, row, col)
+            
+            if is_valid_move:
+                # dessine un effet de survol semi-transparent
+                overlay = pygame.Surface((self.cell_size, self.cell_size), pygame.SRCALPHA)
+                overlay.fill((255, 255, 255, 100))  # blanc semi-transparent pour un effet de surbrillance plus visible
+                self.board_surface.blit(overlay, cell_rect.topleft)
+
+        
     def handle_click(self, pos, board_x, board_y):
         """
         fonction : traite un clic sur le plateau et le convertit en coordonnées logiques.
