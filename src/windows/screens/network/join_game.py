@@ -19,7 +19,7 @@ class JoinGameScreen(BaseScreen):
         self.refresh_button = None
         self.join_button = None
         self.player_name_input = None
-        self.server_info = "Server: potel.dev"
+        self.server_info = f"Server: {self.network_client.host}:{self.network_client.port}"
         self.version = "V1"
         self.quit_requested = False 
         
