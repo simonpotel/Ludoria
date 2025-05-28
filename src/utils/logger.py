@@ -19,6 +19,10 @@ class LogLevel(Enum):
     BOARD = (Fore.WHITE, 'BOARD')
     BOT = (Fore.LIGHTBLUE_EX, 'BOT')
     DEBUG = (Fore.LIGHTBLACK_EX, 'DEBUG')
+    SERVER_RECEIVE = (Fore.BLUE, 'SERVER_RECEIVE')
+    SERVER_SEND = (Fore.GREEN, 'SERVER_SEND')
+    SERVER_INTERNAL = (Fore.CYAN, 'SERVER_INTERNAL')
+    SERVER_ERROR = (Fore.RED, 'SERVER_ERROR')
 
 class Logger:
     """
@@ -158,3 +162,19 @@ class Logger:
             message - contenu du message
         """
         cls._log(LogLevel.BOT, component, message)
+
+    @classmethod
+    def server_receive(cls, component: str, message: Any):
+        cls._log(LogLevel.SERVER_RECEIVE, component, message)
+
+    @classmethod
+    def server_send(cls, component: str, message: Any):
+        cls._log(LogLevel.SERVER_SEND, component, message)
+
+    @classmethod
+    def server_internal(cls, component: str, message: Any):
+        cls._log(LogLevel.SERVER_INTERNAL, component, message)
+
+    @classmethod
+    def server_error(cls, component: str, message: Any):
+        cls._log(LogLevel.SERVER_ERROR, component, message)
