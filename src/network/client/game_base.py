@@ -1,17 +1,17 @@
 import pygame
-from typing import Optional, Dict, List, Any, Union
 from src.network.client.client import NetworkClient
 from src.utils.logger import Logger
 from src.saves import save_game
 import json
 import random
+from typing import Optional, Dict, List
 
 class GameBase:
     """
     classe : base commune pour tous les jeux réseau ou locaux
     gère la connexion réseau, l'état de base du jeu et les interactions communes.
     """
-    def __init__(self, game_save: str, quadrants: List[List[List[List[Optional[int]]]]], game_mode: str = "Solo", player_name: Optional[str] = None, game_type: Optional[str] = None) -> None:
+    def __init__(self, game_save, quadrants, game_mode="Solo", player_name=None, game_type=None):
         """
         constructeur : initialise un jeu, potentiellement en mode réseau.
 
@@ -22,26 +22,26 @@ class GameBase:
             player_name: nom du joueur local (requis pour le mode réseau).
             game_type: type du jeu (peut être déterminé automatiquement).
         """
-        self.game_save: str = game_save
-        self.quadrants: List[List[List[List[Optional[int]]]]] = quadrants
-        self.game_mode: str = game_mode
-        self.is_network_game: bool = game_mode == "Network"
-        self.local_player_name: Optional[str] = player_name
-        self.game_started: bool = False # indique si la partie réseau a démarré (deux joueurs connectés)
-        self.player_number: Optional[int] = None # 1 ou 2 en mode réseau
-        self.is_my_turn: bool = False # true si c'est le tour du joueur local en réseau
-        self.network_client: Optional[NetworkClient] = None # client réseau
-        self.render: Any = None # référence à l'objet render (doit être défini par la sous-classe)
-        self.selected_piece: Optional[tuple[int, int]] = None # pièce sélectionnée (utilisé par certaines sous-classes)
+        self.game_save = game_save
+        self.quadrants = quadrants
+        self.game_mode = game_mode
+        self.is_network_game = game_mode == "Network"
+        self.local_player_name = player_name
+        self.game_started = False # indique si la partie réseau a démarré (deux joueurs connectés)
+        self.player_number = None # 1 ou 2 en mode réseau
+        self.is_my_turn = False # true si c'est le tour du joueur local en réseau
+        self.network_client = None # client réseau
+        self.render = None # référence à l'objet render (doit être défini par la sous-classe)
+        self.selected_piece = None # pièce sélectionnée (utilisé par certaines sous-classes)
         #self.status_message = "" # message affiché à l'utilisateur (plus utilisé merci d'utiliser infobar)
-        self.status_color: tuple[int, int, int] = (0, 0, 0) # couleur du message
-        self.game_id: Optional[str] = None # id unique de la partie réseau
-        self._bot_timer_set: bool = False # flag pour le timer du bot
-        self.chat_messages: List[str] = [] # historique des messages du chat
-        self.chat_input: str = "" # contenu actuel de l'input du chat
-        self.chat_active: bool = False # indique si l'input du chat est actuellement actif
+        self.status_color = (0, 0, 0) # couleur du message
+        self.game_id = None # id unique de la partie réseau
+        self._bot_timer_set = False # flag pour le timer du bot
+        self.chat_messages = [] # historique des messages du chat
+        self.chat_input = "" # contenu actuel de l'input du chat
+        self.chat_active = False # indique si l'input du chat est actuellement actif
         
-        self.game_type: Optional[str] = game_type
+        self.game_type = game_type
         
         if self.is_network_game:
             if not self.local_player_name:
@@ -50,7 +50,7 @@ class GameBase:
                 Logger.warning("GameBase", f"No player name provided for network game, using default: {self.local_player_name}")
             self.setup_network()
 
-    def setup_network(self) -> None:
+    def setup_network(self):
         """
         procédure : initialise et configure la connexion réseau.
         """
@@ -79,7 +79,7 @@ class GameBase:
         if self.render:
             self.render.edit_info_label("Connected, waiting for player assignment...")
 
-    def _register_network_handlers(self) -> None:
+    def _register_network_handlers(self):
         """
         procédure : enregistre les méthodes de cette classe pour gérer les messages du serveur.
         """
@@ -94,7 +94,7 @@ class GameBase:
         self.network_client.register_handler("chat_message", self.on_chat_message)
         # ajouter d'autres handlers si nécessaire (ex: "game_over", "chat_message")
 
-    def on_player_assignment(self, data: Dict[str, Any]) -> None:
+    def on_player_assignment(self, data: Dict):
         """
         procédure : gère la réception du message d'assignation du numéro de joueur.
 
@@ -127,7 +127,7 @@ class GameBase:
             if self.render:
                 self.render.edit_info_label("Error processing player assignment!")
 
-    def on_turn_started(self, data: Optional[Dict[str, Any]] = None) -> None:
+    def on_turn_started(self, data: Optional[Dict] = None):
         """
         procédure : gère le début du tour du joueur local.
         le paramètre 'data' est inclus pour la compatibilité future mais n'est pas utilisé.
@@ -139,7 +139,7 @@ class GameBase:
             self.render.needs_render = True # rafraîchit pour indiquer que c'est notre tour
         Logger.info("GameBase", f"Turn started for Player {self.player_number}")
 
-    def on_turn_ended(self, data: Optional[Dict[str, Any]] = None) -> None:
+    def on_turn_ended(self, data: Optional[Dict] = None):
         """
         procédure : gère la fin du tour du joueur local.
         le paramètre 'data' est inclus pour la compatibilité future mais n'est pas utilisé.
@@ -152,7 +152,7 @@ class GameBase:
             self.render.needs_render = True # rafraîchit pour indiquer l'attente
         Logger.info("GameBase", f"Turn ended for Player {self.player_number}")
 
-    def on_network_action(self, action_data: Dict[str, Any]) -> None:
+    def on_network_action(self, action_data: Dict):
         """
         procédure : gère une action de jeu reçue du serveur (provenant de l'autre joueur).
         cette méthode doit être surchargée par les classes de jeu spécifiques.
@@ -176,7 +176,7 @@ class GameBase:
         else:
             Logger.warning("GameBase", "Received network action was not processed by subclass and lacks 'board_state'.")
 
-    def update_board_from_state(self, state: Dict[str, Any]) -> bool:
+    def update_board_from_state(self, state: Dict) -> bool:
         """
         procédure : met à jour l'état interne du jeu (plateau, tour) à partir d'un état reçu.
 
@@ -232,7 +232,7 @@ class GameBase:
              Logger.error("GameBase", f"Error applying board state update: {e}. State: {state}")
              return False
 
-    def on_player_disconnected(self, message: str) -> None:
+    def on_player_disconnected(self, message: str):
         """
         procédure : gère l'annonce de la déconnexion de l'autre joueur.
 
@@ -251,7 +251,7 @@ class GameBase:
         elif self.render is not None:
             self.render.running = False
 
-    def send_network_action(self, action_data: Dict[str, Any]) -> None:
+    def send_network_action(self, action_data: Dict):
         """
         procédure : envoie une action de jeu locale au serveur.
         ajoute automatiquement l'état actuel du plateau à l'action.
@@ -277,7 +277,7 @@ class GameBase:
         elif not self.is_my_turn:
              Logger.warning("GameBase", "Attempted to send action when not my turn.")
 
-    def get_board_state(self) -> Dict[str, Any]:
+    def get_board_state(self) -> Dict:
         """
         fonction : retourne l'état actuel complet du jeu, utilisé pour la sauvegarde et le réseau.
         les sous-classes peuvent surcharger pour ajouter des informations spécifiques.
@@ -330,7 +330,7 @@ class GameBase:
         # si on arrive ici, c'est notre tour en réseau
         return True
 
-    def cleanup(self) -> None:
+    def cleanup(self):
         """
         procédure : nettoie les ressources, notamment la connexion réseau.
         appelée à la fin du jeu ou en cas d'erreur.
@@ -342,7 +342,7 @@ class GameBase:
         self.game_started = False
         self.is_my_turn = False
         
-    def on_chat_message(self, data: Dict[str, Any]) -> None:
+    def on_chat_message(self, data: Dict):
         """
         procédure : gère la réception d'un message de chat.
         
@@ -376,7 +376,7 @@ class GameBase:
         except Exception as e:
             Logger.error("GameBase", f"Error processing chat message: {e}")
 
-    def send_chat_message(self, message: str) -> None:
+    def send_chat_message(self, message: str):
         """
         procédure : envoie un message de chat au serveur.
         
@@ -406,7 +406,7 @@ class GameBase:
         # réinitialise l'input
         self.chat_input = ""
 
-    def handle_events(self, event: pygame.event.Event) -> bool:
+    def handle_events(self, event) -> bool:
         """
         procédure : gère les événements pygame communs, notamment le timer du bot.
         les sous-classes doivent appeler super().handle_events(event).
