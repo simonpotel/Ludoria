@@ -2,6 +2,8 @@ import pygame
 from src.utils.logger import Logger
 from src.windows.render.constants import RenderConstants
 from src.windows.render.player_handler import PlayerHandler
+from src.moves import available_move
+from src.captures import is_threatened
 
 class BoardHandler:
     """
@@ -113,6 +115,31 @@ class BoardHandler:
             pygame.draw.rect(self.board_surface, RenderConstants.SELECTION_COLOR, cell_rect, 
                             RenderConstants.SELECTION_WIDTH)
             
+        # 4. prévisualisation des mouvements possibles
+        is_valid_move = False
+        if hasattr(self.game, 'game_type'):
+            if self.game.game_type == "katerenga":
+                if hasattr(self.game, 'selected_piece') and self.game.selected_piece is not None:
+                    from_row, from_col = self.game.selected_piece
+                    is_valid_move = available_move(self.game.board.board, from_row, from_col, row, col) and terrain_id not in [4, 5]
+            elif self.game.game_type == "congress":
+                if hasattr(self.game, 'selected_piece') and self.game.selected_piece is not None:
+                    from_row, from_col = self.game.selected_piece
+                    is_valid_move = available_move(self.game.board.board, from_row, from_col, row, col) and cell[0] is None
+            elif self.game.game_type == "isolation":
+                if hasattr(self.game, 'round_turn'):
+                    current_player = self.game.round_turn if not self.game.is_network_game else (self.game.player_number - 1)
+                    is_valid_move = cell[0] is None and not is_threatened(self.game.board.board, row, col, 1 - current_player, check_all_pieces=True)
+        else:
+            if hasattr(self.game, 'selected_piece') and self.game.selected_piece is not None:
+                from_row, from_col = self.game.selected_piece
+                is_valid_move = available_move(self.game.board.board, from_row, from_col, row, col)
+        
+        if is_valid_move:
+            overlay = pygame.Surface((self.cell_size, self.cell_size), pygame.SRCALPHA)
+            overlay.fill((255, 255, 255, 100))
+            self.board_surface.blit(overlay, cell_rect.topleft)
+        
     def handle_click(self, pos, board_x, board_y):
         """
         fonction : traite un clic sur le plateau et le convertit en coordonnées logiques.

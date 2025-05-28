@@ -25,6 +25,12 @@ def available_move(board: List[List[List[Optional[int]]]], iRow: int, iCol: int,
         player = initial[0]
         camps = [(0, 0), (0, 9), (9, 0), (9, 9)]
 
+        # vérification des cases grises (bord du plateau)
+        is_edge = (dRow == 0 or dRow == 9 or dCol == 0 or dCol == 9)
+        if is_edge and (dRow, dCol) not in camps:
+            Logger.warning("Moves", "Invalid move: cannot move to gray edge cells except opponent camps")
+            return False
+
         # verifie si la pièce de départ est dans un camp adverse
         # si la pièce est dans un camp adverse, elle ne peut pas se déplacer
         if (iRow, iCol) in camps:
