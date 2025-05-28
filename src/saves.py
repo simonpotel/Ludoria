@@ -1,9 +1,10 @@
+from typing import Dict, Any, List, Optional
 import os
 import json
 from src.utils.logger import Logger
 
 
-def save_game(game):
+def save_game(game: Any) -> None:
     """
     procédure : sauvegarde l'état du jeu
     params :
@@ -19,7 +20,7 @@ def save_game(game):
         # extraction du type de jeu depuis le nom du module de la classe
         game_type = game.__class__.__module__.split('.')[-2]  # katerenga, isolation, congress
         
-        game_state = {
+        game_state: Dict[str, Any] = {
             'board': [[[cell[0], cell[1]] for cell in row] for row in game.board.board],
             'round_turn': game.round_turn,
             'game': game_type  # type de jeu (katerenga, isolation, congress)
@@ -36,7 +37,7 @@ def save_game(game):
         raise
 
 
-def load_game(game):
+def load_game(game: Any) -> bool:
     """
     fonction : charge l'état du jeu depuis une sauvegarde
     params :
@@ -64,7 +65,7 @@ def load_game(game):
         return False
 
 
-def _update_game_state(game, game_state):
+def _update_game_state(game: Any, game_state: Dict[str, Any]) -> None:
     """
     procédure : met à jour l'état du jeu avec les données chargées
     params :
