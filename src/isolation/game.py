@@ -170,7 +170,7 @@ class Game(GameBase):
         # gestion du tour du bot
         if self.round_turn == 1 and self.game_mode == "Bot":
             self.render.edit_info_label("Bot is thinking...")
-            pygame.time.set_timer(pygame.USEREVENT, 500) # délai pour l'action du bot
+            pygame.time.set_timer(pygame.USEREVENT, 10) # délai pour l'action du bot
             self._bot_timer_set = True
         else:
             self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn - Place your tower")
@@ -221,7 +221,7 @@ class Game(GameBase):
         self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn - Place your tower")
         self.render.run_game_loop()
         if getattr(self.render, "end_popup_action", None) == "play_again":
-            from src.windows.selector.selector import Selector
+            from src.windows.selector import Selector
             Selector()
         self.cleanup()
 
