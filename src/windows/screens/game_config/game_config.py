@@ -86,13 +86,11 @@ class GameConfigScreen(BaseScreen):
         """
         procédure : configure l'interface utilisateur de l'écran.
         """
-        padding = 20
         element_spacing = 20
         label_spacing = 10
         current_y = self.navbar_height + 200
         
         button_font = self.font_manager.get_font(30)
-        title_font = self.font_manager.get_font(24)
         self.font = self.font_manager.get_font(20)
         
         self.labels = []
