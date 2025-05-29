@@ -11,12 +11,12 @@
 <img src="../assets/sahara/joueur2.png" style="width: 100px; margin: 5px;">
 <img src="../assets/nordique/joueur1.png" style="width: 100px; margin: 5px;">
 <img src="../assets/nordique/joueur2.png" style="width: 100px; margin: 5px;">
-<img src="assets/pirate/joueur1.png" style="width: 100px; margin: 5px;">
-<img src="assets/pirate/joueur2.png" style="width: 100px; margin: 5px;">
-<img src="assets/urbain/joueur1.png" style="width: 100px; margin: 5px;">
-<img src="assets/urbain/joueur2.png" style="width: 100px; margin: 5px;">
-<img src="assets/montagne/joueur1.png" style="width: 100px; margin: 5px;">
-<img src="assets/montagne/joueur2.png" style="width: 100px; margin: 5px;">
+<img src="../assets/pirate/joueur1.png" style="width: 100px; margin: 5px;">
+<img src="../assets/pirate/joueur2.png" style="width: 100px; margin: 5px;">
+<img src="../assets/urbain/joueur1.png" style="width: 100px; margin: 5px;">
+<img src="../assets/urbain/joueur2.png" style="width: 100px; margin: 5px;">
+<img src="../assets/montagne/joueur1.png" style="width: 100px; margin: 5px;">
+<img src="../assets/montagne/joueur2.png" style="width: 100px; margin: 5px;">
 </div>
 
 > [!TIP]
@@ -165,6 +165,9 @@ Pour jouer en réseau :
 4. Choisissez le mode "Network"
 5. Entrez un nom de partie identique pour les deux joueurs
 6. Le serveur attribuera automatiquement les rôles (Joueur 1 ou 2)
+
+> [!NOTE]
+> Serveur déployé sur `potel.dev` sur le port `5000`
 
 > [!IMPORTANT]
 > Pour jouer en réseau sur Internet, assurez-vous que le port utilisé (par défaut 5000) est ouvert dans votre pare-feu et correctement redirigé si vous utilisez un routeur.
