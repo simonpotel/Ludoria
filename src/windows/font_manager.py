@@ -1,28 +1,29 @@
 import pygame
 import os
+from typing import Dict, Optional
 from src.utils.logger import Logger
 
 class FontManager:
     """
     classe : singleton pour gérer les polices utilisées dans le jeu.
     """
-    _instance = None
+    _instance: Optional['FontManager'] = None
     
-    def __new__(cls):
+    def __new__(cls) -> 'FontManager':
         if cls._instance is None:
             cls._instance = super(FontManager, cls).__new__(cls)
             cls._instance._initialize()
         return cls._instance
     
-    def _initialize(self):
+    def _initialize(self) -> None:
         """
         procédure : initialise le gestionnaire de polices.
         """
         pygame.font.init()
-        self.default_font_path = os.path.join("assets", "fonts", "BlackHanSans-Regular.ttf")
-        self.fonts = {} # cache pour les polices chargées
+        self.default_font_path: str = os.path.join("assets", "fonts", "BlackHanSans-Regular.ttf")
+        self.fonts: Dict[str, pygame.font.Font] = {} # cache pour les polices chargées
         
-    def get_font(self, size, font_path=None):
+    def get_font(self, size: int, font_path: Optional[str] = None) -> pygame.font.Font:
         """
         fonction : obtient une police avec la taille et le chemin spécifiés.
         

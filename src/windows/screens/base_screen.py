@@ -4,6 +4,7 @@ from src.utils.logger import Logger
 from src.utils.theme_manager import ThemeManager
 from src.windows.font_manager import FontManager
 from src.windows.components.dropdown import Dropdown
+from src.utils.music_manager import MusicManager
 
 class BaseScreen:
     def __init__(self, width=1280, height=720, title="Ludoria"):
@@ -17,6 +18,7 @@ class BaseScreen:
         
         self.theme_manager = ThemeManager()
         self.font_manager = FontManager()
+        self.music_manager = MusicManager()
         self.navbar = NavBar(self.width)
         self.navbar_height = 50
         self.content_rect = pygame.Rect(0, self.navbar_height, self.width, self.height - self.navbar_height)
@@ -30,6 +32,7 @@ class BaseScreen:
         
         self.setup_navbar()
         self.setup_ui()
+        self.music_manager.play_music('menu')
     
     def setup_navbar(self):
         theme = self.theme_manager.current_theme
@@ -99,7 +102,10 @@ class BaseScreen:
             "grec": (156, 136, 255),
             "japon": (255, 138, 174),
             "nordique": (100, 181, 246),
-            "sahara": (255, 183, 77)
+            "sahara": (255, 183, 77),
+            "pirate": (255, 183, 77),
+            "urbain": (255, 183, 77),
+            "montagne": (255, 183, 77)
         }
         
         theme = self.theme_manager.current_theme

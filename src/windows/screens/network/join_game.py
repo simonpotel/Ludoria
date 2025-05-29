@@ -19,7 +19,7 @@ class JoinGameScreen(BaseScreen):
         self.refresh_button = None
         self.join_button = None
         self.player_name_input = None
-        self.server_info = "Server: potel.dev"
+        self.server_info = f"Server: {self.network_client.host}:{self.network_client.port}"
         self.version = "V1"
         self.quit_requested = False 
         
@@ -40,7 +40,7 @@ class JoinGameScreen(BaseScreen):
             Logger.error("JoinGameScreen", "Failed to load quadrant configurations.")
             self.selected_quadrants = None
         
-        self.background = pygame.image.load('assets/tropique/background.png').convert()
+        self.background = pygame.image.load('assets/pirate/background.png').convert()
         self.icon_green_circle = pygame.image.load('assets/Basic_GUI_Bundle/ButtonsIcons/IconButton_Large_Green_Circle.png').convert_alpha()
         self.icon_red_circle = pygame.image.load('assets/Basic_GUI_Bundle/ButtonsIcons/IconButton_Large_Red_Circle.png').convert_alpha()
         

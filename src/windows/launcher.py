@@ -1,16 +1,17 @@
 import pygame
+from typing import Optional
 from src.utils.logger import Logger
 from src.windows.screens.theme_selection import ThemeSelectionScreen
 
 class Launcher:
-    def __init__(self):
+    def __init__(self) -> None:
         pygame.init()
         pygame.freetype.init()
         
-        self.running = True
+        self.running: bool = True
         Logger.info("Launcher", "Initializing game launcher...")
     
-    def start(self):
+    def start(self) -> None:
         try:
             current_screen = ThemeSelectionScreen()
             

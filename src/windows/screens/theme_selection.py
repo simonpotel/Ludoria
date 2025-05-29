@@ -16,10 +16,10 @@ class ThemeSelectionScreen(BaseScreen):
         constructeur : initialise l'écran de sélection de thème.
         """
         super().__init__(title="Ludoria - Sélection de Thème")
-        self.themes = ["tropique", "grec", "japon", "nordique", "sahara"]
+        self.themes = ["tropique", "grec", "japon", "nordique", "sahara", "pirate", "urbain", "montagne"]
         self.theme_buttons = []
         self.selected_theme = None
-        self.current_theme_index = 0
+        self.current_theme_index = 5
         self.background = None
         self.title_font = None
         self.subtitle_font = None
@@ -40,8 +40,8 @@ class ThemeSelectionScreen(BaseScreen):
         """
         procédure : configure les éléments d'interface utilisateur.
         """
-        self.title_font = pygame.font.SysFont('Arial', 86, bold=True)
-        self.subtitle_font = pygame.font.SysFont('Arial', 36, bold=True)
+        self.title_font = self.font_manager.get_font(86)
+        self.subtitle_font = self.font_manager.get_font(36)
         
         # chargement des images de fond floues pour chaque thème
         for theme in self.themes:
@@ -284,7 +284,7 @@ class ThemeSelectionScreen(BaseScreen):
             
             # ajout du nom du thème
             theme_name = button.theme_name.capitalize()
-            name_font = pygame.font.SysFont('Arial', 30, bold=True)
+            name_font = self.font_manager.get_font(30)
             name_surface = name_font.render(theme_name, True, (255, 255, 255))
             name_x = button.rect.centerx - name_surface.get_width() // 2
             name_y = button.rect.bottom + 10
@@ -376,7 +376,7 @@ class ThemeSelectionScreen(BaseScreen):
                 
                 # afficher le nom du thème sous le bouton
                 theme_name = button.theme_name.capitalize()
-                name_font = pygame.font.SysFont('Arial', 30, bold=True)
+                name_font = self.font_manager.get_font(30)
                 name_surface = name_font.render(theme_name, True, (255, 255, 255))
                 name_x = button.rect.centerx - name_surface.get_width() // 2
                 name_y = button.rect.bottom + 10

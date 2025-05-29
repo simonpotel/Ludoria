@@ -1,3 +1,4 @@
+from typing import List, Tuple, Optional, Dict
 import random
 import time
 import copy
@@ -6,23 +7,23 @@ from src.saves import save_game
 from src.utils.logger import Logger
 
 class KaterengaBot:
+    """
+    classe : bot pour le jeu de Katerenga
+    """
     def __init__(self, game):
         """
-        constructeur : initialise une nouvelle instance de bot pour Katerenga
-
-        params:
-            game: instance du jeu Katerenga
+        procédure : initialise une nouvelle instance de bot pour Katerenga
+        params :
+            game - instance du jeu Katerenga
         """
         self.game = game
         self.locked_pieces = game.locked_pieces
         Logger.bot("KaterengaBot", "Bot initialized")
 
-    def make_move(self):
+    def make_move(self) -> bool:
         """
         fonction : détermine et exécute le meilleur coup pour le bot
-
-        retour:
-            bool: True si un coup a été joué avec succès, False sinon (pas de coup possible ou victoire)
+        retour : True si un coup a été joué avec succès, False sinon
         """
         self.locked_pieces = self.game.locked_pieces
         
@@ -147,17 +148,14 @@ class KaterengaBot:
         self.game.render.render_board()
         return True # coup réussi
 
-    def _simulate_move_and_count_captures(self, start_row, start_col, end):
+    def _simulate_move_and_count_captures(self, start_row: int, start_col: int, end: Tuple[int, int]) -> int:
         """
-        fonction : simule un mouvement et évalue sa valeur (capture, approche, camp)
-
-        params:
-            start_row: ligne de départ de la pièce
-            start_col: colonne de départ de la pièce
-            end: tuple (ligne, colonne) de la destination
-
-        retour:
-            int: valeur du mouvement simulé (-1 si invalide, 0 si neutre, 1 si capture, 5 si vers camp)
+        fonction : simule un mouvement et évalue sa valeur
+        params :
+            start_row - ligne de départ de la pièce
+            start_col - colonne de départ de la pièce
+            end - tuple (ligne, colonne) de la destination
+        retour : valeur du mouvement simulé (-1 si invalide, 0 si neutre, 1 si capture, 5 si vers camp)
         """
         end_row, end_col = end
         bot_camps = [(r, c) for r, c in self.game.camps if r == 0] # Camps du bot
@@ -195,16 +193,13 @@ class KaterengaBot:
         # mouvement sans capture
         return 0
 
-    def _get_possible_moves(self, row, col):
+    def _get_possible_moves(self, row: int, col: int) -> List[Tuple[int, int]]:
         """
         fonction : retourne tous les mouvements valides pour une pièce donnée
-
-        params:
-            row: ligne de la pièce
-            col: colonne de la pièce
-
-        retour:
-            list: liste de tuples (dest_row, dest_col) représentant les mouvements possibles
+        params :
+            row - ligne de la pièce
+            col - colonne de la pièce
+        retour : liste de tuples (dest_row, dest_col) représentant les mouvements possibles
         """
         # pièce bloquée dans un camp ne peut pas bouger
         if (row, col) in self.locked_pieces:
@@ -238,17 +233,14 @@ class KaterengaBot:
                         
         return moves
 
-    def is_camp_move(self, row, col, camps):
+    def is_camp_move(self, row: int, col: int, camps: List[Tuple[int, int]]) -> bool:
         """
         fonction : vérifie si une position est un camp du bot
-
-        params:
-            row: ligne de la position
-            col: colonne de la position
-            camps: liste des coordonnées des camps du bot
-
-        retour:
-            bool: True si la position est un camp du bot, False sinon
+        params :
+            row - ligne de la position
+            col - colonne de la position
+            camps - liste des coordonnées des camps du bot
+        retour : True si la position est un camp du bot, False sinon
         """
         return (row, col) in camps
     

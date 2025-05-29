@@ -1,3 +1,4 @@
+from typing import List, Optional
 import copy
 from src.utils.logger import Logger
 
@@ -10,7 +11,7 @@ class Board:
             joueur : 0 (joueur 1), 1 (joueur 2), None (case vide)
             type_case : 0-5 (voir render.py pour les couleurs)
     """
-    def __init__(self, quadrants, game_number):
+    def __init__(self, quadrants: List[List[List[List[Optional[int]]]]], game_number: int) -> None:
         """
         procédure : initialise le plateau avec les quadrants donnés
         params :
@@ -18,13 +19,13 @@ class Board:
             game_number - type de jeu (0: katerenga, 1: isolation, 2: congress)
         """
         Logger.board("Board", f"Initializing board for game {game_number}")
-        self.quadrants = quadrants
-        self.game_number = game_number
-        self.board = self.get_board()
+        self.quadrants: List[List[List[List[Optional[int]]]]] = quadrants
+        self.game_number: int = game_number
+        self.board: List[List[List[Optional[int]]]] = self.get_board()
         self.setup_board()
         Logger.success("Board", "Board initialized successfully")
 
-    def setup_board(self):
+    def setup_board(self) -> None:
         """
         procédure : place les pions initiaux selon le type de jeu
         """
@@ -50,7 +51,7 @@ class Board:
 
         Logger.success("Board", "Board setup completed")
 
-    def get_board(self):
+    def get_board(self) -> List[List[List[Optional[int]]]]:
         """
         fonction : crée le plateau en fusionnant les quadrants
         retour : plateau complet initialisé
@@ -74,7 +75,7 @@ class Board:
         Logger.success("Board", "Board creation completed")
         return board
 
-    def _add_katerenga_camps(self, board):
+    def _add_katerenga_camps(self, board: List[List[List[Optional[int]]]]) -> List[List[List[Optional[int]]]]:
         """
         fonction : ajoute les camps pour le jeu katerenga
         params :

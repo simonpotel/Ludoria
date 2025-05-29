@@ -1,4 +1,5 @@
 import pygame
+from typing import List, Optional, Dict, Any, Tuple
 from src.utils.logger import Logger
 from src.windows.render.constants import RenderConstants
 
@@ -9,14 +10,14 @@ class QuadrantHandler:
     et la mise à jour des configurations de quadrants sélectionnées par l'utilisateur.
     """
     
-    def __init__(self):
+    def __init__(self) -> None:
         """
         constructeur : procédure d'initialisation du gestionnaire de quadrants.
         aucune initialisation spécifique requise.
         """
         pass
     
-    def draw_quadrants(self, screen, selected_quadrants, canvas_rect):
+    def draw_quadrants(self, screen: pygame.Surface, selected_quadrants: List[List[List[List[Optional[int]]]]], canvas_rect: pygame.Rect) -> None:
         """
         procédure : dessin de la prévisualisation des quatre quadrants.
         dessine les quadrants configurés sur une zone spécifiée de l'écran (`canvas_rect`).
@@ -48,7 +49,7 @@ class QuadrantHandler:
                 2 # épaisseur de la bordure
             )
 
-    def draw_quadrant(self, screen, quadrant_data, x_offset, y_offset, cell_size):
+    def draw_quadrant(self, screen: pygame.Surface, quadrant_data: List[List[List[Optional[int]]]], x_offset: int, y_offset: int, cell_size: int) -> None:
         """
         procédure : dessin d'un quadrant individuel.
         dessine chaque cellule du quadrant donné avec la couleur appropriée.
@@ -89,7 +90,8 @@ class QuadrantHandler:
                     1 # épaisseur de 1 pixel
                 )
 
-    def update_selected_quadrants(self, quadrant_selectors, selected_quadrants, quadrants_config, quadrant_names):
+    def update_selected_quadrants(self, quadrant_selectors: List[Any], selected_quadrants: List[List[List[List[Optional[int]]]]], 
+                                quadrants_config: Dict[str, List[List[List[Optional[int]]]]], quadrant_names: List[str]) -> List[List[List[List[Optional[int]]]]]:
         """
         fonction : mise à jour des configurations de quadrants sélectionnées.
         basée sur les choix de l'utilisateur dans les menus déroulants (`quadrant_selectors`).
@@ -133,7 +135,7 @@ class QuadrantHandler:
 
         return new_selected_quadrants
 
-    def _rotate_matrix(self, matrix, direction):
+    def _rotate_matrix(self, matrix: List[List[List[Optional[int]]]], direction: str) -> List[List[List[Optional[int]]]]:
         """
         fonction : effectue une rotation de matrice (quadrant).
         pivote une matrice de 90 degrés dans la direction spécifiée.
@@ -155,7 +157,7 @@ class QuadrantHandler:
                     new_matrix[size - 1 - c][r] = matrix[r][c]
         return new_matrix
 
-    def rotate_right(self, selected_quadrants, index):
+    def rotate_right(self, selected_quadrants: List[List[List[List[Optional[int]]]]], index: int) -> List[List[List[List[Optional[int]]]]]:
         """
         fonction : rotation d'un quadrant vers la droite.
         fait pivoter le quadrant spécifié de 90 degrés vers la droite (sens horaire).
@@ -179,7 +181,7 @@ class QuadrantHandler:
         new_selected_quadrants[index] = rotated_quadrant
         return new_selected_quadrants
 
-    def rotate_left(self, selected_quadrants, index):
+    def rotate_left(self, selected_quadrants: List[List[List[List[Optional[int]]]]], index: int) -> List[List[List[List[Optional[int]]]]]:
         """
         fonction : rotation d'un quadrant vers la gauche.
         fait pivoter le quadrant spécifié de 90 degrés vers la gauche (sens anti-horaire).

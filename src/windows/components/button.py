@@ -1,11 +1,12 @@
 import pygame
+from typing import Optional, Callable, Tuple
 from src.windows.font_manager import FontManager
 
 class Button:
     """
     classe : représente un bouton cliquable simple dans l'interface.
     """
-    def __init__(self, x, y, width, height, text, action=None, disabled=False, font_size=24):
+    def __init__(self, x: int, y: int, width: int, height: int, text: str, action: Optional[Callable] = None, disabled: bool = False, font_size: int = 24) -> None:
         """
         constructeur : initialise un bouton.
 
@@ -17,22 +18,22 @@ class Button:
             disabled - indique si le bouton est désactivé.
             font_size - taille de la police (par défaut 24)
         """
-        self.rect = pygame.Rect(x, y, width, height)
-        self.text = text
-        self.action = action
+        self.rect: pygame.Rect = pygame.Rect(x, y, width, height)
+        self.text: str = text
+        self.action: Optional[Callable] = action
         # couleurs pour les états normal et survolé
-        self.color = (0, 0, 0)
-        self.hover_color = (160, 160, 160)
-        self.disabled_color = (70, 70, 70)
-        self.text_color = (255, 255, 255)
-        self.disabled_text_color = (170, 170, 170)
-        self.font_size = font_size
+        self.color: Tuple[int, int, int] = (0, 0, 0)
+        self.hover_color: Tuple[int, int, int] = (160, 160, 160)
+        self.disabled_color: Tuple[int, int, int] = (70, 70, 70)
+        self.text_color: Tuple[int, int, int] = (255, 255, 255)
+        self.disabled_text_color: Tuple[int, int, int] = (170, 170, 170)
+        self.font_size: int = font_size
         self.font_manager = FontManager()
-        self.is_hover = False # true si la souris est sur le bouton
-        self.transparency = 171  # 67% de 255 (255 * 0.67 ≈ 171)
-        self.disabled = disabled
+        self.is_hover: bool = False # true si la souris est sur le bouton
+        self.transparency: int = 171  # 67% de 255 (255 * 0.67 ≈ 171)
+        self.disabled: bool = disabled
     
-    def draw(self, surface):
+    def draw(self, surface: pygame.Surface) -> None:
         """
         procédure : dessine le bouton sur la surface donnée.
         change de couleur si la souris est dessus.
@@ -69,7 +70,7 @@ class Button:
         # affichage final du bouton
         surface.blit(button_surface, self.rect)
     
-    def check_hover(self, pos):
+    def check_hover(self, pos: Tuple[int, int]) -> None:
         """
         procédure : vérifie si la position donnée est sur le bouton.
 
@@ -81,7 +82,7 @@ class Button:
         else:
             self.is_hover = self.rect.collidepoint(pos)
         
-    def handle_event(self, event):
+    def handle_event(self, event: pygame.event.Event) -> bool:
         """
         fonction : gère les événements pygame pour ce bouton.
 

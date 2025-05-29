@@ -1,10 +1,11 @@
 import pygame
+from typing import Optional, Tuple
 
 class TextInput:
     """
     classe : représente un champ de saisie de texte simple.
     """
-    def __init__(self, x, y, width, height, placeholder="", initial_text="", disabled=False):
+    def __init__(self, x: int, y: int, width: int, height: int, placeholder: str = "", initial_text: str = "", disabled: bool = False) -> None:
         """
         constructeur : initialise le champ de saisie.
 
@@ -15,23 +16,23 @@ class TextInput:
             initial_text - texte initial dans le champ.
             disabled - indique si le champ est désactivé.
         """
-        self.rect = pygame.Rect(x, y, width, height)
-        self.text = initial_text
-        self.font = pygame.font.SysFont('Arial', 24)
-        self.inactive_color = (30, 30, 30)
-        self.active_color = (50, 50, 50)
-        self.disabled_color = (70, 70, 70)
-        self.text_color = (220, 220, 220)
-        self.disabled_text_color = (170, 170, 170)
-        self.active = False
-        self.cursor_visible = True
-        self.cursor_timer = 0
-        self.transparency = 171
-        self.placeholder = placeholder
-        self.placeholder_color = (130, 130, 130)
-        self.disabled = disabled
+        self.rect: pygame.Rect = pygame.Rect(x, y, width, height)
+        self.text: str = initial_text
+        self.font: pygame.font.Font = pygame.font.SysFont('Arial', 24)
+        self.inactive_color: Tuple[int, int, int] = (30, 30, 30)
+        self.active_color: Tuple[int, int, int] = (50, 50, 50)
+        self.disabled_color: Tuple[int, int, int] = (70, 70, 70)
+        self.text_color: Tuple[int, int, int] = (220, 220, 220)
+        self.disabled_text_color: Tuple[int, int, int] = (170, 170, 170)
+        self.active: bool = False
+        self.cursor_visible: bool = True
+        self.cursor_timer: int = 0
+        self.transparency: int = 171
+        self.placeholder: str = placeholder
+        self.placeholder_color: Tuple[int, int, int] = (130, 130, 130)
+        self.disabled: bool = disabled
     
-    def draw(self, surface):
+    def draw(self, surface: pygame.Surface) -> None:
         """
         procédure : dessine le champ de saisie sur la surface donnée.
 
@@ -76,7 +77,7 @@ class TextInput:
         
         surface.blit(input_surface, self.rect)
     
-    def handle_event(self, event, pos):
+    def handle_event(self, event: pygame.event.Event, pos: Tuple[int, int]) -> bool:
         """
         fonction : gère les événements pygame pour le champ de saisie.
 
@@ -117,7 +118,7 @@ class TextInput:
             
         return False
     
-    def update(self, dt):
+    def update(self, dt: int) -> None:
         """
         procédure : met à jour l'état du champ (clignotement du curseur).
 
@@ -130,7 +131,7 @@ class TextInput:
                 self.cursor_visible = not self.cursor_visible
                 self.cursor_timer %= 500
     
-    def get(self):
+    def get(self) -> str:
         """
         fonction : retourne le texte actuellement contenu dans le champ.
 

@@ -1,17 +1,19 @@
+from typing import Optional
+
 class ThemeManager:
     """
     classe : singleton pour gérer le thème sélectionné par l'utilisateur.
     """
-    _instance = None
+    _instance: Optional['ThemeManager'] = None
     
-    def __new__(cls):
+    def __new__(cls) -> 'ThemeManager':
         if cls._instance is None:
             cls._instance = super(ThemeManager, cls).__new__(cls)
-            cls._instance._current_theme = "tropique"  # thème par défaut
+            cls._instance._current_theme: str = "pirate"  # thème par défaut
         return cls._instance
     
     @property
-    def current_theme(self):
+    def current_theme(self) -> str:
         """
         fonction : accesseur pour le thème actuel.
         
@@ -20,7 +22,7 @@ class ThemeManager:
         return self._current_theme
     
     @current_theme.setter
-    def current_theme(self, theme):
+    def current_theme(self, theme: str) -> None:
         """
         procédure : définit le thème actuel.
         
@@ -29,7 +31,7 @@ class ThemeManager:
         """
         self._current_theme = theme
     
-    def get_theme_path(self, asset_type=None):
+    def get_theme_path(self, asset_type: Optional[str] = None) -> str:
         """
         fonction : obtenir le chemin du dossier du thème actuel.
         

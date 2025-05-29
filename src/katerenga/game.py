@@ -1,3 +1,4 @@
+from typing import Dict, Optional, Tuple, List
 import pygame
 from src.board import Board
 from src.windows.render.render import Render
@@ -10,27 +11,29 @@ from src.utils.logger import Logger
 from src.katerenga.bot import KaterengaBot
 
 class Game(GameBase):
+    """
+    classe : gère une partie de Katerenga
+    """
     def __init__(self, game_save, quadrants, game_mode="Solo"):
         """
-        constructeur : initialise une nouvelle partie de katarenga
-
-        params:
-            game_save: sauvegarde de jeu existante ou None
-            quadrants: configuration des quadrants initiaux
-            game_mode: mode de jeu ("Solo", "Bot", "Network")
+        procédure : initialise une nouvelle partie de Katerenga
+        params :
+            game_save - sauvegarde de jeu existante ou None
+            quadrants - configuration des quadrants initiaux
+            game_mode - mode de jeu ("Solo", "Bot", "Network")
         """
         super().__init__(game_save, quadrants, game_mode, player_name="player", game_type="katerenga")
         self.board = Board(quadrants, 0)
         self.render = Render(game=self)
         self.round_turn = 0
-        self.first_turn = True # le premier tour a des règles spéciales (pas de capture)
+        self.first_turn = True
         self.selected_piece = None
         self.game_mode = game_mode
-        self.locked_pieces = [] # pièces arrivées dans un camp adverse
+        self.locked_pieces = []
         self.bot = None
         self.theme_manager = ThemeManager()
         
-        self.camps = [(0, 0), (0, 9), (9, 0), (9, 9)] # positions des camps
+        self.camps = [(0, 0), (0, 9), (9, 0), (9, 9)]
         
         if game_mode == "Bot":
             self.bot = KaterengaBot(self)
@@ -40,15 +43,12 @@ class Game(GameBase):
             if self.render:
                 self.render.edit_info_label("Waiting for another player...")
 
-    def on_network_action(self, action_data):
+    def on_network_action(self, action_data: Dict) -> bool:
         """
         procédure : traite une action reçue d'un autre joueur en réseau
-
-        params:
-            action_data: dictionnaire contenant les données de l'action (mouvement)
-
-        retour:
-            bool: True si l'action a été traitée avec succès, False sinon
+        params :
+            action_data - dictionnaire contenant les données de l'action
+        retour : True si l'action a été traitée avec succès, False sinon
         """
         Logger.info("Game Katerenga", f"Received network action: {action_data}")
         if not action_data:
@@ -110,7 +110,7 @@ class Game(GameBase):
 
         return True # le jeu continue
 
-    def load_game(self):
+    def load_game(self) -> None:
         """
         procédure : lance la boucle principale de rendu et d'événements du jeu
         """
@@ -121,15 +121,12 @@ class Game(GameBase):
             Selector()
         self.cleanup()
 
-    def check_win(self, player):
+    def check_win(self, player: int) -> bool:
         """
         fonction : vérifie si un joueur a gagné la partie
-
-        params:
-            player: l'identifiant du joueur (0 ou 1) à vérifier
-
-        retour:
-            bool: True si le joueur a gagné, False sinon
+        params :
+            player - l'identifiant du joueur (0 ou 1)
+        retour : True si le joueur a gagné, False sinon
         """
         opponent = 1 - player
         # définition des camps adverses en fonction du joueur
@@ -189,26 +186,22 @@ class Game(GameBase):
 
         return False # aucune condition de victoire remplie
 
-    def capture_piece(self, row, col):
+    def capture_piece(self, row: int, col: int) -> None:
         """
         procédure : retire une pièce capturée du plateau
-
-        params:
-            row: ligne de la pièce capturée
-            col: colonne de la pièce capturée
+        params :
+            row - ligne de la pièce capturée
+            col - colonne de la pièce capturée
         """
         self.board.board[row][col][0] = None
 
-    def on_click(self, row, col):
+    def on_click(self, row: int, col: int) -> bool:
         """
         procédure : gère les clics de souris sur le plateau de jeu
-
-        params:
-            row: ligne du clic (0-9)
-            col: colonne du clic (0-9)
-
-        retour:
-            bool: True si le jeu continue, False si la partie est terminée
+        params :
+            row - ligne du clic (0-9)
+            col - colonne du clic (0-9)
+        retour : True si le jeu continue, False si la partie est terminée
         """
         # gestion des tours en mode réseau ou bot
         if self.is_network_game:
@@ -400,12 +393,10 @@ class Game(GameBase):
 
         return True # le jeu continue (sauf si is_win est True et traité ci-dessus)
 
-    def _bot_play(self):
+    def _bot_play(self) -> bool:
         """
-        procédure : exécute le tour du bot (appelé via timer)
-
-        retour:
-            bool: True si le bot a joué avec succès, False si erreur ou fin de partie
+        procédure : exécute le tour du bot
+        retour : True si le bot a joué avec succès, False si erreur ou fin de partie
         """
         try:
             Logger.game("Game", "Bot starting its move")
@@ -436,12 +427,10 @@ class Game(GameBase):
             self.render.needs_render = True
             return False
 
-    def get_board_state(self):
+    def get_board_state(self) -> Dict:
         """
         fonction : retourne l'état actuel complet du jeu pour la sauvegarde ou le réseau
-
-        retour:
-            dict: dictionnaire contenant l'état du plateau, le tour et le flag first_turn
+        retour : dictionnaire contenant l'état du plateau, le tour et le flag first_turn
         """
         state = {
             "board": [[cell[:] for cell in row] for row in self.board.board], # copie profonde
@@ -455,15 +444,12 @@ class Game(GameBase):
                    f"locked_pieces={state['locked_pieces']}")
         return state
 
-    def is_camp_position(self, row, col):
+    def is_camp_position(self, row: int, col: int) -> bool:
         """
         fonction : vérifie si une position donnée correspond à l'un des quatre camps
-
-        params:
-            row: ligne de la position
-            col: colonne de la position
-
-        retour:
-            bool: True si la position est un camp, False sinon
+        params :
+            row - ligne de la position
+            col - colonne de la position
+        retour : True si la position est un camp, False sinon
         """
         return (row, col) in self.camps # vérifie l'appartenance à la liste des camps
