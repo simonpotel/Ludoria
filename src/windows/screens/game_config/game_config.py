@@ -153,7 +153,7 @@ class GameConfigScreen(BaseScreen):
             font=button_font,
             text_color=(255, 255, 255)
         )
-        current_y += button_height + button_spacing * 1
+        current_y += button_height + button_spacing * 2
         
         start_button_text = "JOIN GAME" if self.mode == "Network" and self.existing_game_name else "START GAME"
         self.start_button = ImageButton(
