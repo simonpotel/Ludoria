@@ -69,25 +69,17 @@ class JoinGameScreen(BaseScreen):
         Logger.info("JoinGameScreen", f"Received {len(games)} games from server")
     
     def setup_ui(self):
-        try:
-            self.title_font = pygame.font.SysFont('Arial', 48, bold=True)
-            self.status_font = pygame.font.SysFont('Arial', 20, bold=True)
-            self.host_font = pygame.font.SysFont('Arial', 18)
-            self.button_font = pygame.font.SysFont('Arial', 18, bold=True)
-            self.footer_font = pygame.font.SysFont('Arial', 14)
-        except Exception as e:
-            Logger.error("JoinGameScreen", f"Font loading error: {str(e)}")
-            self.title_font = pygame.font.Font(None, 48)
-            self.status_font = pygame.font.Font(None, 20)
-            self.host_font = pygame.font.Font(None, 18)
-            self.button_font = pygame.font.Font(None, 18)
-            self.footer_font = pygame.font.Font(None, 14)
-            
+        self.title_font = self.font_manager.get_font(48)
+        self.status_font = self.font_manager.get_font(20)
+        self.host_font = self.font_manager.get_font(18)
+        self.button_font = self.font_manager.get_font(18)
+        self.footer_font = self.font_manager.get_font(14)
+        
         panel_width = int(self.width * 0.7)
         panel_height = int(self.height * 0.6)
         self.panel_x = (self.width - panel_width) // 2
         
-        self.panel_y = self.navbar_height + 60
+        self.panel_y = self.navbar_height + 60 + 20
         
         self.panel_width = panel_width
         self.panel_height = panel_height
