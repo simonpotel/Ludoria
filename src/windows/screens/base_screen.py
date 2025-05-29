@@ -1,5 +1,5 @@
 import pygame
-from src.windows.components.navbar.navbar import NavBar
+from src.windows.components.navbar import NavBar
 from src.utils.logger import Logger
 from src.utils.theme_manager import ThemeManager
 from src.windows.font_manager import FontManager
