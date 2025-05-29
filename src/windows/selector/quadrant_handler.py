@@ -61,11 +61,7 @@ class QuadrantHandler:
             x_offset (int): coordonnée x du coin supérieur gauche de la zone de dessin du quadrant.
             y_offset (int): coordonnée y du coin supérieur gauche de la zone de dessin du quadrant.
             cell_size (int): taille en pixels d'une cellule dans la prévisualisation.
-        """
-        if quadrant_data is None:
-            Logger.error("QuadrantHandler", "Call draw_quadrant with quadrant_data to none.")
-            return
-         
+        """         
         for row_i, row in enumerate(quadrant_data):
             for col_i, cell_state in enumerate(row):
                 x1 = x_offset + col_i * cell_size

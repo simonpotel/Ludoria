@@ -40,7 +40,10 @@ class JoinGameScreen(BaseScreen):
             Logger.error("JoinGameScreen", "Failed to load quadrant configurations.")
             self.selected_quadrants = None
         
-        self.background = pygame.image.load('assets/pirate/background.png').convert()
+        theme = self.theme_manager.current_theme
+        self.background = pygame.image.load(f'assets/{theme}/background.png').convert()
+        Logger.info("JoinGameScreen", f"Using theme: {theme} for background")
+        
         self.icon_green_circle = pygame.image.load('assets/Basic_GUI_Bundle/ButtonsIcons/IconButton_Large_Green_Circle.png').convert_alpha()
         self.icon_red_circle = pygame.image.load('assets/Basic_GUI_Bundle/ButtonsIcons/IconButton_Large_Red_Circle.png').convert_alpha()
         
@@ -69,25 +72,17 @@ class JoinGameScreen(BaseScreen):
         Logger.info("JoinGameScreen", f"Received {len(games)} games from server")
     
     def setup_ui(self):
-        try:
-            self.title_font = pygame.font.SysFont('Arial', 48, bold=True)
-            self.status_font = pygame.font.SysFont('Arial', 20, bold=True)
-            self.host_font = pygame.font.SysFont('Arial', 18)
-            self.button_font = pygame.font.SysFont('Arial', 18, bold=True)
-            self.footer_font = pygame.font.SysFont('Arial', 14)
-        except Exception as e:
-            Logger.error("JoinGameScreen", f"Font loading error: {str(e)}")
-            self.title_font = pygame.font.Font(None, 48)
-            self.status_font = pygame.font.Font(None, 20)
-            self.host_font = pygame.font.Font(None, 18)
-            self.button_font = pygame.font.Font(None, 18)
-            self.footer_font = pygame.font.Font(None, 14)
+        self.title_font = self.font_manager.get_font(48)
+        self.status_font = self.font_manager.get_font(20)
+        self.host_font = self.font_manager.get_font(18)
+        self.button_font = self.font_manager.get_font(18)
+        self.footer_font = self.font_manager.get_font(14)
             
         panel_width = int(self.width * 0.7)
         panel_height = int(self.height * 0.6)
         self.panel_x = (self.width - panel_width) // 2
         
-        self.panel_y = self.navbar_height + 60
+        self.panel_y = self.navbar_height + 120 
         
         self.panel_width = panel_width
         self.panel_height = panel_height
@@ -298,8 +293,8 @@ class JoinGameScreen(BaseScreen):
         title_join = self.title_font.render("JOIN A GAME", True, (255, 255, 255))
         title_network_x = (self.width - title_network.get_width()) // 2
         title_join_x = (self.width - title_join.get_width()) // 2
-        self.screen.blit(title_network, (title_network_x, self.panel_y - 90))
-        self.screen.blit(title_join, (title_join_x, self.panel_y - 40))
+        self.screen.blit(title_network, (title_network_x, self.panel_y - 110))
+        self.screen.blit(title_join, (title_join_x, self.panel_y - 60))
         
         self.refresh_button.draw(self.screen)
         
