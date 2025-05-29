@@ -40,7 +40,10 @@ class JoinGameScreen(BaseScreen):
             Logger.error("JoinGameScreen", "Failed to load quadrant configurations.")
             self.selected_quadrants = None
         
-        self.background = pygame.image.load('assets/pirate/background.png').convert()
+        theme = self.theme_manager.current_theme
+        self.background = pygame.image.load(f'assets/{theme}/background.png').convert()
+        Logger.info("JoinGameScreen", f"Using theme: {theme} for background")
+        
         self.icon_green_circle = pygame.image.load('assets/Basic_GUI_Bundle/ButtonsIcons/IconButton_Large_Green_Circle.png').convert_alpha()
         self.icon_red_circle = pygame.image.load('assets/Basic_GUI_Bundle/ButtonsIcons/IconButton_Large_Red_Circle.png').convert_alpha()
         
@@ -87,7 +90,7 @@ class JoinGameScreen(BaseScreen):
         panel_height = int(self.height * 0.6)
         self.panel_x = (self.width - panel_width) // 2
         
-        self.panel_y = self.navbar_height + 60
+        self.panel_y = self.navbar_height + 120 
         
         self.panel_width = panel_width
         self.panel_height = panel_height
@@ -294,12 +297,12 @@ class JoinGameScreen(BaseScreen):
         self.draw_rounded_rect(self.screen, (self.panel_x, self.panel_y, self.panel_width, self.panel_height), 
                             (255, 255, 255), radius=12, alpha=153)  # 60% opacity (153/255)
         
-        title_network = self.title_font.render("NETWORK", True, (255, 255, 255))
-        title_join = self.title_font.render("JOIN A GAME", True, (255, 255, 255))
+        title_network = self.title_font.render("NETWORK", True, (0, 0, 0))
+        title_join = self.title_font.render("JOIN A GAME", True, (0, 0, 0))
         title_network_x = (self.width - title_network.get_width()) // 2
         title_join_x = (self.width - title_join.get_width()) // 2
-        self.screen.blit(title_network, (title_network_x, self.panel_y - 90))
-        self.screen.blit(title_join, (title_join_x, self.panel_y - 40))
+        self.screen.blit(title_network, (title_network_x, self.panel_y - 110))
+        self.screen.blit(title_join, (title_join_x, self.panel_y - 60))
         
         self.refresh_button.draw(self.screen)
         
