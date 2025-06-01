@@ -70,15 +70,9 @@ class QuadrantConfigScreen(BaseScreen):
         """
         procédure : configure l'interface utilisateur de l'écran de configuration des quadrants.
         """
-        try:
-            self.title_font = pygame.font.SysFont('Arial', 48, bold=True)
-            self.label_font = pygame.font.SysFont('Arial', 20, bold=True)
-            self.button_font = pygame.font.SysFont('Arial', 24, bold=True)
-        except Exception as e:
-            Logger.error("QuadrantConfigScreen", f"Font loading error: {str(e)}")
-            self.title_font = pygame.font.Font(None, 48)
-            self.label_font = pygame.font.Font(None, 20)
-            self.button_font = pygame.font.Font(None, 24)
+        self.title_font = self.font_manager.get_font(48)
+        self.label_font = self.font_manager.get_font(20)
+        self.button_font = self.font_manager.get_font(24)
         
         if self.background_image:
             self.background_image = pygame.transform.scale(self.background_image, (self.width, self.height))
