@@ -38,9 +38,16 @@ class BaseScreen:
         theme = self.theme_manager.current_theme
         Logger.info("BaseScreen", f"Initializing navbar with theme: {theme}")
         
+        def quadrant_editor_action():
+            from src.windows.screens.quadrant_editor_screen import QuadrantEditorScreen
+            self.next_screen = QuadrantEditorScreen
+            self.running = False
+            Logger.info("BaseScreen", "Redirecting to Quadrant Editor Screen")
+        
         self.navbar.set_callbacks(
             home_callback=self.home_action,
-            settings_callback=self.menu_action
+            settings_callback=self.menu_action,
+            quadrant_editor_callback=quadrant_editor_action
         )
     
     def setup_ui(self):
@@ -78,7 +85,7 @@ class BaseScreen:
                 continue
             
             # gérer les événements de la barre de navigation
-            self.navbar.handle_events(event)
+            self.navbar.handle_event(event)
             
             # gérer les événements de la fenêtre
             self.handle_screen_events(event)
