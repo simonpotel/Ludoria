@@ -23,6 +23,7 @@ class NavBar:
         menu_icon_path = "assets/Basic_GUI_Bundle/Icons/Icon_Small_WhiteOutline_Menu.png"
         music_on_icon_path = "assets/Basic_GUI_Bundle/Icons/Icon_Small_WhiteOutline_Music.png"
         music_off_icon_path = "assets/Basic_GUI_Bundle/Icons/Icon_Small_WhiteOutline_MusicOff.png"
+        edit_icon_path = "assets/Basic_GUI_Bundle/Icons/Edit.png" 
         button_bg_path = "assets/Basic_GUI_Bundle/ButtonsIcons/IconButton_Small_Blank_Rounded.png"
         
         self.home_button = ImageButton(
@@ -34,6 +35,17 @@ class NavBar:
             self.home_action,
             bg_image_path=button_bg_path,
             icon_path=star_icon_path
+        )
+        
+        self.quadrant_editor_button = ImageButton(
+            self.width - (btn_size * 3) - (padding * 3),
+            (self.height - btn_size) // 2,
+            btn_size,
+            btn_size,
+            "",
+            self.open_quadrant_editor,
+            bg_image_path=button_bg_path,
+            icon_path=edit_icon_path
         )
         
         self.music_button = ImageButton(
@@ -62,6 +74,7 @@ class NavBar:
         
         self.home_callback: Optional[Callable] = None 
         self.settings_callback: Optional[Callable] = None 
+        self.quadrant_editor_callback: Optional[Callable] = None
     
     def toggle_music(self) -> None:
         """
@@ -75,9 +88,10 @@ class NavBar:
         self.music_button.load_icon()
         Logger.info("NavBar", f"Music {'muted' if self.music_manager.is_muted else 'unmuted'}")
     
-    def set_callbacks(self, home_callback: Optional[Callable] = None, settings_callback: Optional[Callable] = None) -> None:
+    def set_callbacks(self, home_callback: Optional[Callable] = None, settings_callback: Optional[Callable] = None, quadrant_editor_callback: Optional[Callable] = None) -> None:
         self.home_callback = home_callback
         self.settings_callback = settings_callback
+        self.quadrant_editor_callback = quadrant_editor_callback
     
     def home_action(self) -> None:
         if self.home_callback:
@@ -91,13 +105,24 @@ class NavBar:
         else:
             Logger.warning("NavBar", "Settings button pressed but no callback set")
     
-    def handle_events(self, event: pygame.event.Event) -> None:
-        self.home_button.handle_event(event)
-        self.music_button.handle_event(event)
-        self.settings_button.handle_event(event)
+    def open_quadrant_editor(self) -> None:
+        """
+        procédure : ouvre l'éditeur de quadrants        """
+        if self.quadrant_editor_callback:
+            self.quadrant_editor_callback()
+        else:
+            Logger.warning("NavBar", "Quadrant editor button pressed but no callback set")
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        handled = False
+        handled |= self.home_button.handle_event(event)
+        handled |= self.quadrant_editor_button.handle_event(event)
+        handled |= self.music_button.handle_event(event)
+        handled |= self.settings_button.handle_event(event)
+        return handled
     
     def update(self, mouse_pos: Tuple[int, int]) -> None:
         self.home_button.check_hover(mouse_pos)
+        self.quadrant_editor_button.check_hover(mouse_pos)
         self.music_button.check_hover(mouse_pos)
         self.settings_button.check_hover(mouse_pos)
     
@@ -107,5 +132,6 @@ class NavBar:
         screen.blit(navbar_surface, (0,0))
         
         self.home_button.draw(screen)
+        self.quadrant_editor_button.draw(screen)
         self.music_button.draw(screen)
-        self.settings_button.draw(screen) 
+        self.settings_button.draw(screen)
