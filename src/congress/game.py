@@ -369,9 +369,6 @@ class Game(GameBase):
         """
         self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
         self.render.run_game_loop()
-        if getattr(self.render, "end_popup_action", None) == "play_again": # si l'action de la popup est "play_again" (recommencer la partie)
-            from src.windows.selector.selector import Selector # importe la classe Selector
-            Selector() # affiche la popup de sélection de mode de jeu
         self.cleanup()
 
     def get_board_state(self) -> Dict:

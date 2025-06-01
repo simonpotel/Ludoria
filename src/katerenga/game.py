@@ -116,9 +116,6 @@ class Game(GameBase):
         """
         self.render.edit_info_label(f"Player {self.round_turn + 1}'s turn")
         self.render.run_game_loop()
-        if getattr(self.render, "end_popup_action", None) == "play_again":
-            from src.windows.selector.selector import Selector
-            Selector()
         self.cleanup()
 
     def check_win(self, player: int) -> bool:
