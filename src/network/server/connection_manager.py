@@ -89,53 +89,34 @@ class ConnectionManager:
             Logger.server_error("Server", f"Error sending JSON to {client_socket.getpeername()}: {str(e)}")
             return False
 
-    def disconnect_client(self, client_socket: socket.socket, reason: str = "Unknown reason", is_recursive_call: bool = False) -> None:
-        """
-        procédure : déconnecte un client
-        params :
-            client_socket - le socket du client à déconnecter
-            reason - la raison de la déconnexion
-            is_recursive_call - indique si l'appel est récursif
-        """
-        if client_socket not in self.clients:
-            return
-
-        addr = client_socket.getpeername() if client_socket.fileno() != -1 else "disconnected socket" # on récupère l'adresse du client
-        Logger.server_internal("Server", f"Disconnecting client {addr}. Reason: {reason}") # on log la déconnexion
-
+    def disconnect_client(self, client_socket: socket.socket, reason: str) -> None:
         try:
-            game_id = self.get_client_game(client_socket) # on récupère l'identifiant de la partie du client
-            if game_id and self.game_manager and not is_recursive_call: # on vérifie si le client est dans une partie et si le GameManager existe
-                game = self.game_manager.get_game(game_id) # on récupère la partie
-                if game: # on vérifie si la partie existe
-                    other_socket = game.get_other_player_socket(client_socket) # on récupère le socket de l'autre joueur dans la partie (session)
-                    if other_socket: # on vérifie si l'autre joueur existe
+            game_id = self.get_client_game(client_socket)
+            if game_id and self.game_manager:
+                game = self.game_manager.get_game(game_id)
+                if game:
+                    other_socket = game.get_other_player_socket(client_socket)
+                    if other_socket:
+                        disconnect_dict = create_player_disconnected_dict(game_id, f"Other player disconnected: {reason}")
                         try:
-                            disconnect_packet = create_player_disconnected_dict(game_id, f"Other player disconnected: {reason}") # on crée le paquet de déconnexion
-                            self.send_json(other_socket, disconnect_packet) # on envoie le paquet de déconnexion à l'autre joueur
-                        except Exception as e:
-                            Logger.server_error("Server", f"Failed to send disconnect notification to other player: {e}")
-                        
-                        self.disconnect_client(other_socket, "Game session ended", True) # on déconnecte l'autre joueur
-                    
-                    self.game_manager.remove_game(game_id) # on retire la partie
+                            self.send_json(other_socket, disconnect_dict)
+                        except:
+                            pass
+                    self.game_manager.remove_game(game_id)
 
-            if client_socket in self.clients: # on retire le client du dictionnaire des clients
-                del self.clients[client_socket]
-            self.remove_client_game(client_socket) # on retire l'association du client avec une partie
-
+            Logger.server_internal("Server", f"Disconnecting client {client_socket.getpeername()}. Reason: {reason}")
+            self.remove_client_game(client_socket)
+            self.remove_client(client_socket)
             try:
-                if client_socket.fileno() != -1: # on ferme la connexion
-                    client_socket.shutdown(socket.SHUT_RDWR)
-            except OSError:
+                client_socket.shutdown(socket.SHUT_RDWR)
+            except:
                 pass
             try:
-                client_socket.close() # on ferme le socket
-            except OSError:
+                client_socket.close()
+            except:
                 pass
-
         except Exception as e:
-            Logger.server_error("Server", f"Error during client ({addr}) disconnect cleanup: {str(e)}")
+            Logger.server_error("Server", f"Error during client disconnect: {str(e)}")
 
     def process_received_data(self, client_socket: socket.socket, chunk: bytes) -> List[Dict]:
         """

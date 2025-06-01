@@ -60,30 +60,35 @@ class GameServer:
             client_socket - le socket du client
             address - l'adresse du client
         """
-        addr_str = f"{address[0]}:{address[1]}" # on récupère l'adresse du client
+        addr_str = f"{address[0]}:{address[1]}"
         try:
             while True:
-                chunk = client_socket.recv(4096) # on reçoit les données du client (maximum x octets) qui forment un chunk de données 
-                # les chunks de données sont reçus par le serveur et stockés dans le buffer du client
-                # le buffer est ensuite traité par le serveur pour extraire les paquets JSON
-                # les paquets JSON sont ensuite traités par le serveur pour extraire les données
-                if not chunk:
-                    Logger.server_internal("Server", f"Client {addr_str} disconnected (received empty chunk).")
+                try:
+                    chunk = client_socket.recv(4096)
+                    if not chunk:
+                        Logger.server_internal("Server", f"Client {addr_str} disconnected (received empty chunk).")
+                        break
+
+                    messages = self.connection_manager.process_received_data(client_socket, chunk)
+                    for packet_dict in messages:
+                        self.process_json_packet(client_socket, packet_dict)
+                except ConnectionResetError:
+                    Logger.server_internal("Server", f"Client {addr_str} disconnected forcefully (connection reset).")
                     break
-
-                messages = self.connection_manager.process_received_data(client_socket, chunk) # on traite les données reçues du client
-                for packet_dict in messages: # on parcourt les paquets JSON reçus
-                    self.process_json_packet(client_socket, packet_dict) # on traite le paquet JSON
-
-        except ConnectionResetError:
-            Logger.server_internal("Server", f"Client {addr_str} disconnected forcefully (connection reset).")
-        except socket.timeout:
-            Logger.server_error("Server", f"Client {addr_str} timed out.")
-            self.connection_manager.disconnect_client(client_socket, "Timeout")
-        except Exception as e:
-            Logger.server_error("Server", f"Error handling client {addr_str}: {str(e)}")
+                except socket.timeout:
+                    Logger.server_error("Server", f"Client {addr_str} timed out.")
+                    break
+                except socket.error as e:
+                    if e.errno == 9:
+                        Logger.server_internal("Server", f"Client {addr_str} socket already closed.")
+                    else:
+                        Logger.server_error("Server", f"Socket error for client {addr_str}: {str(e)}")
+                    break
+                except Exception as e:
+                    Logger.server_error("Server", f"Error handling client {addr_str}: {str(e)}")
+                    break
         finally:
-            self.connection_manager.disconnect_client(client_socket, "Closing connection")
+            self.connection_manager.disconnect_client(client_socket, "Connection ended")
 
     def process_json_packet(self, client_socket: socket.socket, packet_dict: Dict) -> None:
         """
