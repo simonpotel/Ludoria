@@ -57,7 +57,7 @@ python start_server.py
 
 L'écran de sélection vous permettra de choisir :
 - Le jeu que vous souhaitez jouer (Katarenga, Congress ou Isolation)
-- Le mode de jeu (Solo, contre IA, ou Multijoueur en réseau)
+- Le mode de jeu (Solo, contre un bot, ou Multijoueur en réseau)
 - Charger une partie sauvegardée
 
 ## Documentations
